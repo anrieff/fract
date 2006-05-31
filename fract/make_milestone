@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo -n "Enter a label: "
+read lbl
+zip milestones/fract-$lbl.zip src/*.cpp src/*.h

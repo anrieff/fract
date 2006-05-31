@@ -1,0 +1,113 @@
+#!/bin/bash
+
+COMPFLAGS=""
+LIBFLAGS=""
+SHORTVIEW="1"
+
+function compile()
+{
+    cd src
+    SOURCE_FILES=`ls *.cpp`
+    for fn in $SOURCE_FILES; do
+	if [ $SHORTVIEW -eq 1 ]; then
+	    echo -n "."
+	    g++ -Wall -c $COMPFLAGS $fn > /dev/null 2>/dev/null
+	else
+	    echo "C++ $fn"
+	    g++ -Wall -c $COMPFLAGS $fn
+	fi
+	
+	if [ $? -ne 0 ]; then
+	    exit 1
+	fi
+    done
+    OUT_FILES=`ls *.o`
+    if [ $SHORTVIEW -eq 1 ]; then
+	echo -n "L"
+    else
+	echo "LINK $OUT_BINARY"
+    fi
+    g++ -o $OUT_BINARY $COMPFLAGS $OUT_FILES $LIBFLAGS
+    mv $OUT_BINARY ../release
+    rm *.o 2> /dev/null
+    cd ..
+
+    if [ $SHORTVIEW -eq 1 ]; then
+	echo "]"
+    fi
+    
+    
+}
+
+#init
+if [ $# -eq 1 ]; then
+    if [ $1 = "--full" ]; then
+	SHORTVIEW="0"
+    fi
+    if [ $1 = "--help" ]; then
+	echo "Options: --full to view the full build process"
+	exit
+    fi
+fi
+
+
+# "main" function
+echo -n "VERSION is "
+cat "src/MyGlobal.h" | grep Fract_Version
+echo -n "Do you want to continue? "
+read an
+echo "CLEAN"
+rm -rf release 2> /dev/null
+mkdir release
+echo -n "Creating console variant"
+if [ $SHORTVIEW -eq 0 ]; then
+    echo ""
+else
+    echo -n "             ["
+fi
+cd src
+if [ $SHORTVIEW -eq 0 ]; then
+    echo "SAVE MyGlobal.h"
+fi
+cp MyGlobal.h MyGlobal1.h
+if [ $SHORTVIEW -eq 0 ]; then
+    echo "EDIT MyGlobal.h"
+fi
+rm MyGlobal.h
+cat MyGlobal1.h | grep -v "define ACTUALLYDISPLAY" > MyGlobal.h
+cd ..
+COMPFLAGS="-O3 -g0 -ffast-math"; LIBFLAGS="-lm -lpthread"; OUT_BINARY="fract_console"; compile
+if [ $SHORTVIEW -eq 0 ]; then
+echo "RESTORE MyGlobal.h"
+fi
+cd src
+rm MyGlobal.h
+mv MyGlobal1.h MyGlobal.h
+cd ..
+if [ $SHORTVIEW -eq 1 ]; then
+    echo -n "Creating non-SSE2 graphics variant   ["
+else
+    echo "Creating non-SSE2 graphics variant"
+fi
+COMPFLAGS="-O3 -g0 -ffast-math"; LIBFLAGS="-lm -lSDL"; OUT_BINARY="fract_p5"; compile
+if [ $SHORTVIEW -eq 1 ]; then
+    echo -n "Creating SSE2 graphics variant       ["
+else
+    echo "Creating SSE2 graphics variant"
+fi
+
+COMPFLAGS="-O3 -g0 -ffast-math -mfpmath=sse -msse -msse2"; LIBFLAGS="-lm -lSDL"; OUT_BINARY="fract_sse2"; compile
+
+cd release
+for fn in "fract_console	fract_p5	fract_sse2"; do
+    echo "STRIP $fn"
+    strip $fn
+    echo "COMPRESS $fn"
+    upx $fn
+done
+ln -s ../data data
+
+cd ..
+echo "#"
+echo "# your release is done. Binaries are in ./release"
+echo "#"

@@ -1,0 +1,40 @@
+Differences from 1.06a to 1.07a
+--------------------------------
+
+
+   *	Added adaptive antialiasing, with several FSAA patterns defined;
+
+   *	Added parallel view mode;
+
+   *	Added realistic soft shadows
+
+   *	Shadows are now cast on spheres, too. Meshes also cast shadows 
+	(currently only convex meshes are supported);
+
+   *	Better multithreading, shadow rendering is multithreaded, shaders
+	are speeded up;
+
+Differences from 1.05b to 1.06a
+--------------------------------
+
+   *	Advanced prefiller sphere mapping resulting in better smoothing of
+	sphere edges.
+
+   *	Added triangle rendering support. Currently the following features are
+   	implemented:
+		- Phong Shading
+		- Stochastic (perlin noise) intensity offset mapping
+		- Reflections (optimized)
+		- Texture mapping
+		- Normal mapping
+
+   *	Floor texture should now be smoother
+
+   *	Added proper mipmap selection for sphere and triangle reflections
+
+   *	Autodetecting number of CPUs
+   
+   *	Added "Object Glow" effect
+
+   *	Fixed a string of minor bugs
+  

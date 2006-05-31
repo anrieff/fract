@@ -1,0 +1,37 @@
+#!/bin/bash
+
+ROOTFILES="AUTHORS COPYING ChangeLog Doxyfile INSTALL Makefile.am Makefile.cvs Makefile.in NEWS README acconfig.h aclocal.m4 config.guess config.h.in config.sub configure configure.in depcomp fract.kdevelop fract.kdevelop.pcs fract.kdevses install-sh ltconfig ltmain.sh missing mkinstalldirs"
+
+DATAFILES="data/2.bmp data/benchmark.fsv data/font1.bmp data/fract_benchmark.bmp data/intro.bmp"
+
+
+if [ $# -ne 1 ]; then
+    echo "Usage: create_release_package <out_dir>"
+    exit 1
+    fi
+
+if [ -d $1 ]; then
+    echo "The specified dir already exists!"
+    exit 1
+    fi
+
+mkdir $1
+mkdir $1/src
+mkdir $1/templates
+mkdir $1/data
+mkdir $1/txt
+
+#
+# Copy the needed files only...
+#
+
+# copy root project files...
+
+cp $ROOTFILES $1
+cp src/*.cpp $1/src
+cp src/*.h $1/src
+cp src/Makefile.* $1/src
+cp $DATAFILES $1/data
+cp templates/* $1/templates
+cp txt/* $1/txt
+

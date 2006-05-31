@@ -1,0 +1,25 @@
+
+Phile			Mem Usage	Percent
+-----------------------------------------------
+fract.cpp		23782 k		 90 %
+gfx.cpp			  256 k		  1 %
+bitmap.cpp		    0 k		  0 %
+cmdline.cpp		    1 k		  0 %
+rgb2yuv.cpp		 2400 k		  9 %
+sphere.cpp		   91 k		  0 %
+vectormath.cpp		    0 k		  0 %
+-----------------------------------------------
+TOTAL			26514 k		100 %
+
+Actually (as shown on KSysGuard:)
+			28340 k
+
+This is from the process's info:
+
+VmSize:	   28340 kB
+VmLck:	       0 kB
+VmRSS:	    8828 kB
+VmData:	   22236 kB
+VmStk:	      36 kB
+VmExe:	      44 kB
+VmLib:	    4032 kB

@@ -1,0 +1,34 @@
+
+1.06 output file format - unencrypted
+
+offset		what		type		example
+
+
+	#build info:
+0		version		string[32]	"1.06a [2005/12/30]"
+32		OS		string[16]	"Linux"
+48		compiler	string[16]	"gcc 3.3"
+
+
+	#machine
+64		cpu_count	int		1
+68		cpu_type	string[32]	"Ahtlon64 (512K)"
+84		cpu_mhz		int		2435
+88		chipset		string[16]	"NForce4"
+104				void[8]		<unused>
+
+	#results
+128		res_x		int		640
+132		res_y		int		480
+136		overall_fps	float		36.75
+140		scene1		float		24.05
+144		scene2		float		57.07
+148		scene3,4,5	3*float		<unused>
+160				void[32]	<unused>
+
+
+	#user info
+192		username	string[32]	"anrieff"
+224		country		string[16]	"Bulgaria"
+240		md5sum		byte[16]	14e6edde8f9afbfa231b17a406f3059b (checksum of bytes [0-239])
+		comment		string[768]	"This is my home PC."

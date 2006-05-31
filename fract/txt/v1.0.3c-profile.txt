@@ -1,0 +1,46 @@
+No hardware acceleration for surface-to-screen blits.
+Will try to use YUV overlay to speed things up...OK
+Overlay is hardware accelerated :-)
+To disable overlay usage, add --no-overlay to the command line.
+Benchmarking RGB-to-YUV conversion functions:
+  ConvertRGB2YUV_X86: 609 fps
+  ConvertRGB2YUV_X86_ASM: 848 fps
+  ConvertRGB2YUV_X86_FPU: 716 fps
+  ConvertRGB2YUV_MMX: 2092 fps
+  ConvertRGB2YUV_MMX2: 2300 fps
+  ConvertRGB2YUV_SSE: 2164 fps
+
+2000 frames drawn for 44403 milliseconds; this yields 45.04 FPS.
+Profile Statistics:
+
+ [  0.01%] Bash_preframe()
+    |
+ [  6.22%] Preframe_do()
+    +---[ 73.03%] preframe_memset
+    +---[  0.25%] sphere_things
+    +---[  0.25%] physics
+    +---[  0.03%] sort
+    +---[ 25.17%] project
+    +---[  1.22%] pass
+    `---[  0.05%] other
+    |
+ [ 41.61%] Render_floor()
+    +---[  2.41%] init_per_row
+    +---[ 97.19%] work_per_row
+    `---[  0.40%] other
+    |
+ [ 37.57%] Render_spheres()
+    +---[  6.44%] memsets
+    +---[ 14.08%] solve3d
+    +---[ 47.26%] raytrace
+    `---[ 32.22%] other
+    |
+ [  2.60%] Merge_buffers()
+    |
+ [ 11.99%] Postframe_do()
+    +---[  0.01%] antialias
+    +---[  0.00%] shaders
+    +---[  0.00%] showfps
+    +---[ 64.63%] convertrgb2yuv
+    +---[ 35.21%] displayoverlay
+    `---[  0.15%] other

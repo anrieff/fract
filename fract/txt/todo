@@ -1,0 +1,55 @@
+For the new release:
+
+GENERAL:
+fract:
+	[   ] Working shadows (+eventual speedup)
+	[   ] Better multithreading, multithreaded shadows
+	[   ] Readd SSE2 and SSE3 implementations of vector3
+	[   ] Try compile with VC 8.0
+	[   ] Output to temp.txt (FPS & CPU MHz atleast)
+	[   ] Compile a realistic changelog
+	[   ] Fix the loop options
+	[   ] Don't output result file if ESC is pressed
+
+wxfractgui:
+	[   ] Browse the last result
+	[   ] Show my.rtab and db.rtab in the result browsing window
+              (and suggest downloading newer db.rtab)
+	[   ] 
+
+MINOR:
+fract:
+	[   ] Fix for RDTSC on multicpu systems (win2k3 bug?)
+	[   ] Light object, star like (w/ lens flare?)
+
+wxfractgui:
+	[   ] New processors
+
+
+NICE_TO_HAVE:
+fract:
+	[   ] "Toto" scene
+
+
+
+
+
+
+
+
+
+
+
+//////// old / obsolete
+ - [***] Add mesh bounding box & related optimizations
+ - [   ] Add mesh refraction
+ - [   ] Add mesh refraction SSS
+ - [***] Add difference buffer to apply edge AA
+ - [***] Add two or three AA patterns
+ - [***] Make mesh reflections and refractions floor mipmap aware
+ - [***] Add texture mapping
+ - [***] Add necessary parsing options to the FSV format
+ - [** ] If loading data/scene.fsv and it includes "blah.bmp", then load "data/blah.bmp"
+ - [** ] Add (OBJ) 3d format parser
+ - [***] Update the ChangeLog more frequently:)
+ 

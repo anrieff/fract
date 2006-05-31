@@ -1,0 +1,56 @@
+Quick Installation Guide
+=========================P
+
+--Linux
+-------
+    Compiling and running fract should be quite easy. Issue the following
+commands:
+
+$ ./configure
+$ make
+$ cp src/fract .
+
+    If everything is up to spec you should be able to execute the binary file"
+
+$ ./fract
+
+    That's it! 'njoy!
+
+--Win32 with MinGW
+------------------
+    Not very hard. See http://cone3d.gamedev.net/cgi-bin/index.pl?page=tutorials/gfxsdl/tut1
+Now follow the steps described there to create a console C++ app with Dev-CPP.
+Then add the sources to the project and you are all set.
+
+--MSVC++ 7.1, a.k.a MSVC.NET 2003
+---------------------------------
+    This is for Microsoft Visual C++. 
+
+  1) Download the SDL development library rom www.libsdl.org.
+  2) Put the headers in some place, where MSVC can see them
+     (e.g. my MSVC is installed in d:\programs\MSVC.NET2003, the SDL.h header
+      is located in D:\programs\MSVC.NET2003\Vc7\include\SDL\SDL.h).
+  3) Copy the SDL.lib, SDLmain.lib and SDL.dll in the fract's directory
+     (i.e. where the fract.sln file resides)
+  4) Just open the .sln file :)
+
+    Fract will do the compiler autodetection and use the proper alignment
+requests/assembly syntax.
+
+
+
+
+Advanced Options and Obscure Configuration Defines
+==================================================P
+
+1)
+    Remove the define at MyGlobal.h:17 (ACTUALLYDISPLAY) and recompile
+(note: it is currently possible under linux only). You will get a terminal
+app that prints a `.' for each frame and does no graphical output. Useful
+for running over ssh connections and/or on machines without X / SDL / etc.
+
+2)
+    asmconfig.h:14. Remove the USE_ASSEMBLY define and you get no single
+assembly line in the source. Fract should now be POSIX compliant and compile
+freely (at least with gcc) on any OS supporting SDL. Please give me feedback
+on your success :)

@@ -1,0 +1,8 @@
+Althlon @ 2133 MHz vs Pentium III 850 MHz
+
+test:			Athlon		Pentium		diff
+  Convert_X86:		592  fps	194  fps	3.05
+  Convert_X86_ASM:	811  fps	137  fps	5.92
+  Convert_MMX:		1989 fps	231  fps	8.61
+  Convert_MEM:		527  fps	221  fps	2.38
+  

@@ -1,0 +1,22 @@
+Fract ShortCuts:
+Active In --developer Mode:
+
+	ESC	- Quit Application
+
+	F5	- Toggle "Edge Glow" Effect
+	F8	- Toggle Fullscreen Antialiasing
+	F9	- Decrease Field-of-view
+	F10	- Increase Field-of-view
+	F11	- Toggle Bilinear Filtering
+	F12	- ScreenShot
+
+	B	- Toggle Blur
+	Shift-B	- Cycle blur mode
+	R	- Toggle run mode
+	G	- Cycle gravitation modes
+	M	- Toggle Mipmapping
+	C	- Cycle RGB2YUV method (active when YUV overlay is used)
+	S	- Toggle Shadows
+	Arrows	- Move
+	Keypad  - Look around
+

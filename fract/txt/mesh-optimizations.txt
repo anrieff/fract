@@ -1,0 +1,55 @@
+Hour         : 00:18
+w/o recursive: 17.23
+w/  recursive:  9.85
+---------------------
+
+Hour         : 01:12
+w/o recursive: 17.09
+w/  recursive: 15.14
+---------------------
+
+Hour         : 02:08
+w/o recursive: 26.42
+w/  recursive: 23.31
+---------------------
+
+Hour         : 11:40
+w/o recursive: 26.74
+w/  recursive: 23.64
+---------------------
+
+Hour         : 11:51
+w/o recursive: 26.90
+w/  recursive: 23.77
+---------------------
+
+Hour         : 12:54
+w/o recursive: 27.21
+w/  recursive: 24.05
+---------------------
+
+*** ADDED mipmap aware:
+Hour         : 14:19
+w/o recursive: 25.70
+w/  recursive: 22.92
+---------------------
+
+Hour         : 21:31
+w/o recursive: 26.69
+w/  recursive: 24.07
+---------------------
+
+Hour         : 23:35
+w/o recursive: 28.52
+w/  recursive: 25.61
+---------------------
+
+Hour         : 00:19
+w/o recursive: 29.32
+w/  recursive: 26.56
+---------------------
+
+Hour         : 04:24
+w/o recursive: 32.64
+w/  recursive: 29.82
+---------------------

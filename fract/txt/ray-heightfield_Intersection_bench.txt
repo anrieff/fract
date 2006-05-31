@@ -1,0 +1,22 @@
+Benchmarking raycasting speeds
+        Random texels: [############]   277778 raycasts / sec
+        Adjascent texels: [############]        326087 raycasts / sec
+Benchmarking raycasting speeds
+        Random texels: [############]   317125 raycasts / sec
+        Adjascent texels: [############]        387597 raycasts / sec
+Benchmarking raycasting speeds
+        Random texels: [############]   333333 raycasts / sec
+        Adjascent texels: [############]        395778 raycasts / sec
+
+Final algo @ 4 OUTER_MIPLEVEL
+Benchmarking raycasting speeds
+        Random texels: [############]   797872 raycasts / sec
+        Adjascent texels: [############]        1136364 raycasts / sec
+Final algo @ 5 OUTER_MIPLEVEL
+Benchmarking raycasting speeds
+        Random texels: [############]   691244 raycasts / sec
+        Adjascent texels: [############]        1000000 raycasts / sec
+Old Hierarchial Algo
+Benchmarking raycasting speeds
+        Random texels: [############]   317797 raycasts / sec
+        Adjascent texels: [############]        391645 raycasts / sec

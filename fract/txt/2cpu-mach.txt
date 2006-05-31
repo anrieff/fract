@@ -1,0 +1,21 @@
+debian:
+-------
+
+
+NO SSE/MMX/MMX2:
+1st (no threads)
+238350ms,  8.39 fps
+2nd (no threads)
+4m, 0s, 8.40 fps
+--------------------
+
+
+W/MMX, SSE, MMX2:
+-----------------
+1st (no threads)
+1m 54s, 17.53 fps
+2nd (threads)
+1m 33s, ~21.50 fps
+3rd (threads)
+1m 33s 290ms, 21,43 ps
+-----------------

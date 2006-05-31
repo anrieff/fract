@@ -1,0 +1,27 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fract", "fract.vcproj", "{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Optimized = Optimized
+		Optimized-SSE = Optimized-SSE
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Debug.ActiveCfg = Debug|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Debug.Build.0 = Debug|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Optimized.ActiveCfg = Optimized|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Optimized.Build.0 = Optimized|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Optimized-SSE.ActiveCfg = Optimized-SSE|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Optimized-SSE.Build.0 = Optimized-SSE|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Release.ActiveCfg = Optimized|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Release.Build.0 = Optimized|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

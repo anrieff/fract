@@ -1,0 +1,37 @@
+Tests w/ --no-mem and --xres=320
+
+BLURED VERSION:
+
+0.0  32.530s -- init
+0.1  29.790s -- rewritten blurring proc in asm w/ mmx
+
+NORMAL BILINEAR VERSION:
+
+0.0  27.420s -- init
+0.1  10.250s -- no spheres
+0.2  10.080s -- no spheres, fixed renderer
+0.3   9.780s -- no spheres, getting points with movq
+0.4  18.190s -- finished
+
+NORMAL NEAREST-NEIGHBOUR VERSION:
+
+
+0.0  20.660 -- init P5 w/sse
+0.1   7.190 -- no spheres, 2x2 renderer
+0.2  16.700 -- finished
+
+640x480 tests:
+
+1) w/ bilinear:
+  113.870 = 14.73 fps - --no-sse --no-mmx2
+   50.740 = 28.09 fps - w/sse & mmx2
+
+2) w/o bilinear:
+   57.200 = 24.00 fps - --no-sse --no-mmx2
+   41.540 = 32.40 fps - w/sse & mmx2
+
+
+
+---
+640x480 4xHQAA bilinear filter; No SSE, No MMX2, No MMX  w/ Blur  : 250 frames for 486623 ms -> 1.03 FPS. (cpu time = 7m33s)
+640x480 NoAA nearest-neighbour filter; w/SSE, MMX2 & MMX, w/o Blur:2000 frames for 58222 ms -> 34.35 FPS. (cpu time = 37.5s)

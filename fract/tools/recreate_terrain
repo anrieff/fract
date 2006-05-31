@@ -1,0 +1,5 @@
+#!/bin/bash
+bmp2fda tmpflr.bmp heightmap_f.fda
+bmp2fda tmpcl.bmp  heightmap_c.fda
+mv *.fda ../data
+

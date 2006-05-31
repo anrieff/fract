@@ -1,0 +1,28 @@
+Performance (--no-mem --no-sse flags, full test:)
+
+initial (v.1.03b + speedups):
+17.34 fps
+
+using approx all the time
+12.30 fps
+
+using approx for the "outsiderz"
+
+@1024x1024 precalculation...
+17.69 fps
+
+@256x256 precalculation...
+17.22 fps
+
+@512x512 precalculation...
+17.71 fps
+
+
+-------------------------------------------
+
+optimized bilinear filtering: --> 21.57
+
+mmx bilinear		      --> 24.45
+
+06- 			      --> 23.23
+
