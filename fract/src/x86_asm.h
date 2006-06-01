@@ -2302,6 +2302,7 @@ void shader_fbmerge_mmx2(Uint32 *dest, Uint8 * src, int resx, int resy, float in
 	);
 }
 
+void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[]) __attribute__((noinline));
 void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[])
 {
 	SSE_ALIGN(short int h_kernel[9][4]);
