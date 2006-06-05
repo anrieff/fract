@@ -59,42 +59,38 @@ float lightformulae_tiny(float x)
 	return 25.0 * FastPower_minus_quarter(x);
 }
 
-int alloc_cnt = 0;
-void * allocs[128];
-
 // given an (possibly) unaligned pointer, return an 16-byte aligned one (possibly larger)
 static inline void * perfectify(void *in)
 {
-	long t = (long) in;
-	if (t&15l) {
-		t = (t&~15l)+16l;
-	}
-	return (void*)t;
+	long t = reinterpret_cast<long>( in );
+	t = (t&~15l)+16l;
+	return reinterpret_cast<void*>( t );
 }
 
 // malloc's memory with forced 16-byte alignment
+// Since malloc guarantees 8-byte alignment, we allocate 16 bytes more than
+// we need. Then we perfectify() the pointer. We store the address of the
+// original malloc() return just before the 16-byte boundary (that is,
+// 4 or 8 bytes before the address, that is returned after)
 void *sse_malloc(size_t size)
 {
-	void *res = malloc(size + 8);// malloc guarantees 8-byte alignment
-	allocs[alloc_cnt++] = res;
-	return perfectify(res);
+	void *res = malloc(size + 16);// malloc guarantees 8-byte alignment
+	void *perfect = perfectify(res);
+	void **store = (void**)perfect;
+	*(--store) = res;
+	
+	return perfect;
 }
 
 void sse_free(void *ptr)
 {
-	int i;
-	for (i = 0; i < alloc_cnt; i++)
-		if (ptr == perfectify(allocs[i])) {
-			break;
-		}
-	if ( i >= alloc_cnt ) {
-		printf("DEBUG: sse_free error: unmached free argument\n");
-		return;
+	void * to_free = *(((void**)ptr)-1);
+	if (perfectify(to_free) == ptr) {
+		free(to_free);
+	} else {
+		printf("Memory corruption!!!\n");
+		printf("Something is wrong with sse_malloc/sse_free!\n");
 	}
-	free(allocs[i]);
-	alloc_cnt--;
-	for (;i < alloc_cnt;i++)
-		allocs[i] = allocs[i+1];
 }
 
 #ifdef _MSC_VER
