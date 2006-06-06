@@ -19,7 +19,9 @@
 #include <sys/sysinfo.h>
 #include <unistd.h>
 #else
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #endif
 
 #ifdef __APPLE__

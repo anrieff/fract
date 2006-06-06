@@ -16,7 +16,6 @@
 #include "vectormath.h"
 #include "mesh.h"
 #include <stdlib.h>
-#include <malloc.h>
 #include "array.h"
 #include "vector2f.h"
 

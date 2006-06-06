@@ -2355,14 +2355,14 @@ void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int h
 "               xor     %%edx,  %%edx\n"
 "               movups  %2,     %%xmm7\n"
 
-"               .balign 16\n"
+XALIGN
 "       yloop:\n"
 "               mov     $2,     %%eax\n"
 "               movl    $0,     (%%edi)\n"
 "               add     $4,     %%esi\n"
 "               add     $4,     %%edi\n"
 
-"               .balign 16\n"
+XALIGN
 "       xloop:\n"
 
 "               push    %%eax\n"
@@ -2374,7 +2374,7 @@ void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int h
 "               pxor    %%mm0,  %%mm0\n"
 "               pxor    %%mm1,  %%mm1\n"
 
-"               .balign  16\n"
+XALIGN
 "       yiloop:\n"
 
 "               lea     -8(,%%ecx, 8),        %%eax\n"
@@ -3169,7 +3169,12 @@ void triangle_sp_merge(Uint16 *dst, Uint8 *src, int count)
 // -- Assembly version of ConvertRGB2YUV_X86. Uses i386 intructions only. No precision loss also.
 // count must be even
 void ConvertRGB2YUV_X86_ASM(Uint32 *dest, Uint32 *src, size_t count)
-{int s[9] = {IM11, IM12, IM13, IM21, IM22, IM23, IM31, IM32, IM33};
+{
+#ifdef __APPLE__
+	ConvertRGB2YUV_X86(dest, src, count);
+	return;
+#endif
+ int s[9] = {IM11, IM12, IM13, IM21, IM22, IM23, IM31, IM32, IM33};
  count /= 2;
  while (count--) {
  	__asm __volatile(
