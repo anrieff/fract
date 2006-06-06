@@ -19,6 +19,13 @@
 #ifdef USE_ASSEMBLY
 #ifdef __GNUC__
 
+// Mac OSX's assembler doesn't like inline aligment requests
+#ifndef __APPLE__
+#	define XALIGN ".balign 16\n"
+#else
+#	define XALIGN
+#endif
+
 // generic assembly snipplet, emits the EMMS instruction
 #ifdef emit_emms
 		__asm __volatile ("emms");
@@ -48,6 +55,7 @@
 #ifdef render2
 					__asm __volatile (
 				// calculate light degradation:
+				    "   push	%%esi\n"
 					"	movaps	%5,	%%xmm4\n" // load light x in xmm4
 					"	movaps	0x10%5,	%%xmm5\n" // load light y in xmm5
 					"	movaps	%%xmm7,	%%xmm6\n"
@@ -114,13 +122,13 @@
 					"	psrlq	$32,	%%mm0\n"
 					"	movd	%%mm0,	%%edx\n"
 					"	movl	%7,	%%ecx\n"
-					"	movl	%4,	%%ebx\n"
-					"	movq	(%%ebx, %%eax, 0x4),	%%mm2\n"
+					"	movl	%4,	%%esi\n"
+					"	movq	(%%esi, %%eax, 4),	%%mm2\n"
 
 					"	addl	%8,	%%eax\n"
 					"	inc	%%eax\n"
 					"	andl	%%ecx,	%%eax\n"
-					"	movq	(%%ebx, %%eax, 0x4),	%%mm3\n" //!!
+					"	movq	(%%esi, %%eax, 4),	%%mm3\n" //!!
 
 /* situation: (low-to-hi)
 	mm2 -> [ boffset		, boffset+1 		] of first coord
@@ -199,12 +207,12 @@
 
 // next point baddress is in edx... repeat the whole procedure...
 					"	movl	%%edx,	%%eax\n"
-					"	movq	(%%ebx, %%eax, 0x4),	%%mm2\n"
+					"	movq	(%%esi, %%eax, 4),	%%mm2\n"
 
 					"	addl	%8,	%%eax\n"
 					"	inc	%%eax\n"
 					"	andl	%%ecx,	%%eax\n"
-					"	movq	(%%ebx, %%eax, 0x4),	%%mm3\n"
+					"	movq	(%%esi, %%eax, 4),	%%mm3\n"
 
 					"	movq	%9,	%%mm0\n" // mm0 = 0xffffffffffffffff
 					"	movq	%9,	%%mm1\n" // mm1 = mm0
@@ -297,13 +305,13 @@
 					"	psrlq	$32,	%%mm0\n"
 					"	movd	%%mm0,	%%edx\n"
 					"	movl	%7,	%%ecx\n"
-					"	movl	%4,	%%ebx\n"
-					"	movq	(%%ebx, %%eax, 0x4),	%%mm2\n"
+					"	movl	%4,	%%esi\n"
+					"	movq	(%%esi, %%eax, 4),	%%mm2\n"
 
 					"	addl	%8,	%%eax\n"
 					"	inc	%%eax\n"
 					"	andl	%%ecx,	%%eax\n"
-					"	movq	(%%ebx, %%eax, 0x4),	%%mm3\n"
+					"	movq	(%%esi, %%eax, 4),	%%mm3\n"
 
 					"	movq	%9,	%%mm0\n" // mm0 = 0xffffffffffffffff
 					"	movq	%9,	%%mm1\n" // mm1 = mm0
@@ -382,12 +390,12 @@
 // FOURTH point!
 // next point baddress is in edx... repeat the whole procedure...
 					"	movl	%%edx,	%%eax\n"
-					"	movq	(%%ebx, %%eax, 0x4),	%%mm2\n"
+					"	movq	(%%esi, %%eax, 4),	%%mm2\n"
 
 					"	addl	%8,	%%eax\n"
 					"	inc	%%eax\n"
 					"	andl	%%ecx,	%%eax\n"
-					"	movq	(%%ebx, %%eax, 0x4),	%%mm3\n"
+					"	movq	(%%esi, %%eax, 4),	%%mm3\n"
 
 					"	movq	%9,	%%mm0\n" // mm0 = 0xffffffffffffffff
 					"	movq	%9,	%%mm1\n" // mm1 = mm0
@@ -452,16 +460,18 @@
 					"	paddd	24%6,	%%mm3\n"
 					"	addps	%%xmm2,	%%xmm0\n"
 					"	addps	%%xmm3,	%%xmm1\n"
+					"   pop		%%esi\n"
 					:"=m"(*dptr), "=m"(*gx), "=m"(*gy), "=m"(*save)
 					:"m"(ptex),"m"(*lightxy1),"m"(*gxx), "m"(texandmask),"m"(*xxandmask),
 					 "m"(*my_ffs)
-					:"memory", "eax", "ebx", "ecx", "edx"
+					:"memory", "eax", "ecx", "edx"
 					);
 #endif
 // originaly taken from 1174
 #ifdef render3
 				__asm __volatile (
 				// calculate light degradation:
+				    "	push	%%esi\n"
 					"	movaps	%5,	%%xmm4\n" // load light x in xmm4
 					"	movaps	0x10%5,	%%xmm5\n" // load light y in xmm5
 					"	movaps	%%xmm7,	%%xmm6\n"
@@ -510,14 +520,14 @@
 					"	paddd	%%mm3,	%%mm1\n" // mm1 = index2 index3
 
 					"	pxor	%%mm7,	%%mm7\n" // nullify mm7
-					"	movl	%4,	%%ebx\n"
+					"	movl	%4,	%%esi\n"
 
 					"	movd	%%mm0,	%%eax\n"
 					"	psrlq	$32,	%%mm0\n"
 					"	movd	%%mm0,	%%edx\n"
 
-					"	movd	(%%ebx, %%eax, 4),	%%mm2\n" // get first pixel in mm2
-					"	movd	(%%ebx,	%%edx, 4),	%%mm3\n" // get second pixel in mm3
+					"	movd	(%%esi, %%eax, 4),	%%mm2\n" // get first pixel in mm2
+					"	movd	(%%esi,	%%edx, 4),	%%mm3\n" // get second pixel in mm3
 
 					"	punpcklbw %%mm7,	%%mm2\n"
 					"	punpcklbw %%mm7,	%%mm3\n"
@@ -560,8 +570,8 @@
 					"	psrlq	$32,	%%mm1\n"
 					"	movd	%%mm1,	%%edx\n"
 
-					"	movd	(%%ebx, %%eax, 4),	%%mm2\n" // get first pixel in mm2
-					"	movd	(%%ebx,	%%edx, 4),	%%mm3\n" // get second pixel in mm3
+					"	movd	(%%esi, %%eax, 4),	%%mm2\n" // get first pixel in mm2
+					"	movd	(%%esi,	%%edx, 4),	%%mm3\n" // get second pixel in mm3
 
 					"	punpcklbw %%mm7,	%%mm2\n"
 					"	punpcklbw %%mm7,	%%mm3\n"
@@ -615,10 +625,11 @@
 					"	movaps	16%8,	%%xmm3\n"
 					"	addps	%%xmm2,	%%xmm0\n"
 					"	addps	%%xmm3,	%%xmm1\n"
+					"	pop		%%esi\n"
 
 					:"=m"(*dptr), "=m"(*gx), "=m"(*gy), "=m"(*save)
 					:"m"(ptex),"m"(*lightxy1),"m"(*gxx),"m"(*xxandmask), "m"(*fxyi)
-					:"memory", "eax", "ebx", "edx");
+					:"memory", "eax", "edx");
 #endif
 // originaly taken from antialias.cpp:75
 #ifdef antialias_asm
@@ -645,8 +656,8 @@ static void antialias_4x_mmx2_lo_fi(Uint32 *fb)
 	"pixelcycle:\n"
 	"	movq	 (%%esi),	%%mm0\n"
 	"	movq	8(%%esi),	%%mm1\n"
-	"	movq	 (%%esi, %%ecx),%%mm2\n"
-	"	movq	8(%%esi, %%ecx),%%mm3\n"
+	"	movq	 (%%esi, %%ecx, 1),%%mm2\n"
+	"	movq	8(%%esi, %%ecx, 1),%%mm3\n"
 
 	"	psrlq	$2,	%%mm0\n"
 	"	psrlq	$2,	%%mm1\n"
@@ -937,19 +948,19 @@ void convolve_mmx_w_shifts_generic(Uint32 *src, Uint32 *dest, int resx, int resy
 	".rowloop:	\n"
 	"	movl	%8,	%%edx\n"
 
-	".balign 16	\n"
+	XALIGN
 	".pixelloop:	\n"
 
 	"	movl	%4,	%%ecx\n"
 	"	pxor	%%mm0,	%%mm0\n"
 	"	pxor	%%mm2,	%%mm2\n"
 
-	".balign 16	\n"
+	XALIGN
 	".y:	\n"
 
 	"	movl	%4, 	%%eax\n"
 
-	".balign 16	\n"
+	XALIGN
 	".x:	\n"
 
 	"	cmp	$2,	%%eax\n"
@@ -965,7 +976,7 @@ void convolve_mmx_w_shifts_generic(Uint32 *src, Uint32 *dest, int resx, int resy
 
 	"	jmp	.xend\n"
 
-	".balign 16	\n"
+	XALIGN
 	".enough:	\n"
 	"	movd	(%%esi),	%%mm1\n"
 	"	movd	4(%%esi),	%%mm3\n"
@@ -981,7 +992,7 @@ void convolve_mmx_w_shifts_generic(Uint32 *src, Uint32 *dest, int resx, int resy
 	"	sub	$2,	%%eax\n"
 	"	jnz	.x\n"
 
-	".balign 16	\n"
+	XALIGN
 	".xend:\n"
 
 	"	add	%3,	%%esi\n"
@@ -1093,7 +1104,7 @@ void convolve_mmx_w_shifts_3(Uint32 *src, Uint32 *dest, int resx, int resy, Conv
 	".rowloop_3:	\n"
 	"	movl	%8,	%%edx\n"
 
-	".balign 16	\n"
+	XALIGN
 	".pixelloop_3:	\n"
 
 	"	movd	(%%esi),	%%mm0\n"
@@ -1223,7 +1234,7 @@ void convolve_mmx_w_shifts_5(Uint32 *src, Uint32 *dest, int resx, int resy, Conv
 	".rowloop_5:	\n"
 	"	movl	%8,	%%edx\n"
 
-	".balign 16	\n"
+	XALIGN
 	".pixelloop_5:	\n"
 
 	// row 1:
@@ -1391,7 +1402,7 @@ void convolve_mmx_w_shifts_5(Uint32 *src, Uint32 *dest, int resx, int resy, Conv
 
 	"	decl	%7\n"
 	"	jnz	.rowloop_5\n"
-
+	
 	:"=m"(dest)
 	:"m"(src), "m"(pmm), "m"(toadd), "m"(n), "m"(shift), "m"(*fourones), "m"(rows), "m"(cols)
 	:"memory", "eax", "ebx", "ecx", "edx", "esi", "edi"
@@ -1450,7 +1461,7 @@ void shader_gamma_shl(Uint32 *src, Uint32 *dest, int resx, int resy, int shift)
 	"	movl	%0,	%%edi\n"
 	"	movl	%1,	%%esi\n"
 
-	".balign 16\n"
+	XALIGN
 	".shader_gamma_shl_loop:"
 
 	"	movd	(%%esi),	%%mm0\n"
@@ -1504,7 +1515,7 @@ void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift)
 	"	movl	%0,	%%edi\n"
 	"	movl	%1,	%%esi\n"
 
-	".balign 16\n"
+	XALIGN
 	".shader_gamma_shr_loop:"
 
 	"	movd	(%%esi),	%%mm0\n"
@@ -1600,7 +1611,7 @@ float __attribute__ ((aligned(16))) fftconsts[20] =	{ 1.0,  1.0,  1.0,  1.0,
    for (i=0;i<m;i++)
       nn *= 2;
    __asm __volatile(
-
+   
    	"	movl	%2,	%%edx\n" //edx=i2
 	"	decl	%2\n"
 	"	shr	%%edx\n"
@@ -1609,7 +1620,7 @@ float __attribute__ ((aligned(16))) fftconsts[20] =	{ 1.0,  1.0,  1.0,  1.0,
 	"	movl	%1,	%%edi\n"
 	"	xor	%%eax,	%%eax\n" //eax=i
 
-	".balign 16\n"
+	XALIGN
 	".fft_l1:\n"
 
 	"	cmp	%%ebx,	%%eax\n"
@@ -1632,11 +1643,11 @@ float __attribute__ ((aligned(16))) fftconsts[20] =	{ 1.0,  1.0,  1.0,  1.0,
 	"	shr	$4,	%%ebx\n"
 
 
-	".balign 16\n"
+	XALIGN
 	".fftb1:\n"
 
 	"	movl	%%edx,	%%ecx\n" // ecx=k
-	".balign 16\n"
+	XALIGN
 	".fftwhile1:\n"
 	"	cmp	%%ebx,	%%ecx\n"
 	"	jg	.fftb2\n"
@@ -1645,7 +1656,7 @@ float __attribute__ ((aligned(16))) fftconsts[20] =	{ 1.0,  1.0,  1.0,  1.0,
 	"	shr	%%ecx\n"
 	"	jmp	.fftwhile1\n"
 
-	".balign 16\n"
+	XALIGN
 	".fftb2:\n"
 
 	"	addl	%%ecx,	%%ebx\n"
@@ -1683,7 +1694,7 @@ __asm __volatile (// mapping: eax = i, ebx = i1, ecx = l1, edx = l2. esi = x, ed
    2, 3 - u1, u2
    4, 5 - t1, t2
 */
-	".balign 16\n"
+	XALIGN
 	".fft_log2:\n"
 
 	"	mov	%%edx,	%%ecx\n"
@@ -1693,11 +1704,11 @@ __asm __volatile (// mapping: eax = i, ebx = i1, ecx = l1, edx = l2. esi = x, ed
 	"	movaps	16%7,	%%xmm3\n" // move 0 to u2
 	"	movl	$0,	%5\n"     // j = 0
 
-	".balign 16\n"
+	XALIGN
 	".fft_c1:\n"
 	"	movl	%5,	%%eax\n" // i= j
 
-	".balign 16\n"
+	XALIGN
 	".fft_c2:\n"
 
 	"	mov	%%eax,	%%ebx\n"
@@ -1785,7 +1796,7 @@ __asm __volatile (// mapping: eax = i, ebx = i1, ecx = l1, edx = l2. esi = x, ed
 	"	addps	%3,	%%xmm0\n"
 	"	movaps	%%xmm0,	%3\n"
 
-	".balign 16\n"
+	XALIGN
 	".fft_invb:\n"
 
 	"	decl	%4\n" // l--
@@ -1805,7 +1816,7 @@ __asm __volatile (// mapping: eax = i, ebx = i1, ecx = l1, edx = l2. esi = x, ed
 	//"	addps	%%xmm0,	%%xmm0\n" // xmm0 = 2/nn 2/nn 2/nn 2/nn
 
 	"	movl	%6,	%%ecx\n"
-	".balign 16\n"
+	XALIGN
 	".fft_scale:\n"
 
 	"	movaps	%%xmm0,	%%xmm1\n"
@@ -1821,7 +1832,7 @@ __asm __volatile (// mapping: eax = i, ebx = i1, ecx = l1, edx = l2. esi = x, ed
 	"	decl	%%ecx\n"
 	"	jnz	.fft_scale\n"
 
-	".balign 16\n"
+	XALIGN
 	".fft_nscale:\n"
 
 	"	emms\n"
@@ -1859,13 +1870,13 @@ void float_copy_ij_i(float *a, float *b, complex c[], int fft_size)
 	//"	shl	$3,	%%edx\n"
 	"	movl	%0,	%%esi\n"
 	"	movl	%1,	%%edi\n"
-	"	movl	%2,	%%ebx\n"
+	"	movl	%2,	%%ecx\n"
 
-	".balign 16\n"
+	XALIGN
 	".copy_ij_i_loop:\n"
 
-	"	movaps	(%%ebx),	%%xmm0\n" // xmm0 = re[0] im[0] re[1] im[1]
-	"	movaps	16(%%ebx),	%%xmm1\n" // xmm1 = re[2] im[2] re[3] im[3]
+	"	movaps	(%%ecx),	%%xmm0\n" // xmm0 = re[0] im[0] re[1] im[1]
+	"	movaps	16(%%ecx),	%%xmm1\n" // xmm1 = re[2] im[2] re[3] im[3]
 	"	movaps	%%xmm0,	%%xmm2\n"	  // xmm2 = re[0] im[0] re[1] im[1]
 	"	movaps	%%xmm1,	%%xmm3\n"	  // xmm3 = re[2] im[2] re[3] im[3]
 	"	shufps	$0x88,	%%xmm1,	%%xmm0\n" // 10 00 10 00 // xmm0 = re[0] re[1] re[2] re[3]
@@ -1873,7 +1884,7 @@ void float_copy_ij_i(float *a, float *b, complex c[], int fft_size)
 	"	movaps	%%xmm0,	(%%esi)\n"
 	"	movaps	%%xmm2,	(%%edi)\n"
 
-	"	add	$8192,	%%ebx\n"
+	"	add	$8192,	%%ecx\n"
 	"	add	$16,	%%esi\n"
 	"	add	$16,	%%edi\n"
 
@@ -1883,7 +1894,7 @@ void float_copy_ij_i(float *a, float *b, complex c[], int fft_size)
 	"	emms\n"
 	:"=m"(a), "=m"(b)
 	:"m"(c), "m"(fft_size)
-	:"memory", "eax", "ebx", "edx", "esi", "edi"
+	:"memory", "eax", "ecx", "edx", "esi", "edi"
 	);
 
 }
@@ -1909,9 +1920,9 @@ void float_copy_i_ij(float *a, float *b, complex c[], int fft_size)
 	//"	shl	$3,	%%edx\n"
 	"	movl	%0,	%%esi\n"
 	"	movl	%1,	%%edi\n"
-	"	movl	%2,	%%ebx\n"
+	"	movl	%2,	%%ecx\n"
 
-	".balign 16\n"
+	XALIGN
 	".copy_i_ij_loop:\n"
 
 	"	movaps	(%%esi),	%%xmm0\n" // xmm0 = re[0] re[1] re[2] re[3]
@@ -1922,10 +1933,10 @@ void float_copy_i_ij(float *a, float *b, complex c[], int fft_size)
 	"	unpcklps	%%xmm1,	%%xmm0\n" // xmm0 = re[0] im[0] re[1] im[1]
 	"	unpckhps	%%xmm3,	%%xmm2\n" // xmm2 = re[2] im[2] re[3] im[3]
 
-	"	movaps	%%xmm0,	(%%ebx)\n"
-	"	movaps	%%xmm2,	16(%%ebx)\n"
+	"	movaps	%%xmm0,	(%%ecx)\n"
+	"	movaps	%%xmm2,	16(%%ecx)\n"
 
-	"	add	$8192,	%%ebx\n"
+	"	add	$8192,	%%ecx\n"
 	"	add	$16,	%%esi\n"
 	"	add	$16,	%%edi\n"
 
@@ -1935,7 +1946,7 @@ void float_copy_i_ij(float *a, float *b, complex c[], int fft_size)
 	"	emms\n"
 	:"=m"(a), "=m"(b)
 	:"m"(c), "m"(fft_size)
-	:"memory", "eax", "ebx", "edx", "esi", "edi"
+	:"memory", "eax", "ecx", "edx", "esi", "edi"
 	);
 
 }
@@ -1974,15 +1985,15 @@ void float_copy_ij_j(float *a, float *b, complex c[], int fft_size)
 	"	movl	%3,	%%eax\n"
 	"	movl	%0,	%%esi\n"
 	"	movl	%1,	%%edi\n"
-	"	movl	%2,	%%ebx\n"
+	"	movl	%2,	%%ecx\n"
 
-	".balign 16\n"
+	XALIGN
 	".copy_ij_j_loop:\n"
 
-	"	movlps	(%%ebx),	%%xmm0\n"
-	"	movhps	 8192(%%ebx),	%%xmm0\n" // xmm0 = re[0] im[0] re[1] im[1]
-	"	movlps	16384(%%ebx),	%%xmm1\n"
-	"	movhps	24576(%%ebx),	%%xmm1\n" // xmm1 = re[2] im[2] re[3] im[3]
+	"	movlps	(%%ecx),	%%xmm0\n"
+	"	movhps	 8192(%%ecx),	%%xmm0\n" // xmm0 = re[0] im[0] re[1] im[1]
+	"	movlps	16384(%%ecx),	%%xmm1\n"
+	"	movhps	24576(%%ecx),	%%xmm1\n" // xmm1 = re[2] im[2] re[3] im[3]
 	"	movaps	%%xmm0,	%%xmm2\n"	  // xmm2 = re[0] im[0] re[1] im[1]
 	"	movaps	%%xmm1,	%%xmm3\n"	  // xmm3 = re[2] im[2] re[3] im[3]
 	"	shufps	$0x88,	%%xmm1,	%%xmm0\n" // 10 00 10 00 // xmm0 = re[0] re[1] re[2] re[3]
@@ -1990,7 +2001,7 @@ void float_copy_ij_j(float *a, float *b, complex c[], int fft_size)
 	"	movaps	%%xmm0,	(%%esi)\n"
 	"	movaps	%%xmm2,	(%%edi)\n"
 
-	"	add	$8,	%%ebx\n"
+	"	add	$8,	%%ecx\n"
 	"	add	$16,	%%esi\n"
 	"	add	$16,	%%edi\n"
 
@@ -2000,7 +2011,7 @@ void float_copy_ij_j(float *a, float *b, complex c[], int fft_size)
 	"	emms\n"
 	:"=m"(a), "=m"(b)
 	:"m"(c), "m"(fft_size)
-	:"memory", "eax", "ebx", "esi", "edi"
+	:"memory", "eax", "ecx", "esi", "edi"
 	);
 
 }
@@ -2026,9 +2037,9 @@ void float_copy_j_ij(float *a, float *b, complex c[], int fft_size)
 	"	movl	%3,	%%eax\n"
 	"	movl	%0,	%%esi\n"
 	"	movl	%1,	%%edi\n"
-	"	movl	%2,	%%ebx\n"
+	"	movl	%2,	%%ecx\n"
 
-	".balign 16\n"
+	XALIGN
 	".copy_j_ij_loop:\n"
 
 	"	movaps	(%%esi),	%%xmm0\n" // xmm0 = re[0] re[1] re[2] re[3]
@@ -2039,12 +2050,12 @@ void float_copy_j_ij(float *a, float *b, complex c[], int fft_size)
 	"	unpcklps	%%xmm1,	%%xmm0\n" // xmm0 = re[0] im[0] re[1] im[1]
 	"	unpckhps	%%xmm3,	%%xmm2\n" // xmm2 = re[2] im[2] re[3] im[3]
 
-	"	movlps	%%xmm0,	(%%ebx)\n"
-	"	movhps	%%xmm0,	 8192(%%ebx)\n"
-	"	movlps	%%xmm2,	16384(%%ebx)\n"
-	"	movhps	%%xmm2,	24576(%%ebx)\n"
+	"	movlps	%%xmm0,	(%%ecx)\n"
+	"	movhps	%%xmm0,	 8192(%%ecx)\n"
+	"	movlps	%%xmm2,	16384(%%ecx)\n"
+	"	movhps	%%xmm2,	24576(%%ecx)\n"
 
-	"	add	$8,	%%ebx\n"
+	"	add	$8,	%%ecx\n"
 	"	add	$16,	%%esi\n"
 	"	add	$16,	%%edi\n"
 
@@ -2054,7 +2065,7 @@ void float_copy_j_ij(float *a, float *b, complex c[], int fft_size)
 	"	emms\n"
 	:"=m"(a), "=m"(b)
 	:"m"(c), "m"(fft_size)
-	:"memory", "eax", "ebx", "esi", "edi"
+	:"memory", "eax", "ecx", "esi", "edi"
 	);
 
 }
@@ -2086,12 +2097,12 @@ void shader_spill_mmx(Uint8 *src, Uint8 * dest, int resx, int resy, float coeff)
 		"mov	%2,	%%ecx\n"
 		"shr	$2,	%%ecx\n"
 		"pxor	%%mm0,	%%mm0\n"
-".balign 16\n"
+XALIGN
 "f_x_0:\n"
 		"movd	(%%esi),	%%mm1\n"
 		"punpcklbw	%%mm5,	%%mm1\n"
 		"mov	$4,	%%eax\n"
-".balign 16\n"
+XALIGN
 "quad_loop_0:\n"
 		"movq	%6,	%%mm3\n"
 		"pand	%%mm1,	%%mm3\n"
@@ -2116,13 +2127,13 @@ void shader_spill_mmx(Uint8 *src, Uint8 * dest, int resx, int resy, float coeff)
 		"mov	%2,	%%ecx\n"
 		"shr	$2,	%%ecx\n"
 		"pxor	%%mm0,	%%mm0\n"
-".balign 16\n"
+XALIGN
 "f_x_1:\n"
 		"sub	$4,	%%edi\n"
 		"movd	(%%edi),	%%mm1\n"
 		"punpcklbw	%%mm5,	%%mm1\n"
 		"mov	$4,	%%eax\n"
-".balign 16\n"
+XALIGN
 "quad_loop_1:\n"
 		"movq	%7,	%%mm3\n"
 		"pand	%%mm1,	%%mm3\n"
@@ -2157,13 +2168,13 @@ void shader_spill_mmx(Uint8 *src, Uint8 * dest, int resx, int resy, float coeff)
 		"mov	%2,	%%esi\n"
 "f_x_2:\n"
 		"mov	$2,	%%edx\n"
-".balign 16\n"
+XALIGN
 "negloop:\n"
 		"movd	(%%edi),	%%mm0\n"
 		"punpcklbw	%%mm5,	%%mm0\n"
 		"mov	%3,	%%eax\n"
 		"dec	%%eax\n"
-".balign 16\n"
+XALIGN
 "f_y_1:\n"
 		"add	%%esi,	%%edi\n"
 		"movd	(%%edi),	%%mm1\n"
@@ -2226,7 +2237,7 @@ void shader_fbmerge_mmx2(Uint32 *dest, Uint8 * src, int resx, int resy, float in
 		int mult1 = (int) (((src[i] & 0xff000000) >> 16)*intensity);
 		dest[i] = multiplycolor(dest[i], 65535 - mult1)  + multiplycolor(glow_color, mult1);
 */
-	".balign 16\n"
+	XALIGN
 	"pix_loop_1:\n"
 		"movd	(%%esi),	%%mm3\n"
 		
@@ -3065,7 +3076,7 @@ void __attribute__((noinline)) shadows_merge_mmx2(Uint32 *dst, Uint16 *src, int 
 	"	movq	%3,	%%mm6\n"
 	"	pxor	%%mm7,	%%mm7\n"
 
-	".balign 16\n"
+	XALIGN
 	"s_merge_loop:	\n"
 
 	"	movq	%%mm6,		%%mm5\n"
@@ -3228,6 +3239,10 @@ void ConvertRGB2YUV_X86_ASM(Uint32 *dest, Uint32 *src, size_t count)
 // count must be even.
 void ConvertRGB2YUV_X86_FPU(Uint32 *dest, Uint32 *src, size_t count)
 {
+#ifdef __APPLE__
+	ConvertRGB2YUV_X86(dest, src, count);
+	return;
+#endif
 	//float M[9] __attribute__ ((aligned(16))) = {M11, M12, M13, M21, M22, M23, M31, M32, M33};
 	float M[9] __attribute__ ((aligned(16))) = {M13, M33, M23, M11, M31, M21, M12, M32, M22};
 	int   a[2] __attribute__ ((aligned(16))) = {16, 128};
@@ -3688,12 +3703,14 @@ int is_intel(void) // for benchmarking only:
 	int result;
 
 	__asm __volatile(
+		"push	%%ebx\n"
 		"xorl	%%eax, 	%%eax\n"
 		"cpuid\n"
 		"movl	%%ebx,  %0\n"
+		"pop	%%ebx\n"
 	:"=m"(result)
 	:
-	:"eax", "ebx", "ecx", "edx"
+	:"eax", "ecx", "edx"
 	);
 	return (result == INTEL_EBX);
 }

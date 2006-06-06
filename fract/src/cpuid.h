@@ -15,12 +15,20 @@
 #include <string.h>
 #include "cmdline.h"
 
-#ifdef linux
+#if defined linux
 #include <sys/sysinfo.h>
 #include <unistd.h>
 #else
 #include <windows.h>
 #endif
+
+#ifdef __APPLE__
+#include <unistd.h>
+#include <mach/clock_types.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 
 //these are required for the windoze version of the CPU feature detection
 // routine, since we can't use that cute /proc/cpuinfo ... :(
@@ -80,8 +88,19 @@ void removefeature(char *feature) {
 		GetSystemInfo(&system_info);
 		cpucount = system_info.dwNumberOfProcessors;
 #else
+#ifdef __APPLE__
+        kern_return_t kr;
+        host_basic_info_data_t basic_info;
+        host_info_t info = (host_info_t)&basic_info;
+        host_flavor_t flavor = HOST_BASIC_INFO;
+        mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
+        kr = host_info(mach_host_self(), flavor, info, &count);
+        if (kr != KERN_SUCCESS) cpucount = 1;
+        cpucount = basic_info.avail_cpus;
+#else
 #warning Getting the processor count under MinGW32 is not implemented!
 		cpucount = 1;
+#endif
 #endif
 #endif
 	}
