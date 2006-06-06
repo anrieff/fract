@@ -935,6 +935,7 @@ void convolve_mmx_w_shifts_generic(Uint32 *src, Uint32 *dest, int resx, int resy
 
 	__asm __volatile(
 	// initialize some mmx regs...
+	"	push	%%ebx\n"
 	"	pxor	%%mm7,	%%mm7\n"
 	"	movd	%5, 	%%mm6\n"
 	"	movd	%6,	%%mm5\n"
@@ -1034,10 +1035,11 @@ void convolve_mmx_w_shifts_generic(Uint32 *src, Uint32 *dest, int resx, int resy
 
 	"	decl	%7\n"
 	"	jnz	.rowloop\n"
+	"	pop	%%ebx\n"
 
 	:"=m"(dest)
 	:"m"(src), "m"(pmm), "m"(toadd), "m"(n), "m"(shift), "m"(*fourones), "m"(rows), "m"(cols)
-	:"memory", "eax", "ebx", "ecx", "edx", "esi", "edi"
+	:"memory", "eax", "ecx", "edx", "esi", "edi"
 	);
 
 	__asm __volatile("emms"); // empty multimedia state
@@ -1091,6 +1093,7 @@ void convolve_mmx_w_shifts_3(Uint32 *src, Uint32 *dest, int resx, int resy, Conv
 	dest+=(resx*1 + 1);
 
 	__asm __volatile(
+	"	push	%%ebx\n"
 	// initialize some mmx regs...
 	"	pxor	%%mm7,	%%mm7\n"
 	"	movd	%5, 	%%mm6\n"
@@ -1181,9 +1184,10 @@ void convolve_mmx_w_shifts_3(Uint32 *src, Uint32 *dest, int resx, int resy, Conv
 	"	decl	%7\n"
 	"	jnz	.rowloop_3\n"
 
+	"	pop		%%ebx\n"
 	:"=m"(dest)
 	:"m"(src), "m"(pmm), "m"(toadd), "m"(n), "m"(shift), "m"(*fourones), "m"(rows), "m"(cols)
-	:"memory", "eax", "ebx", "ecx", "edx", "esi", "edi"
+	:"memory", "eax", "ecx", "edx", "esi", "edi"
 	);
 
 	__asm __volatile("emms"); // empty multimedia state
@@ -1222,6 +1226,7 @@ void convolve_mmx_w_shifts_5(Uint32 *src, Uint32 *dest, int resx, int resy, Conv
 
 	__asm __volatile(
 	// initialize some mmx regs...
+	"	push	%%ebx\n"
 	"	pxor	%%mm7,	%%mm7\n"
 //	"	movd	%5, 	%%mm6\n"
 	// init the stuff
@@ -1403,9 +1408,11 @@ void convolve_mmx_w_shifts_5(Uint32 *src, Uint32 *dest, int resx, int resy, Conv
 	"	decl	%7\n"
 	"	jnz	.rowloop_5\n"
 	
+	"	pop		%%ebx\n"
+
 	:"=m"(dest)
 	:"m"(src), "m"(pmm), "m"(toadd), "m"(n), "m"(shift), "m"(*fourones), "m"(rows), "m"(cols)
-	:"memory", "eax", "ebx", "ecx", "edx", "esi", "edi"
+	:"memory", "eax", "ecx", "edx", "esi", "edi"
 	);
 
 	__asm __volatile("emms"); // empty multimedia state
@@ -1612,6 +1619,8 @@ float __attribute__ ((aligned(16))) fftconsts[20] =	{ 1.0,  1.0,  1.0,  1.0,
       nn *= 2;
    __asm __volatile(
    
+	"	push	%%ebx\n"
+
    	"	movl	%2,	%%edx\n" //edx=i2
 	"	decl	%2\n"
 	"	shr	%%edx\n"
@@ -1666,10 +1675,11 @@ float __attribute__ ((aligned(16))) fftconsts[20] =	{ 1.0,  1.0,  1.0,  1.0,
 	"	cmpl	%2,	%%eax\n"
 	"	jb	.fft_l1\n"
 	"	incl	%2\n"
+	"	pop	%%ebx\n"
 
    :"=m"(x), "=m"(y)
    :"m"(nn)
-   :"memory", "eax", "ebx", "ecx", "edx", "esi", "edi"
+   :"memory", "eax", "ecx", "edx", "esi", "edi"
    );
 
    /* Compute the FFT */
@@ -1679,6 +1689,7 @@ float __attribute__ ((aligned(16))) fftconsts[20] =	{ 1.0,  1.0,  1.0,  1.0,
 __asm __volatile (// mapping: eax = i, ebx = i1, ecx = l1, edx = l2. esi = x, edi = y
 
 //initialize:
+	"	push	%%ebx\n"
 	"	movl	%0,	%%esi\n"
 	"	movl	%1,	%%edi\n"
 
@@ -1836,6 +1847,7 @@ __asm __volatile (// mapping: eax = i, ebx = i1, ecx = l1, edx = l2. esi = x, ed
 	".fft_nscale:\n"
 
 	"	emms\n"
+	"	pop	%%ebx\n"
 
 /*
 	FFT Constants:
@@ -1844,7 +1856,7 @@ __asm __volatile (// mapping: eax = i, ebx = i1, ecx = l1, edx = l2. esi = x, ed
 */
 :"=m"(x), "=m"(y), "=m"(*c1), "=m"(*c2), "=m"(l), "=m"(j)
 :"m"(nn), "m"(*fftconsts) , "m"(dir)
-:"memory", "eax", "ebx", "ecx", "edx", "esi", "edi"
+:"memory", "eax", "ecx", "edx", "esi", "edi"
 );
 
 }
@@ -2526,7 +2538,7 @@ void apply_fft_filter_sse(complex *dest, float *filter, int fft_size)
 
 #ifdef bilinea_p5_asm
 	__asm __volatile (
-
+    "   push    %%ebx\n"
 	"	pxor	%%mm7,	%%mm7\n"
 	"	movd	%1,	%%mm2\n"
 	"	movl	%5,	%%eax\n"
@@ -2642,9 +2654,10 @@ void apply_fft_filter_sse(complex *dest, float *filter, int fft_size)
 	"	movd	%%mm5,	%0\n"
 
 	"	emms\n"
+	"   pop %%ebx\n"
 	:"=m"(rez)
 	:"m"(x0y0),"m"(x1y0),"m"(x0y1),"m"(x1y1),"m"(Fx),"m"(Fy)
-	:"memory", "eax", "ebx", "ecx", "edx"
+	:"memory", "eax", "ecx", "edx"
 	);
 #endif // bilinea_p5_asm
 
@@ -3164,48 +3177,48 @@ void ConvertRGB2YUV_X86_ASM(Uint32 *dest, Uint32 *src, size_t count)
 	"mov		%1,		%%ecx\n"
 	"movzbl		%%cl,		%%eax\n"
 	"imull		8%2\n"
-	"xchg		%%eax,		%%ebx\n"
+	"xchg		%%eax,		%%esi\n"
 	"movzbl		%%ch,		%%eax\n"
 	"ror		$16,		%%ecx\n"
 	"imull		4%2\n"
-	"add		%%eax,		%%ebx\n"
+	"add		%%eax,		%%esi\n"
 	"movzbl		%%cl,		%%eax\n"
 	"ror		$16,		%%ecx\n"
-	"add		$0x100000,	%%ebx\n"
+	"add		$0x100000,	%%esi\n"
 	"imull		%2\n"
-	"add		%%ebx,		%%eax\n"
+	"add		%%esi,		%%eax\n"
 	"shr		$16,		%%eax\n"
 	"and		$0xff,		%%eax\n"
 	"mov		%%eax,		%0\n"
 	//  U0 ::
 	"movzbl		%%cl,		%%eax\n"
 	"imull		32%2\n"
-	"xchg		%%eax,		%%ebx\n"
+	"xchg		%%eax,		%%esi\n"
 	"movzbl		%%ch,		%%eax\n"
 	"ror		$16,		%%ecx\n"
 	"imull		28%2\n"
-	"add		%%eax,		%%ebx\n"
+	"add		%%eax,		%%esi\n"
 	"movzbl		%%cl,		%%eax\n"
 	"ror		$16,		%%ecx\n"
-	"add		$0x800000,	%%ebx\n"
+	"add		$0x800000,	%%esi\n"
 	"imull		24%2\n"
-	"add		%%ebx,		%%eax\n"
+	"add		%%esi,		%%eax\n"
 	"shr		$8,		%%eax\n"
 	"and		$0xff00,	%%eax\n"
 	"or 		%%eax,		%0\n"
 	//  V0 ::
 	"movzbl		%%cl,		%%eax\n"
 	"imull		20%2\n"
-	"xchg		%%eax,		%%ebx\n"
+	"xchg		%%eax,		%%esi\n"
 	"movzbl		%%ch,		%%eax\n"
 	"ror		$16,		%%ecx\n"
 	"imull		16%2\n"
-	"add		%%eax,		%%ebx\n"
+	"add		%%eax,		%%esi\n"
 	"movzbl		%%cl,		%%eax\n"
 	"ror		$16,		%%ecx\n"
-	"add		$0x800000,	%%ebx\n"
+	"add		$0x800000,	%%esi\n"
 	"imull		12%2\n"
-	"add		%%ebx,		%%eax\n"
+	"add		%%esi,		%%eax\n"
 	"shl		$8,		%%eax\n"
 	"and		$0xff000000,	%%eax\n"
 	"or 		%%eax,		%0\n"
@@ -3213,22 +3226,21 @@ void ConvertRGB2YUV_X86_ASM(Uint32 *dest, Uint32 *src, size_t count)
 	"mov		4%1,		%%ecx\n"
 	"movzbl		%%cl,		%%eax\n"
 	"imull		8%2\n"
-	"xchg		%%eax,		%%ebx\n"
+	"xchg		%%eax,		%%esi\n"
 	"movzbl		%%ch,		%%eax\n"
 	"ror		$16,		%%ecx\n"
 	"imull		4%2\n"
-	"add		%%eax,		%%ebx\n"
+	"add		%%eax,		%%esi\n"
 	"movzbl		%%cl,		%%eax\n"
 	"ror		$16,		%%ecx\n"
-	"add		$0x100000,	%%ebx\n"
+	"add		$0x100000,	%%esi\n"
 	"imull		%2\n"
-	"add		%%ebx,		%%eax\n"
+	"add		%%esi,		%%eax\n"
 	"and		$0xff0000,	%%eax\n"
 	"or 		%%eax,		%0\n"
-
 	:"=m"(*dest)
 	:"m"(*src), "m"(*s)
-	:"memory", "eax", "ebx", "ecx", "edx");
+	:"memory", "eax", "ecx", "edx", "esi");
 	dest++;
 	src+=2;
  	}
@@ -3384,39 +3396,39 @@ void ConvertRGB2YUV_MMX(Uint32 *dest, Uint32 *src, size_t count)
  );
  while (count--) {
 	__asm __volatile(
-	// get the current pixel in ebx, the next in edx
-	"mov	%1, 	%%ebx\n"
+	// get the current pixel in ecx, the next in edx
+	"mov	%1, 	%%ecx\n"
 	"mov	4%1,	%%edx\n"
 	// prepare mm0 - fill with (b0, b0, b1, b0)
-	"movb	%%bl,	%%ah\n"
+	"movb	%%cl,	%%ah\n"
 	"movb	%%dl, 	%%al\n"
 	"shl	$16,	%%eax\n"
-	"movb	%%bl,	%%al\n"
-	"movb	%%bl,	%%ah\n"
+	"movb	%%cl,	%%al\n"
+	"movb	%%cl,	%%ah\n"
 	"movd	%%eax,	%%mm0\n"
 
-	"shr	$8,	%%ebx\n"
+	"shr	$8,	%%ecx\n"
 	"shr	$8,	%%edx\n"
 
 	"punpcklbw 	%%mm7,	%%mm0\n"
 	// prepare mm1 - fill with (g0, g0, g1, g0)
-	"movb	%%bl,	%%ah\n"
+	"movb	%%cl,	%%ah\n"
 	"movb	%%dl, 	%%al\n"
 	"shl	$16,	%%eax\n"
-	"movb	%%bl,	%%al\n"
-	"movb	%%bl,	%%ah\n"
+	"movb	%%cl,	%%al\n"
+	"movb	%%cl,	%%ah\n"
 	"movd	%%eax,	%%mm1\n"
 
-	"shr	$8,	%%ebx\n"
+	"shr	$8,	%%ecx\n"
 	"shr	$8,	%%edx\n"
 
 	"punpcklbw 	%%mm7,	%%mm1\n"
 	// prepare mm2 - fill with (r0, r0, r1, r0)
-	"movb	%%bl,	%%ah\n"
+	"movb	%%cl,	%%ah\n"
 	"movb	%%dl, 	%%al\n"
 	"shl	$16,	%%eax\n"
-	"movb	%%bl,	%%al\n"
-	"movb	%%bl,	%%ah\n"
+	"movb	%%cl,	%%al\n"
+	"movb	%%cl,	%%ah\n"
 	"movd	%%eax,	%%mm2\n"
 
 	// do the actual math:
@@ -3435,10 +3447,9 @@ void ConvertRGB2YUV_MMX(Uint32 *dest, Uint32 *src, size_t count)
 	"packuswb	%%mm7,	%%mm0\n"
 
 	"movd		%%mm0,	%0\n"
-
 	:"=m"(*dest)
 	:"m"(*src)
-	:"memory", "eax", "ebx", "edx"
+	:"memory", "eax", "ecx", "edx"
 	);
  	dest++;
 	src+=2;
@@ -3664,6 +3675,7 @@ void ConvertRGB2YUV_SSE(Uint32 *dest, Uint32 *src, size_t count)
  ***************************************************************/
 int CPUZ=0, CPUEXT=0, ECS=0;
  __asm __volatile (
+ "          push	%%ebx\n"
  "          mov     $1,    %%eax \n"
  "          cpuid \n"
  "          mov     %%edx,  %0\n"
@@ -3681,9 +3693,10 @@ int CPUZ=0, CPUEXT=0, ECS=0;
  "          not_supported:\n"
  "          movl     $0,          %2\n"
  "          ende:\n"
+ "          pop	%%ebx\n"
  :"=m"(CPUZ), "=m"(CPUEXT), "=m"(ECS)
  :
- :"eax", "ebx", "ecx", "edx"
+ :"eax", "ecx", "edx"
  );
 
  hasmmx = (CPUZ&MMX_MASK?1:0);
@@ -3706,8 +3719,9 @@ int is_intel(void) // for benchmarking only:
 		"push	%%ebx\n"
 		"xorl	%%eax, 	%%eax\n"
 		"cpuid\n"
-		"movl	%%ebx,  %0\n"
+		"movl	%%ebx,  %%eax\n"
 		"pop	%%ebx\n"
+		"movl	%%eax,	%0\n"
 	:"=m"(result)
 	:
 	:"eax", "ecx", "edx"
