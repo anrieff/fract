@@ -91,14 +91,14 @@ void removefeature(char *feature) {
 		cpucount = system_info.dwNumberOfProcessors;
 #else
 #ifdef __APPLE__
-        kern_return_t kr;
-        host_basic_info_data_t basic_info;
-        host_info_t info = (host_info_t)&basic_info;
-        host_flavor_t flavor = HOST_BASIC_INFO;
-        mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
-        kr = host_info(mach_host_self(), flavor, info, &count);
-        if (kr != KERN_SUCCESS) cpucount = 1;
-        cpucount = basic_info.avail_cpus;
+		kern_return_t kr;
+		host_basic_info_data_t basic_info;
+		host_info_t info = (host_info_t)&basic_info;
+		host_flavor_t flavor = HOST_BASIC_INFO;
+		mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
+		kr = host_info(mach_host_self(), flavor, info, &count);
+		if (kr != KERN_SUCCESS) cpucount = 1;
+		cpucount = basic_info.avail_cpus;
 #else
 #warning Getting the processor count under MinGW32 is not implemented!
 		cpucount = 1;
