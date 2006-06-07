@@ -270,14 +270,20 @@ Uint32 Triangle::Solve3D(Vector& ray, const Vector& camera, const Vector& light,
 		ray_two.macc(LI, temp, -2.0);
 
 		// calculate phong illumination
-		float product = ((ray_one * ray_two)/ray_two.length()) * 0.5;
+		float product = ((ray_one * ray_two)/ray_two.length());
 		//printf("[%.2f] ", product);
 		if (product < 0.0f) {
 			//printf("product < 0!!!\n");
 			product = 0.0f;
 		}
 		// add up specular and diffuse
-		intensity = specular * product * product + diffuse*cp + ambient;
+		product *= 1.08f;
+		product *= product;
+		product *= product;
+		product *= product;
+		product *= product;
+		product *= product;
+		intensity = specular * product + diffuse*cp + ambient;
 	}
 	Uint32 kolor;
 	if (flags & MAPPED) {
