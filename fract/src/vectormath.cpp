@@ -292,7 +292,7 @@ int  ProjectPointShadow(const Vector & vs, const Vector & l, float result[], int
 
 	// the following is based on the equation:
 	/*
-		  P = tt + lamda * ti + theta * tti = c + zurla * ((x,y,z)-c)
+		  P = tt + lambda * ti + theta * tti = c + zurla * ((x,y,z)-c)
 
 		the equaton is only one, but since we solve it for x, y and z, we get the three
 		unknowns (lambda, theta & zurla)

@@ -287,6 +287,144 @@ static void display_poly(
 	
 }
 
+struct DensityDrawer : public AbstractDrawer
+{
+	Uint16 *buff, fill;
+	sphere *S;
+	Vector l;
+	int xr;
+	DensityDrawer(Uint16 *sbuffer, Uint16 _fillc, int _xr, sphere *ss, Vector ll) : 
+			buff(sbuffer), fill(_fillc), S(ss), l(ll), xr(_xr) {}
+	
+	inline bool computeminmax(const Vector& in, float &f1, float &f2)
+	{
+		Vector f;
+		f.make_vector(in, S->pos);
+		Vector v = l - in;
+		float ua, ub, uc, Dt;
+
+		ua = v.lengthSqr();
+		ub = f*v*2.0;
+		uc = f.lengthSqr() - sqr(S->d);
+		Dt = sqr(ub) - 4.0f*ua*uc;
+		if (Dt < 0) return false;
+		float div_er = 1.0f / (2.0f * ua);
+		Dt = fast_sqrt(Dt);
+		f1 = div_er * (-ub - Dt);
+		f2 = div_er * (-ub + Dt);
+		if (f1 > f2) {
+			float t = f1;
+			f1 = f2;
+			f2 = t;
+		}
+		return true;
+	}
+	
+	inline bool draw_line(int x, int y, int size)
+	{
+		Uint16 *p = &buff[y * xr + x];
+		Vector v(
+				rowstart[y][0] + x * rowincrease[y][0],
+				y > floormin ? daFloor : daCeiling,
+				rowstart[y][1] + x * rowincrease[y][1]);
+		//for (int i = 0; i < size; i++)
+		//	p[i] |= fill;
+		for (int i = 0; i < size; i++) {
+			float f1, f2;
+			if (computeminmax(v, f1, f2)) {
+				float f = (f2-f1)/(0.01f+f1);
+				if (f > 1.0f) {
+					f = 1.0f;
+				}
+				p[i] |= ((Uint16)(fill*f)) << 8;
+			} 
+			//
+			v.v[0] += rowincrease[y][0];
+			v.v[2] += rowincrease[y][1];
+		}
+		return true;
+	}
+};
+
+
+static void display_poly_fake_sphere(
+		Vector poly[],
+		int n,
+		const Vector &ml,
+		int xr, int yr,
+		Vector &cur,
+		Vector &mtt,
+		Vector &mti,
+		Vector & mtti,
+		Uint16 *sbuffer,
+		sphere *S
+			)
+{
+	static Vector casted[MAX_SIDES + 1];
+	static float scr_coords[MAX_SIDES + 1][2];
+	int c = 0;
+	for (int j = 0; j < n + 1; j++) {
+		bool useless; int res;
+		res = ProjectPointShadow(poly[j], ml, scr_coords[j], xr, yr, cur, mtt, mti, mtti, useless, casted[j]);
+		c += (useless == true);
+		if (res >= 4) c += 1000;
+	}
+	if (c != 0 && c != n + 1) return;
+
+	all_min_x = all_min_y = inf;
+	all_max_x = all_max_y = -inf;
+		
+	/* Stage 1: Render hard shadows */
+	static vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
+	int cs1a, cs2a;
+	cs1a = n; memcpy(cs1, scr_coords, n * sizeof(cs1[0]));
+	while (cs1a > 2) {
+		cs2a = 0;
+		int i = 0;
+		while (i < cs1a - 1) {
+			if (face(cs1[i], cs1[i+1], cs1[(i+2)%cs1a]) < +1e-6) {
+				//draw it
+				DensityDrawer dd(sbuffer, shadow_intensity, xr, S, ml);
+				TriangleRasterizer ras(xr, yr, cs1[i], cs1[i+1], cs1[(i+2)%cs1a]);
+				ras.draw(dd);
+				ras.update_limits(all_min_x, all_max_x, all_min_y, all_max_y);
+				//discard the second point
+				cs2[cs2a++] = cs1[i];
+				i += 2;
+			} else {
+				cs2[cs2a++] = cs1[i];
+				i++;
+			}
+		}
+		if (i == cs1a - 1) cs2[cs2a++] = cs1[i];
+
+		if (cs2a == cs1a) break;
+		cs1a = cs2a;
+		memcpy(cs1, cs2, cs1a * sizeof(cs1[0]));
+	}
+	//
+	/* stage 3: reblend */
+	
+	CLAMP(all_min_x, 0, xr-1);	
+	CLAMP(all_max_x, 0, xr-1);	
+	CLAMP(all_min_y, 0, yr-1);	
+	CLAMP(all_max_y, 0, yr-1);	
+	
+	if (all_min_x == all_max_x || all_min_y == all_max_y) return;
+	
+	for (int j = all_min_y; j <= all_max_y; j++) {
+		Uint16 *buff = &sbuffer[j * xr];
+		for (int i = all_min_x; i <= all_max_x; i++) {
+			Uint16 t = buff[i];
+			t = (t & 0xff) + (t >> 8);
+			if (t > shadow_intensity) t = shadow_intensity;
+			buff[i] = t; 
+		}
+	}
+	
+}
+
+
 struct Vertex {
 	int no;
 	Vector v;
@@ -502,14 +640,8 @@ static void reversed_check(Vector verts[], const PolyInfo &pi, const Vector & l)
 	}
 }
 
-int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, double beta, PolyInfo o[])
+static void thresh_light(Vector verts[], int n, Vector l)
 {
-	Array<Vector> up, down;
-	//
-	Vector pvec(sin(alpha) * cos(beta), sin(beta), cos(alpha) * cos(beta));
-	pvec.norm();
-	double D = - evaluate(pvec, cur, 0.0);
-	//
 	for (int i = 0; i < n; i++) {
 		if (fabs(verts[i][1] - l[1]) < DST_THRESHOLD) {
 			if (verts[i][1] <= l[1])
@@ -518,6 +650,17 @@ int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, do
 				verts[i][1] = l[1] + DST_THRESHOLD;
 		}
 	}
+}
+
+int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, double beta, PolyInfo o[])
+{
+	Array<Vector> up, down;
+	//
+	Vector pvec(sin(alpha) * cos(beta), sin(beta), cos(alpha) * cos(beta));
+	pvec.norm();
+	double D = - evaluate(pvec, cur, 0.0);
+	//
+	thresh_light(verts, n, l);
 	for (int i = 0; i < n; i++) {
 		int j = (i + 1) % n;
 		Vector va = verts[i];
@@ -616,7 +759,22 @@ int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, do
 	return os;
 }
 
-void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
+static void expand_poly(Vector verts[], int n, Vector center, Vector l)
+{
+	thresh_light(verts, n, l);
+	for (int i = 0; i < n; i++)
+	{
+		Vector p = plane_cast(l, verts[i]);
+		double coeff = p.distto(verts[i]) / p.distto(l);
+		Vector v = verts[i] - center;
+		v.norm();
+		v.scale(coeff * light_radius);
+		verts[i] += v;
+	}
+	thresh_light(verts, n, l);
+}
+
+void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
 {
 	Vector ml(lx, ly, lz);
 	ceilmax = floormin = -1;
@@ -681,6 +839,48 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		prof_leave(PROF_POLY_DISPLAY);
 	}
 	shadows_merge(xr, yr, target_framebuffer, sbuffer);
+}
+
+void render_shadows_fake(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
+{
+	Vector ml(lx, ly, lz);
+	ceilmax = floormin = -1;
+
+	prof_enter(PROF_ZERO_SBUFFER); // reset the S-buffer;
+	memset(sbuffer, 0, xr*yr*sizeof(Uint16));
+	prof_leave(PROF_ZERO_SBUFFER);
+	
+	shadows_precalc(xr, yr, mtt, mti, mtti);
+	
+	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
+		Vector poly[SPHERE_SIDES*2+8];
+		
+		prof_enter(PROF_POLY_GEN);
+		sp[i].CalculateFixedConvex(poly, ml, SPHERE_SIDES);
+		prof_leave(PROF_POLY_GEN);
+		PolyInfo pif[2];
+		
+		expand_poly(poly, SPHERE_SIDES, sp[i].pos, ml);
+		
+		prof_enter(PROF_POLY_REARRANGE);
+		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif);
+		prof_leave(PROF_POLY_REARRANGE);
+
+		prof_enter(PROF_POLY_DISPLAY);
+		for (int i = 0; i < pir; i++) {
+			//display_poly(poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
+			display_poly_fake_sphere(poly + pif[i].start, pif[i].size,
+					ml, xr, yr, cur, mtt, mti, mtti, sbuffer, &sp[i]);
+		}
+		prof_leave(PROF_POLY_DISPLAY);
+
+	}
+	shadows_merge(xr, yr, target_framebuffer, sbuffer);
+}
+
+void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
+{
+	render_shadows_fake(target_framebuffer, sbuffer, xr, yr, mtt, mti, mtti);
 }
 
 static int occlusions(const sphere & a, const sphere & b, const Vector & light)

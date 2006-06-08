@@ -471,6 +471,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
+	OptionAdd("--developer");
+	OptionAdd("--scene=data/benchmark.fsv");
 	commandline_parse();
 	InitProgram();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {
