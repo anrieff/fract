@@ -30,7 +30,7 @@
 
 /* ------------------------------------ export section ------------------------------------ */
 extern int spherecount;
-extern sphere sp[];
+extern Sphere sp[];
 extern int lx;
 extern int ly;
 extern int lz;
@@ -75,7 +75,7 @@ void write_triplet1(FILE *f, const char *prefix, Vector &a)
 	write_triplet(f, prefix, a[0], a[1], a[2]);
 }
 
-void write_sphere(FILE *f, int num, sphere a)
+void write_sphere(FILE *f, int num, Sphere a)
 {int i;
 	fprintf(f, "Sphere[%d].x=%.5lf\n", num, a.pos[0]);
 	fprintf(f, "Sphere[%d].y=%.5lf\n", num, a.pos[1]);
@@ -92,7 +92,7 @@ void write_sphere(FILE *f, int num, sphere a)
 	fprintf(f, "Sphere[%d].b=%d\n", num, a.b);
 	fprintf(f, "Sphere[%d].AniIndex=%d\n", num, a.AniIndex);
 	if (a.flags & MAPPED)
-	fprintf(f, "Sphere[%d].texture=\"%s\"\n", num, a.tex->getTexFn());
+	fprintf(f, "Sphere[%d].texture=\"%s\"\n", num, a.tex->get_tex_fn());
 	for (i=0;i<31;i++)
 		if (flag2str[i].name[0])
 			fprintf(f, "Sphere[%d].flags.%s=%d\n", num, flag2str[i].name, ((flag2str[i].flag & a.flags)!=0));
@@ -125,7 +125,7 @@ void write_mesh(FILE *f, int num, Mesh & m)
 }
 
 // saves the current context to the given text file. If it exists, it is overwritten.
-int SaveContext(const char *fn)
+int save_context(const char *fn)
 {
 	FILE *f;
 	int i;
@@ -141,7 +141,7 @@ int SaveContext(const char *fn)
 	if (BackgroundMode == BACKGROUND_MODE_FLOOR) {
 		fprintf(f, "\n# The background type: may be InfinitePlane or Voxel\n");
 		fprintf(f, "Background.type=InfinitePlane\n");
-		fprintf(f, "Background.texture=%s\n", tex.getTexFn());
+		fprintf(f, "Background.texture=%s\n", tex.get_tex_fn());
 		fprintf(f, "Background.daFloor=%.3lf\n", daFloor);
 		fprintf(f, "Background.daCeiling=%.3lf\n", daCeiling);
 	}
@@ -385,7 +385,7 @@ static void get_mesh_info(char *basedir, char *si)
 			int l = strlen(objfn);
 			//l--;
 			while (l--) if (objfn[l] < 32) objfn[l] = 0;
-			if (!mesh[index].ReadFromObj(objfn)) {
+			if (!mesh[index].read_from_obj(objfn)) {
 				printf("LoadContext: unable to open mesh object (file: `%s')\n", objfn);
 				break;
 			}
@@ -427,7 +427,7 @@ static void get_mesh_info(char *basedir, char *si)
 		case 0xaddd:
 		{
 			for (int i = 0; i < mesh[index].triangle_count; i++)
-				trio[i + mesh[index].GetTriangleBase()].color = get_int(s);
+				trio[i + mesh[index].get_triangle_base()].color = get_int(s);
 			break;
 		}
 		default:
@@ -467,7 +467,7 @@ static void get_ani_info(char *si)
 
 // gets a context from a fract-written text file. On failure, returns 0.
 // Loads everything (including textures)
-int LoadContext(const char *fn)
+int load_context(const char *fn)
 {
 	FILE *f;
 	char line[256];
@@ -651,7 +651,7 @@ void saveload_close(void)
 }
 
 
-void GenerateCoords_bench(void)
+void generate_coords_bench(void)
 {
 	cd_frames = 1000;
 	for (int i = 0; i < cd_frames; i++) {
@@ -700,7 +700,7 @@ void GenerateCoords_bench(void)
 }
 
 
-void GenerateCoords_oldbench(void)
+void generate_coords_oldbench(void)
 {
 	cd_frames = 2000;
 	for (int i = 0; i < cd_frames; i++) {
@@ -750,16 +750,16 @@ void GenerateCoords_oldbench(void)
 	}
 }
 
-void GenerateCoords(void)
+void generate_coords(void)
 {
 	if (spherecount == 6) {
-		GenerateCoords_bench();
+		generate_coords_bench();
 	} else {
-		GenerateCoords_oldbench();
+		generate_coords_oldbench();
 	}
 }
 
-void SaveCoords(const char *fn)
+void save_coords(const char *fn)
 {
 	FILE *rec_file = fopen(fn, "wt");
 	fprintf(rec_file, "coords106=(\n");

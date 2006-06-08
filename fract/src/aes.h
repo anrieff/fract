@@ -13,10 +13,10 @@
  ***************************************************************************/
 
 /**
- * AESEncrypt and AESDecrypt - encode and decode multiple-of-16-byte sized
+ * aes_encrypt and aes_decrypt - encode and decode multiple-of-16-byte sized
  * blocks of binary data. The number of bytes is given in `octets'. The 
  * input/output buffer is given in data. If the operation succeeds, functions
  * return true, otherwise false is returned.
 */
-bool AESEncrypt(void *data, int octets);
-bool AESDecrypt(void *data, int octets);
+bool aes_encrypt(void *data, int octets);
+bool aes_decrypt(void *data, int octets);

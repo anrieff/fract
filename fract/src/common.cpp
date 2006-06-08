@@ -40,7 +40,7 @@ int power_of_2(int x)
 */
 #if (__GNUC__ < 4)
 #define uint unsigned int
-static inline float FastPower_minus_quarter(float val)
+static inline float fastpower_minus_quarter(float val)
 {
     const float magicValue = 1331185664.0;
     float tmp = (float) *((uint*)&val);
@@ -49,14 +49,14 @@ static inline float FastPower_minus_quarter(float val)
     return *(float*)&tmp2;
 }
 #else
-#define FastPower_minus_quarter(x) (1.0f/sqrt(sqrt(x)))
+#define fastpower_minus_quarter(x) (1.0f/sqrt(sqrt(x)))
 // turns out that GCC 4.0 breaks at the above function; TODO
 #endif
 
 // calculates the formula darkening which should be due to the distance from the light source
 float lightformulae_tiny(float x)
 {
-	return 25.0 * FastPower_minus_quarter(x);
+	return 25.0 * fastpower_minus_quarter(x);
 }
 
 // given an (possibly) unaligned pointer, return an 16-byte aligned one (possibly larger)

@@ -51,7 +51,7 @@ unsigned mips_colors[] = {
 
 // sphere collection
 
-SSE_ALIGN(sphere sp[MAX_SPHERES]);
+SSE_ALIGN(Sphere sp[MAX_SPHERES]);
 Vector pp[MAX_OBJECTS][MAX_SPHERE_SIDES];
 int num_sides[MAX_OBJECTS];
 int spherecount;
@@ -125,7 +125,7 @@ int fpsfrm=0;
 
 
 
-Uint32 GetTicks(void)
+Uint32 get_ticks(void)
 {
 #ifdef ACTUALLYDISPLAY
 	return SDL_GetTicks();
@@ -148,7 +148,7 @@ Uint32 GetTicks(void)
 
 double bTime(void)
 {
- return ((GetTicks() - clk) / 1000.0);
+ return ((get_ticks() - clk) / 1000.0);
 }
 
 
@@ -181,12 +181,12 @@ void init_fract_array(void)
 	}
 }
 
-void InitProgram(void)
+void init_program(void)
 {
 	common_init();
 }
 
-void CloseProgram(void)
+void close_program(void)
 {
 	Scene::videoclose();
 	gfx_close();
@@ -220,8 +220,8 @@ void kbd_tiny_do(int *ShouldExit)
 			if (e.key.keysym.sym == SDLK_ESCAPE) *ShouldExit = RUN_CANCELLED;
 			if (e.key.keysym.sym == SDLK_F12) { // F12 is screenshot shortcut
 				RawImg tempf(xres(), yres(), get_frame_buffer());
-				Take_Snapshot(tempf);
-				}
+				take_snapshot(tempf);
+			}
 			if (developer) {
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
 					bilfilter = !bilfilter;
@@ -289,7 +289,7 @@ void kbd_do(int *ShouldExit)
 	keystate = SDL_GetKeyState(NULL);
 	if (recordmode) {
 		RawImg tempf(xres(), yres(), get_frame_buffer());
-		Take_Snapshot(tempf);
+		take_snapshot(tempf);
 	}
 	if (WantToQuit) *ShouldExit = 1;
 	while ( SDL_PollEvent(&e)) { // handle keyboard & mouse
@@ -298,8 +298,8 @@ void kbd_do(int *ShouldExit)
 			if (e.key.keysym.sym == SDLK_ESCAPE) *ShouldExit = RUN_CANCELLED;
 			if (e.key.keysym.sym == SDLK_F12) { // F12 is screenshot shortcut
 				RawImg tempf(xres(), yres(), get_frame_buffer());
-				Take_Snapshot(tempf);
-				}
+				take_snapshot(tempf);
+			}
 			if (developer) {
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
 					bilfilter = !bilfilter;
@@ -397,68 +397,68 @@ void kbd_do(int *ShouldExit)
 
 void commandline_parse(void)
 {
-	if (OptionExists("--help") || OptionExists("-h")) {
-		DisplayUsage();
+	if (option_exists("--help") || option_exists("-h")) {
+		display_usage();
 		exit(0);
 	}
-	if (OptionExists("--benchmark")) {
+	if (option_exists("--benchmark")) {
 		init_yuv_convert(1);
 		exit(0);
 	}
-	if (OptionExists("--query")) {
-		if (0 == strcmp(OptionValueString("--query"), "integrity")) {
+	if (option_exists("--query")) {
+		if (0 == strcmp(option_value_string("--query"), "integrity")) {
 			exit(query_integrity());
 		}
-		printf("Warning: Unknown query: %s\n", OptionValueString("--query"));
+		printf("Warning: Unknown query: %s\n", option_value_string("--query"));
 	}
-	if (OptionExists("--parallel") || OptionExists("--para")) {
+	if (option_exists("--parallel") || option_exists("--para")) {
 		defaultconfig = 0;
 		parallel = true;
 		set_default_resolution(160, 120);
-		OptionAdd("-w");
-			if (OptionExists("--stereo-separation"))
-			stereo_separation = OptionValueFloat("--stereo-separation");
-		if (OptionExists("--stereo-depth"))
-			stereo_depth = OptionValueFloat("--stereo-depth");
+		option_add("-w");
+			if (option_exists("--stereo-separation"))
+			stereo_separation = option_value_float("--stereo-separation");
+		if (option_exists("--stereo-depth"))
+			stereo_depth = option_value_float("--stereo-depth");
 	}
-	if (OptionExists("--developer")) {
+	if (option_exists("--developer")) {
 		developer = 1;
 		scene_count = 1;
 		strcpy(scenes[0], dev_scene);
 	}
-	if (OptionExists("--shadows")) {r_shadows = 1; }
-	if (OptionExists("--no-shadows")) {r_shadows = 0; defaultconfig = 0;}
+	if (option_exists("--shadows")) {r_shadows = 1; }
+	if (option_exists("--no-shadows")) {r_shadows = 0; defaultconfig = 0;}
 	cpu_count = SysInfo.cpu_count();
-	if (OptionExists("--nothread")||OptionExists("--nothreads")||
-	OptionExists("--no-thread")||OptionExists("--no-threads")) {
+	if (option_exists("--nothread")||option_exists("--nothreads")||
+	option_exists("--no-thread")||option_exists("--no-threads")) {
 		cpu_count = 1;
 		SysInfo.set_cpu_count(1);
 	}
-	if (OptionExists("--cpus")) set_cpus(OptionValueInt("--cpus"));
-	if (OptionExists("--design") || OptionExists("--architect")) {
+	if (option_exists("--cpus")) set_cpus(option_value_int("--cpus"));
+	if (option_exists("--design") || option_exists("--architect")) {
 		design = 1;
 		developer = 1;
 		scene_count = 1;
 		scene_check();
 	}
-	if (OptionExists("--scene")) {
+	if (option_exists("--scene")) {
 		scene_count = 1;
-		strcpy(scenes[0], OptionValueString("--scene"));
+		strcpy(scenes[0], option_value_string("--scene"));
 		defaultconfig = 0;
 		outrocap = new OutroCapturer(0, 0, 0);
 	}
-	if (OptionExists("--shader")) {
-		shader_cmdline_option(OptionValueString("--shader"));
+	if (option_exists("--shader")) {
+		shader_cmdline_option(option_value_string("--shader"));
 		use_shader = 1;
 	}
-	if (OptionExists("--save-video")) {
+	if (option_exists("--save-video")) {
 		savevideo = true;
 		system("mkdir video");
 		system("rm video/*.bmp");
 	}
 	if (defaultconfig && !developer && !design) {
 		outrocap = new OutroCapturer(0, 0, 5);
-		if (OptionExists("--official")) {
+		if (option_exists("--official")) {
 			official = true;
 		}
 	}
@@ -471,10 +471,10 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	OptionAdd("--developer");
-	OptionAdd("--scene=data/benchmark.fsv");
+	option_add("--developer");
+	option_add("--scene=data/benchmark.fsv");
 	commandline_parse();
-	InitProgram();
+	init_program();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {
 		Scene scene(scenes[i]);
 		if (i == 0) {
@@ -492,6 +492,6 @@ int main(int argc, char *argv[])
 	       stopwatch.total_data() / stopwatch.total());
 	
 	if (developer) prof_statistics();
-	CloseProgram();
+	close_program();
 	return 0;
 }

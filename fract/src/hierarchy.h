@@ -119,7 +119,7 @@ class Hierarchy {
 	int raycasts, recursions, tot, eff;
 
 
-	float GetHeight_bilinear(float x, float y)
+	float getheight_bilinear(float x, float y)
 	{
 		float fx = modff(x, &x);
 		float fy = modff(y, &y);
@@ -131,7 +131,7 @@ class Hierarchy {
 			maps[slog][base	+ size+1] * (       fx) * (       fy);
 	}
 
-	float GetHeight_nearest(float x, float y, float BAD_VAL)
+	float getheight_nearest(float x, float y, float BAD_VAL)
 	{
 		if (x < 0.0f || x > size - 1 || y < 0.0f || y > size - 1)
 			return BAD_VAL;
@@ -165,7 +165,7 @@ public:
 	///                 the difference is in whether the highest or the
 	///                 lowest point is taken
 	/// @returns TRUE on success, FALSE on failure
-	bool BuildHierarchy(int thesize, float *thebuff, bool is_floor)
+	bool build_hierarchy(int thesize, float *thebuff, bool is_floor)
 	{
 		float (*ffun) (float,float,float,float) = is_floor ? fmax4 : fmin4;
 		floor = is_floor;
@@ -241,7 +241,7 @@ public:
 	// all comments in this routine assume we're raycasting a floor heightmap. For the ceiling equivallent,
 	// just "reverse" all `below' statements
 
-	float RayIntersect(const Vector & orig, const Vector & proj, Vector & crossing)
+	float ray_intersect(const Vector & orig, const Vector & proj, Vector & crossing)
 	{
 		++raycasts;
 		bool coords_inited = false;
@@ -268,10 +268,10 @@ public:
 			X = (int) orig[0];
 			Z = (int) orig[2];
 			if (floor) {
-				if (GetHeight_bilinear(orig.v[0], orig.v[2]) >= orig.v[1])
+				if (getheight_bilinear(orig.v[0], orig.v[2]) >= orig.v[1])
 					return 1e9;
 			} else {
-				if (GetHeight_bilinear(orig.v[0], orig.v[2]) <= orig.v[1])
+				if (getheight_bilinear(orig.v[0], orig.v[2]) <= orig.v[1])
 					return 1e9;
 			}
 		} else {

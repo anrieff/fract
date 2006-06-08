@@ -194,7 +194,7 @@ static void display_poly(
 	int c = 0;
 	for (int j = 0; j < n + 1; j++) {
 		bool useless; int res;
-		res = ProjectPointShadow(poly[j], ml, scr_coords[j], xr, yr, cur, mtt, mti, mtti, useless, casted[j]);
+		res = project_point_shadow(poly[j], ml, scr_coords[j], xr, yr, cur, mtt, mti, mtti, useless, casted[j]);
 		c += (useless == true);
 		if (res >= 4) c += 1000;
 	}
@@ -251,11 +251,11 @@ static void display_poly(
 		n.make_length( light_radius );
 		int res[2];
 		bool u1, u2;
-		res[0] = ProjectPointShadow(poly[j], ml + n, fed[j][0][0], xr, yr, cur, mtt, mti, mtti, u1, wed[j][0][0]);
-		res[1] = ProjectPointShadow(poly[j], ml - n, fed[j][0][1], xr, yr, cur, mtt, mti, mtti, u2, wed[j][0][1]);
+		res[0] = project_point_shadow(poly[j], ml + n, fed[j][0][0], xr, yr, cur, mtt, mti, mtti, u1, wed[j][0][0]);
+		res[1] = project_point_shadow(poly[j], ml - n, fed[j][0][1], xr, yr, cur, mtt, mti, mtti, u2, wed[j][0][1]);
 		xvalid[j] = (res[0] < 4 && res[1] < 4 /*&& u1 == u2*/);
-		res[0] = ProjectPointShadow(poly[j+1], ml + n, fed[j][1][0], xr, yr, cur, mtt, mti, mtti, u1, wed[j][1][0]);
-		res[1] = ProjectPointShadow(poly[j+1], ml - n, fed[j][1][1], xr, yr, cur, mtt, mti, mtti, u2, wed[j][1][1]);
+		res[0] = project_point_shadow(poly[j+1], ml + n, fed[j][1][0], xr, yr, cur, mtt, mti, mtti, u1, wed[j][1][0]);
+		res[1] = project_point_shadow(poly[j+1], ml - n, fed[j][1][1], xr, yr, cur, mtt, mti, mtti, u2, wed[j][1][1]);
 		xvalid[j] &= (res[0] < 4 && res[1] < 4 /*&& u1 == u2*/);
 	}
 	for (int j = 0; j < n; j++) {
@@ -290,10 +290,10 @@ static void display_poly(
 struct DensityDrawer : public AbstractDrawer
 {
 	Uint16 *buff, fill;
-	sphere *S;
+	Sphere *S;
 	Vector l;
 	int xr;
-	DensityDrawer(Uint16 *sbuffer, Uint16 _fillc, int _xr, sphere *ss, Vector ll) : 
+	DensityDrawer(Uint16 *sbuffer, Uint16 _fillc, int _xr, Sphere *ss, Vector ll) : 
 			buff(sbuffer), fill(_fillc), S(ss), l(ll), xr(_xr) {}
 	
 	inline bool computeminmax(const Vector& in, float &f1, float &f2)
@@ -357,7 +357,7 @@ static void display_poly_fake_sphere(
 		Vector &mti,
 		Vector & mtti,
 		Uint16 *sbuffer,
-		sphere *S
+		Sphere *S
 			)
 {
 	static Vector casted[MAX_SIDES + 1];
@@ -365,7 +365,7 @@ static void display_poly_fake_sphere(
 	int c = 0;
 	for (int j = 0; j < n + 1; j++) {
 		bool useless; int res;
-		res = ProjectPointShadow(poly[j], ml, scr_coords[j], xr, yr, cur, mtt, mti, mtti, useless, casted[j]);
+		res = project_point_shadow(poly[j], ml, scr_coords[j], xr, yr, cur, mtt, mti, mtti, useless, casted[j]);
 		c += (useless == true);
 		if (res >= 4) c += 1000;
 	}
@@ -789,7 +789,7 @@ void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 		Vector poly[SPHERE_SIDES*2+8];
 		
 		prof_enter(PROF_POLY_GEN);
-		sp[i].CalculateFixedConvex(poly, ml, SPHERE_SIDES);
+		sp[i].calculate_fixed_convex(poly, ml, SPHERE_SIDES);
 		prof_leave(PROF_POLY_GEN);
 		PolyInfo pif[2];
 		
@@ -805,7 +805,7 @@ void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 	}
 	
 	
-	for (int i = 0; i < mesh_count; i++) if (mesh[i].GetFlags() & CASTS_SHADOW) {
+	for (int i = 0; i < mesh_count; i++) if (mesh[i].get_flags() & CASTS_SHADOW) {
 		recu_es = 0;
 		prof_enter(PROF_CONNECT_GRAPH);
 		for (int j = 0; j < mesh[i].num_edges; j++)
@@ -856,7 +856,7 @@ void render_shadows_fake(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 		Vector poly[SPHERE_SIDES*2+8];
 		
 		prof_enter(PROF_POLY_GEN);
-		sp[i].CalculateFixedConvex(poly, ml, SPHERE_SIDES);
+		sp[i].calculate_fixed_convex(poly, ml, SPHERE_SIDES);
 		prof_leave(PROF_POLY_GEN);
 		PolyInfo pif[2];
 		
@@ -883,7 +883,7 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 	render_shadows_fake(target_framebuffer, sbuffer, xr, yr, mtt, mti, mtti);
 }
 
-static int occlusions(const sphere & a, const sphere & b, const Vector & light)
+static int occlusions(const Sphere & a, const Sphere & b, const Vector & light)
 {
 	char temp[128];
 	int c = 0;
@@ -896,12 +896,12 @@ static int occlusions(const sphere & a, const sphere & b, const Vector & light)
 		if (i & 4) v += Vector(0.0, 0.0, a.d) * 2.0;
 		Vector ray;
 		ray.make_vector(light, v);
-		if (b.FastIntersect( ray, v, ray.lengthSqr(), temp)) c++;
+		if (b.fastintersect( ray, v, ray.lengthSqr(), temp)) c++;
 	}
 	return c;
 }
 
-static int occlusions(const sphere &a, Mesh & m, const Vector & light, bool full_intersections)
+static int occlusions(const Sphere &a, Mesh & m, const Vector & light, bool full_intersections)
 {	
 	int c = 0;
 
@@ -915,9 +915,9 @@ static int occlusions(const sphere &a, Mesh & m, const Vector & light, bool full
 		ray.make_vector(light, v);
 		ray.norm();
 		if (full_intersections) {
-			if (m.FullIntersect(v, ray)) c++;
+			if (m.fullintersect(v, ray)) c++;
 		} else {
-			if (m.TestIntersect(v, ray)) c++;
+			if (m.testintersect(v, ray)) c++;
 		}
 	}
 	return c;
@@ -930,7 +930,7 @@ void check_for_shadowed_spheres(void)
 	Array<ShadowCaster*> all;
 	
 	for (int i = 0; i < spherecount; i++) {
-		sphere & s = sp[i];
+		Sphere & s = sp[i];
 		s.flags &= ~SHADOWED;
 		s.flags &= ~PART_SHADOWED;
 		
@@ -943,7 +943,7 @@ void check_for_shadowed_spheres(void)
 		}
 		if (s.flags & SHADOWED) continue;
 		for (int j = 0; j < mesh_count; j++) 
-			if ((mesh[j].GetFlags() & CASTS_SHADOW) && 8 == occlusions(s, mesh[j], ml, true)) {
+			if ((mesh[j].get_flags() & CASTS_SHADOW) && 8 == occlusions(s, mesh[j], ml, true)) {
 				s.flags |= SHADOWED;
 				break;
 			}
@@ -976,7 +976,7 @@ void check_for_shadowed_spheres(void)
 		}
 		
 		for (int j = 0; j < mesh_count; j++) 
-			if ((mesh[j].GetFlags() & CASTS_SHADOW) && occlusions(s, mesh[j], ml, false)) {
+			if ((mesh[j].get_flags() & CASTS_SHADOW) && occlusions(s, mesh[j], ml, false)) {
 				s.flags |= PART_SHADOWED;
 				all += &mesh[j];
 				csize++;

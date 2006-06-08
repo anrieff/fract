@@ -45,7 +45,7 @@ int cmp_TS(const void *x, const void *y)
 	return b->count - a->count;
 }
 
-int Mesh::GetTriangleBase() const
+int Mesh::get_triangle_base() const
 {
 	return (this - mesh) * MAX_TRIANGLES_PER_OBJECT;
 }
@@ -55,7 +55,7 @@ int Mesh::GetTriangleBase() const
 void Mesh::scale(double factor)
 {
 	int base, i;
-	base = GetTriangleBase();
+	base = get_triangle_base();
 	for (i = 0; i < triangle_count; ++i) {
 		for (int j = 0; j < 3; j++) {
 			trio[base + i].vertex[j] -= center;
@@ -75,14 +75,14 @@ void Mesh::scale(double factor)
 	}
 	
 	total_scale *= factor;
-	ReCalc();
+	recalc();
 }
 
 void Mesh::translate(const Vector & transp)
 {
 	center += transp;
 	int base, i;
-	base = GetTriangleBase();
+	base = get_triangle_base();
 	for (i = 0; i < triangle_count; ++i) {
 		for (int j = 0; j < 3; j++) {
 			trio[base + i].vertex[j] += transp;
@@ -116,7 +116,7 @@ bool Mesh::bound(int compo, double minv, double maxv)
 void Mesh::set_flags(Uint32 newflags, float refl, float opacity, int set_type, Uint32 color)
 {
 	flags = newflags;
-	int base = GetTriangleBase();
+	int base = get_triangle_base();
 	for (int i = 0; i < triangle_count; i++) {
 		if (set_type == TYPE_OR)
 			trio[base + i].flags |= newflags;
@@ -129,12 +129,12 @@ void Mesh::set_flags(Uint32 newflags, float refl, float opacity, int set_type, U
 	}
 }
 
-int iswhitespace(char c)
+static int iswhitespace(char c)
 {
 	return (c == ' ' || c == '\t');
 }
 
-bool read_real(char *buf, int & sp, int &ep, double &res)
+static bool read_real(char *buf, int & sp, int &ep, double &res)
 {
 	ep = sp;
 	while (buf[ep] && buf[ep] != '-' && buf[ep] != '-' && (buf[ep] < '0' || buf[ep] > '9')) ep++;
@@ -152,7 +152,7 @@ bool read_real(char *buf, int & sp, int &ep, double &res)
 	return true;
 }
 
-bool read_real(char *buf, int & sp, int &ep, float &res)
+static bool read_real(char *buf, int & sp, int &ep, float &res)
 {
 	double dbl=0;
 	bool ok = read_real(buf, sp, ep, dbl);
@@ -160,7 +160,7 @@ bool read_real(char *buf, int & sp, int &ep, float &res)
 	return ok;
 }
 
-bool read_string(char *buf, int & sp, int & ep, char *out)
+static bool read_string(char *buf, int & sp, int & ep, char *out)
 {
 	ep = sp;
 	while (buf[ep] && iswhitespace(buf[ep])) ep++;
@@ -178,7 +178,7 @@ bool read_string(char *buf, int & sp, int & ep, char *out)
 	return true;
 }
 
-bool read_trio(char *buf, int & sp, int & ep, int a[3])
+static bool read_trio(char *buf, int & sp, int & ep, int a[3])
 {
 	char s[100];
 	if (!read_string(buf, sp, ep, s)) return false;
@@ -201,7 +201,7 @@ bool read_trio(char *buf, int & sp, int & ep, int a[3])
 }
 
 
-char firstchar(char *s)
+static char firstchar(char *s)
 {
 	int i = 0;
 	while (s[i] && iswhitespace(s[i])) i++;
@@ -219,11 +219,11 @@ char firstchar(char *s)
 	if use_mapping_coords == true, then there ain't any color data, but there are six floats,
 	again in [0-1], the (u,v) mapping coordinates of each vertex
 */
-void Mesh::ReadFromTextFile(const char *fn, bool use_mapping_coords)
+void Mesh::read_from_text_file(const char *fn, bool use_mapping_coords)
 {
 	FILE *f;
 	char buf[300];
-	int base = GetTriangleBase();
+	int base = get_triangle_base();
 	f = fopen(fn, "rt");
 	triangle_count = 0;
 	if (!f) {
@@ -257,7 +257,7 @@ void Mesh::ReadFromTextFile(const char *fn, bool use_mapping_coords)
 		triangle_count++;
 	}
 	fclose(f);
-	ReCalc();
+	recalc();
 }
 
 static void addedge(Vector vertices[], Mesh::EdgeInfo edges[], int & edgc, int a, int b, const Vector & normal)
@@ -295,10 +295,10 @@ static void addedge(Vector vertices[], Mesh::EdgeInfo edges[], int & edgc, int a
 	The implementation below follows the format spec and is tested to comply
 	with the files, written by SOFTIMAGE|XSI's "export" option
 */
-bool Mesh::ReadFromObj(const char *fn)
+bool Mesh::read_from_obj(const char *fn)
 {
 	FILE *f;
-	int base = GetTriangleBase();
+	int base = get_triangle_base();
 	char basedir[100];
 	static Vector vertices[MAX_TRIANGLES_PER_OBJECT * 3];
 	static int    vert_map[MAX_TRIANGLES_PER_OBJECT * 3];
@@ -307,7 +307,7 @@ bool Mesh::ReadFromObj(const char *fn)
 	int vc = 0;
 	static float mappings[MAX_TRIANGLES_PER_OBJECT * 3][2];
 	int tc = 0;
-	BBox::ReCalc();
+	BBox::recalc();
 	center.zero();
 	f = fopen(fn, "rt");
 	triangle_count = 0;
@@ -347,7 +347,7 @@ bool Mesh::ReadFromObj(const char *fn)
 		if (!strcmp("mtllib", cmd)) {
 			char mtl_filename[100];
 			read_string(buff, sp, ep, mtl_filename);
-			if (!ParseMtlLib(mtl_filename, basedir)) {
+			if (!parse_mtl_lib(mtl_filename, basedir)) {
 				printf("Can't parse the material lib!\n");
 				return false;
 			}
@@ -512,7 +512,7 @@ bool Mesh::ReadFromObj(const char *fn)
 	Normalize the mesh size
 	
 */
-	ReCalc();
+	recalc();
 	double maxd = vmax[0]-vmin[0] > vmax[1]-vmin[1] ? vmax[0]-vmin[0]:vmax[1]-vmin[1];
 	maxd = maxd < vmax[2]-vmin[2] ? vmax[2]-vmin[2]: maxd;
 	
@@ -535,7 +535,7 @@ bool Mesh::ReadFromObj(const char *fn)
 	strcpy(file_name, fn);
 	total_scale = 1.0;
 	total_translation.zero();
-	ReCalc();
+	recalc();
 
 	
 #ifdef DEBUG
@@ -544,7 +544,7 @@ bool Mesh::ReadFromObj(const char *fn)
 	return true;
 }
 
-bool Mesh::ParseMtlLib(const char *fn, const char *base_dir)
+bool Mesh::parse_mtl_lib(const char *fn, const char *base_dir)
 {
 	char filename[256];
 	char buff[1000];
@@ -574,27 +574,27 @@ bool Mesh::ParseMtlLib(const char *fn, const char *base_dir)
 	return false;
 }
 
-void Mesh::ReCalc(void)
+void Mesh::recalc(void)
 {
-	BBox::ReCalc();
-	int base = GetTriangleBase();
+	BBox::recalc();
+	int base = get_triangle_base();
 	for (int i = 0; i < triangle_count; i++)
-		Add(trio[base + i]);
+		add(trio[base + i]);
 }
 
-Uint32 Mesh::GetFlags(void) const
+Uint32 Mesh::get_flags(void) const
 {
-	return trio[GetTriangleBase()].flags;
+	return trio[get_triangle_base()].flags;
 }
 
-void Mesh::RebuildNormalMap(void)
+void Mesh::rebuild_normal_map(void)
 {
 	static int normal_div[MAX_TRIANGLES_PER_OBJECT * 3];
 	for (int i = 0; i < map_size; i++) {
 		normal_map[i].zero();
 		normal_div[i] = 0;
 	}
-	int base = GetTriangleBase();
+	int base = get_triangle_base();
 	for (int i = 0; i < triangle_count; i++) {
 		for (int j = 0; j < 3; j++) {
 			int k = trio[base + i].nm_index[j];
@@ -612,20 +612,20 @@ void Mesh::RebuildNormalMap(void)
 	}
 }
 
-bool Mesh::FullIntersect(const Vector & start, const Vector &dir, int opt)
+bool Mesh::fullintersect(const Vector & start, const Vector &dir, int opt)
 {
-	if (!TestIntersect(start, dir)) return false;
+	if (!testintersect(start, dir)) return false;
 
 	char ctx[128];
 	int i = lastind[opt];
-	int base = GetTriangleBase();
+	int base = get_triangle_base();
 
 	if (i >= 0 && i < triangle_count)
-		if (trio[base + i].Intersect(dir, start, ctx)) return true;
+		if (trio[base + i].intersect(dir, start, ctx)) return true;
 	
 	bool found = false;
 	for (i = 0; i < triangle_count; i++) {
-		if (trio[base + i].Intersect(dir, start, ctx)) {
+		if (trio[base + i].intersect(dir, start, ctx)) {
 			found = true;
 			break;
 		}
@@ -634,9 +634,9 @@ bool Mesh::FullIntersect(const Vector & start, const Vector &dir, int opt)
 	return found;
 }
 
-bool Mesh::SIntersect(const Vector & start, const Vector &dir, int opt)
+bool Mesh::sintersect(const Vector & start, const Vector &dir, int opt)
 {
-	return FullIntersect(start, dir, opt);
+	return fullintersect(start, dir, opt);
 }
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -646,8 +646,8 @@ bool Mesh::SIntersect(const Vector & start, const Vector &dir, int opt)
 void mesh_frame_init(const Vector & camera, const Vector & light)
 {
 	for (int i = 0; i < mesh_count; i++) {
-		if (mesh[i].GetFlags() & NORMAL_MAP)
-			mesh[i].RebuildNormalMap();
+		if (mesh[i].get_flags() & NORMAL_MAP)
+			mesh[i].rebuild_normal_map();
 	}
 }
 

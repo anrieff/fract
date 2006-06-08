@@ -28,7 +28,7 @@ class RawImg {
 	void * data;
 	char fn[64];//optional if the RawImg was loaded from a file
 
-	bool CreateRaw(int x, int y);
+	bool create_raw(int x, int y);
 	void copyraw(const RawImg &);
 	void default_init();
 public:
@@ -53,16 +53,16 @@ public:
 	RawImg & operator = (const RawImg &);
 
 	/// loads from a BMP file
-	bool LoadBmp(const char * fn);
+	bool load_bmp(const char * fn);
 
 	/// saves a bitmap to a .BMP file
-	bool SaveBmp(const char * fn);
+	bool save_bmp(const char * fn);
 
 	/// loads floating-point data from a .FDA file
-	bool LoadFda(const char * fn);
+	bool load_fda(const char * fn);
 
 	/// Shrinks the source bitmap twice and puts it in B
-	void Shrink(RawImg &b);
+	void shrink(RawImg &b);
 
 
 	/// access functions:
@@ -73,12 +73,12 @@ public:
 	/// note that it may be null
 	void* get_data() const {return data;}
 
-	const char* getTexFn() const { return fn;}
+	const char* get_tex_fn() const { return fn;}
 
 	/// fills the bitmap with a constant color
 	void fill(unsigned color);
 	
-	void RenderHack();
+	void render_hack();
 	
 };
 
@@ -114,7 +114,7 @@ void gridify_texture(RawImg & a);
 // make a checker texture, with color1 and color2 alternating
 void checker_texture(RawImg & a, int size = 8, unsigned color1=0x0, unsigned color2=0xffffff);
 
-void Take_Snapshot(RawImg & a);
+void take_snapshot(RawImg & a);
 void bitmap_close(void);
 
 Uint32 byteswap_32(Uint32);

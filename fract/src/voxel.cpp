@@ -138,11 +138,11 @@ int voxel_init(void) //returns 0 on success, 1 on failure
 	int k, i;
 	RawImg a, b;
 	for (k = 0; k < NUM_VOXELS; k++) {
-		if (!a.LoadFda(vxInput[k].heightmap)) {
+		if (!a.load_fda(vxInput[k].heightmap)) {
 			err_tex(vxInput[k].heightmap, k);
 			return 1;
 		}
-		if (!b.LoadBmp(vxInput[k].texture)) {
+		if (!b.load_bmp(vxInput[k].texture)) {
 			err_tex(vxInput[k].texture, k);
 			return 1;
 		}
@@ -188,7 +188,7 @@ int voxel_init(void) //returns 0 on success, 1 on failure
 		}
 		med_val /= (vox[k].size * vox[k].size);
 		vox[k].med_val = med_val;
-		vox[k].hierarchy.BuildHierarchy(vox[k].size, vox[k].heightmap, vox[k].floor);
+		vox[k].hierarchy.build_hierarchy(vox[k].size, vox[k].heightmap, vox[k].floor);
 #ifdef ACTUALLYDISPLAY
 		intro_progress(screen, prog_vox_init_base + prog_vox_init*(k+1.0)/NUM_VOXELS);
 #endif
@@ -221,9 +221,9 @@ static inline void clip_coords(float & x, float & y, const float clp_size)
 	if (y > clp_size) y = clp_size;
 }
 
-//TexPaintScale(vox + k, index, x, y, ambient);
+//tex_paint_scale(vox + k, index, x, y, ambient);
 
-static inline void TexPaintScale(vox_t * vox, int index, float x, float y, int scaling)
+static inline void tex_paint_scale(vox_t * vox, int index, float x, float y, int scaling)
 {
 	vox->texture[index] = multiplycolor(vox->input_texture[index], scaling);
 }
@@ -307,10 +307,10 @@ void voxel_light_recalc1(int thread_idx)
 						float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 
 						float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
-						TexPaintScale(vox + k, index, x, y, iambient + dbl2int16(fabs(mul)));
+						tex_paint_scale(vox + k, index, x, y, iambient + dbl2int16(fabs(mul)));
 					} else {
 						// the point is in shadow
-						TexPaintScale(vox + k, index, x, y, iambient);
+						tex_paint_scale(vox + k, index, x, y, iambient);
 					}
 				}
 			}
@@ -322,7 +322,7 @@ void voxel_light_recalc1(int thread_idx)
 
 #define uint unsigned int
 #define fastrsqrt FastReciprocalSquareRoot
-static inline float FastReciprocalSquareRoot(float val)
+static inline float fast_reciprocal_square_root(float val)
 {
     const float magicValue = 1597358720.0f;
     float tmp = (float) *((uint*)&val);
@@ -331,17 +331,17 @@ static inline float FastReciprocalSquareRoot(float val)
     return *(float*)&tmp2;
 }
 
-static inline bool PointIsInShadow(vox_t *v, int x, int z)
+static inline bool point_is_in_shadow(vox_t *v, int x, int z)
 {
 	Vector l(lx, ly, lz);
 	Vector p(x, v->heightmap[x + z * v->size], z);
 	Vector o;
 	double d1 = l.distto(p);
-	double d2 = v->hierarchy.RayIntersect(l, p, o);
+	double d2 = v->hierarchy.ray_intersect(l, p, o);
 	return (d2 < d1 - 1);
 }
 
-static inline unsigned getState(vox_t *v, int x, int z)
+static inline unsigned get_state(vox_t *v, int x, int z)
 {
 	int sz = v->size;
 	if (x >= sz || z >= sz) return 0x02;
@@ -350,7 +350,7 @@ static inline unsigned getState(vox_t *v, int x, int z)
 	if (0xffffffff != texel) {
 		return texel >> 24;
 	}
-	if (PointIsInShadow(v, x, z)) { // the texel is exposed to light
+	if (point_is_in_shadow(v, x, z)) { // the texel is exposed to light
 		texel = 0x02000000;
 		return 0x02;
 	} else {
@@ -365,66 +365,66 @@ void subdivshadow(vox_t *v, int x, int z, int sz)
 	if (sz == 2) {
 		int index = z * v->size + x;
 		int state[4] = {
-			getState(v, x    , z    ),
-			getState(v, x + 2, z    ),
-			getState(v, x    , z + 2),
-			getState(v, x + 2, z + 2),
+			get_state(v, x    , z    ),
+			get_state(v, x + 2, z    ),
+			get_state(v, x    , z + 2),
+			get_state(v, x + 2, z + 2),
 		};
 		if (state[0]==0x01) {
-			TexPaintScale(v, index, x, z, iambient);
+			tex_paint_scale(v, index, x, z, iambient);
 		} else {
 			float *vec = &(v->normal_map[index*__4]);
 			float vX = lx - x, vZ = lz - z;
 			float vDist = ly - v->heightmap[index];
 			float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 			float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
-			TexPaintScale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
+			tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
 		}
 		index++, x++;
 		if (state[1]==0x01) {
-			TexPaintScale(v, index, x, z, iambient);
+			tex_paint_scale(v, index, x, z, iambient);
 		} else {
 			float *vec = &(v->normal_map[index*__4]);
 			float vX = lx - x, vZ = lz - z;
 			float vDist = ly - v->heightmap[index];
 			float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 			float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
-			TexPaintScale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
+			tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
 		}
 		x--;
 		index+=v->size-1;z++;
 		if (state[2]==0x01) {
-			TexPaintScale(v, index, x, z, iambient);
+			tex_paint_scale(v, index, x, z, iambient);
 		} else {
 			float *vec = &(v->normal_map[index*__4]);
 			float vX = lx - x, vZ = lz - z;
 			float vDist = ly - v->heightmap[index];
 			float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 			float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
-			TexPaintScale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
+			tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
 		}
 		index++, x++;
 		if (state[3]==0x01) {
-			TexPaintScale(v, index, x, z, iambient);
+			tex_paint_scale(v, index, x, z, iambient);
 		} else {
 			float *vec = &(v->normal_map[index*__4]);
 			float vX = lx - x, vZ = lz - z;
 			float vDist = ly - v->heightmap[index];
 			float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 			float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
-			TexPaintScale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
+			tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
 		}
 		return;
 	}
-	unsigned state = getState(v, x, z);
-	if (getState(v, x + sz, z     ) == state &&
-	    getState(v, x     , z + sz) == state &&
-	    getState(v, x + sz, z + sz) == state) {
+	unsigned state = get_state(v, x, z);
+	if (get_state(v, x + sz, z     ) == state &&
+	    get_state(v, x     , z + sz) == state &&
+	    get_state(v, x + sz, z + sz) == state) {
 	    	if (state == 0x01) {// shadow
 			int index = z * v->size + x;
 			for (int j = 0; j < sz; j++, index+=v->size-sz)
 				for (int i = 0; i < sz; i++, index++) {
-					TexPaintScale(v, index, x + i, z + j, iambient);
+					tex_paint_scale(v, index, x + i, z + j, iambient);
 				}
 		} else { //lit
 			int index = z * v->size + x;
@@ -438,7 +438,7 @@ void subdivshadow(vox_t *v, int x, int z, int sz)
 
 					float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
 
-					TexPaintScale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
+					tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
 				}
 		}
 		return;
@@ -475,7 +475,7 @@ void voxel_light_recalc2(int thread_idx)
 				Vector c(x, vox[k].heightmap[index], z), crossing;
 				index = z * size + x;
 				float ll = light.distto(c);
-				float res = vox[k].hierarchy.RayIntersect(light, c, crossing);
+				float res = vox[k].hierarchy.ray_intersect(light, c, crossing);
 				if (res > ll - 1.0f) { // the texel is exposed to light
 					float *vec = &vox[k].normal_map[index*__4];
 					float vX = lx - x, vZ = lz - z;
@@ -483,17 +483,17 @@ void voxel_light_recalc2(int thread_idx)
 
 					float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
 
-					TexPaintScale(vox + k, index, x, z, iambient + dbl2int16(fabs(mul)));
+					tex_paint_scale(vox + k, index, x, z, iambient + dbl2int16(fabs(mul)));
 				} else {
 					// the point is in shadow
-					TexPaintScale(vox + k, index, x, z, iambient);
+					tex_paint_scale(vox + k, index, x, z, iambient);
 				}
 
 			}*/
 		for (int z = 0,all=0; z < size; z += SHADOW_CAST_ACCURACY)
 			for (int x = 0; x < size; x += SHADOW_CAST_ACCURACY,all++) if (all % cpu_count == thread_idx) {
 
-				vox[k].texture[x + z * size] = PointIsInShadow(vox + k, x, z) ? 0x01000000 : 0x02000000;
+				vox[k].texture[x + z * size] = point_is_in_shadow(vox + k, x, z) ? 0x01000000 : 0x02000000;
 
 		}
 		b.checkout();
@@ -554,7 +554,7 @@ void show_light(Uint32 *fb, int xr, int yr)
 	calc_grid_basics(cur, alpha, beta, w);
 	int x, y;
 	Vector light(lx, ly, lz);
-	ProjectPoint(&x, &y, light, cur, w, xr, yr);
+	project_point(&x, &y, light, cur, w, xr, yr);
 	if (x >= 0 && x < xr && y >= 0 && y < yr)
 		fb[xr * y + x ] = 0xffffff;
 }
@@ -787,10 +787,10 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 Uint32 shootcolr;
 Uint32 shootcolrs[4] = {0xff, 0xffff00, 0xff00, 0xffffff};
 
-void CastRay(const Vector & p, Uint32 & color, float & depth, int k)
+void castray(const Vector & p, Uint32 & color, float & depth, int k)
 {
 	Vector cross;
- 	depth = vox[k].hierarchy.RayIntersect(cur, p, cross);
+ 	depth = vox[k].hierarchy.ray_intersect(cur, p, cross);
 	if (depth < 10000.0) {
 		if (cross[0] < 0.0 || cross[0] > vox[k].size-1 || cross[2] < 0.0 || cross[2] > vox[k].size) {
 			color = 0;
@@ -814,15 +814,15 @@ void CastRay(const Vector & p, Uint32 & color, float & depth, int k)
 	color = (depth < 10000) ? vox[k].texture[((int) cross[2] * vox[k].size + (int) cross[0])%(sqr(vox[k].size))] : 0;
 }
 
-static inline void Cached_CastRay(const Vector & p, int x, int y, Uint32 & color, float & depth, int k)
+static inline void cached_castray(const Vector & p, int x, int y, Uint32 & color, float & depth, int k)
 {
 	if (x >= vox_xr || y >= vox_yr) {
-		CastRay(p, color, depth, k);
+		castray(p, color, depth, k);
 		return;
 	}
 	int index = y * vox_xr + x;
 	if (IS_NEGATIVE(zbuffer[index])) {
-		CastRay(p, color, depth, k);
+		castray(p, color, depth, k);
 		zbuffer[index] = depth;
 		voxfb  [index] = color;
 	} else {
@@ -853,10 +853,10 @@ void subdivide(Uint32 * blockPtr, const Vector & base, int x, int y, int size, i
 {
 	if (2 == size) {
 		Uint32 cc; float dd;
-		Cached_CastRay(base             , x    , y    , cc, dd, k);
-		Cached_CastRay(base + gti       , x + 1, y    , cc, dd, k);
-		Cached_CastRay(base + gtti      , x    , y + 1, cc, dd, k);
-		Cached_CastRay(base + gti + gtti, x + 1, y + 1, cc, dd, k);
+		cached_castray(base             , x    , y    , cc, dd, k);
+		cached_castray(base + gti       , x + 1, y    , cc, dd, k);
+		cached_castray(base + gtti      , x    , y + 1, cc, dd, k);
+		cached_castray(base + gti + gtti, x + 1, y + 1, cc, dd, k);
 	} else {
 		float  depth[4];
 		Uint32 color[4];
@@ -864,10 +864,10 @@ void subdivide(Uint32 * blockPtr, const Vector & base, int x, int y, int size, i
 		x1y0.macc(base, gti, size);
 		x0y1.macc(base, gtti,size);
 		x1y1.macc(x1y0, gtti,size);
-		Cached_CastRay(base, x       , y       , color[0], depth[0], k);
-		Cached_CastRay(x1y0, x + size, y       , color[1], depth[1], k);
-		Cached_CastRay(x0y1, x       , y + size, color[2], depth[2], k);
-		Cached_CastRay(x1y1, x + size, y + size, color[3], depth[3], k);
+		cached_castray(base, x       , y       , color[0], depth[0], k);
+		cached_castray(x1y0, x + size, y       , color[1], depth[1], k);
+		cached_castray(x0y1, x       , y + size, color[2], depth[2], k);
+		cached_castray(x1y1, x + size, y + size, color[3], depth[3], k);
 
 		float davg = 0.25 * (depth[0] + depth[1] + depth[2] + depth[3]);
 		float noninfsum = 0.0, noninfdiv = 0.0;
@@ -959,7 +959,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		double xx = rand() % 512000 / 1000.0;
 		double zz = rand() % 512000 / 1000.0;
 		Vector d(xx, 0, zz);
-		CastRay(d, tc, depth, 0);
+		castray(d, tc, depth, 0);
 		if (i % (128*1024) == 0) {printf("#"); fflush(stdout);}
 	}
 	cc = bTime()-cc;
@@ -973,7 +973,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		double xx = i % 512;
 		double yy = i / 512 % 512;
 		Vector d(xx, 0, yy);
-		CastRay(d, tc, depth, 0);
+		castray(d, tc, depth, 0);
 		if (i % (128*1024) == 0) {printf("#"); fflush(stdout);}
 	}
 	cc = bTime()-cc;
@@ -1005,7 +1005,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 			for (int i = 0; i < xr; i+=8, all_rays++) {
 				if (all_rays % cpu_count == thread_index) {
 					shootcolr = shootcolrs[(i/8)%4];
-					CastRay(t, fb[j*xr+i], zbuffer[j*xr+i], k);
+					castray(t, fb[j*xr+i], zbuffer[j*xr+i], k);
 				}
 				t += xStride;
 			}
@@ -1032,7 +1032,7 @@ Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
 {
 	Vector cross;
 	for (int k = 0; k < NUM_VOXELS; k++) {
-		double depth = vox[k].hierarchy.RayIntersect(cur, v, cross);
+		double depth = vox[k].hierarchy.ray_intersect(cur, v, cross);
 		int mipsize = vox[k].size >> HEIGHTFIELD_RAYTRACE_MIPLEVEL;
 		if (depth < 10000.0 && cross[0] >= 0.0 && cross[0] < vox[k].size - (1<<HEIGHTFIELD_RAYTRACE_MIPLEVEL) &&
 				       cross[2] >= 0.0 && cross[2] < vox[k].size - (1<<HEIGHTFIELD_RAYTRACE_MIPLEVEL)  ) {

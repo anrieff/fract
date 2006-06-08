@@ -36,7 +36,7 @@ extern int end_tex;
 
 // sphere collection
 
-extern sphere sp[MAX_SPHERES];
+extern Sphere sp[MAX_SPHERES];
 extern Vector pp[MAX_SPHERES][MAX_SPHERE_SIDES];
 extern int num_sides[MAX_SPHERES];
 extern int spherecount;

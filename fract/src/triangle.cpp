@@ -69,22 +69,22 @@ float perlin(float x, float y)
  * @class Triangle                                                          *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 
-int Triangle::GetTriangleIndex() const
+int Triangle::get_triangle_index() const
 {
 	return (this - trio);
 }
 
-int Triangle::GetMeshIndex() const
+int Triangle::get_mesh_index() const
 {
 	return (this - trio) >> TRI_ID_BITS;
 }
 
-double Triangle::GetDepth(const Vector &camera)
+double Triangle::get_depth(const Vector &camera)
 {
 	return ZDepth;
 }
 
-bool Triangle::OkPlane(const Vector & camera)
+bool Triangle::okplane(const Vector & camera)
 {
 	Vector vec;
 	vec.make_vector(center, camera);
@@ -92,7 +92,7 @@ bool Triangle::OkPlane(const Vector & camera)
 }
 
 
-bool Triangle::IsVisible(const Vector & camera, Vector w[3])
+bool Triangle::is_visible(const Vector & camera, Vector w[3])
 {
 	if (visited) return visible;
 	visited = true;
@@ -101,7 +101,7 @@ bool Triangle::IsVisible(const Vector & camera, Vector w[3])
 	xr = xsize_render(xres());
 	yr = ysize_render(yres());
 	for (int i = 0; i < 3; i++) {
-		if (!ProjectPoint(&x, &y, vertex[i], camera, w, xr, yr)) {
+		if (!project_point(&x, &y, vertex[i], camera, w, xr, yr)) {
 			visible = false;
 			return false;
 		}
@@ -111,19 +111,19 @@ bool Triangle::IsVisible(const Vector & camera, Vector w[3])
 		visible = false;
 		return false;
 	}
-	visible = OkPlane(camera);
+	visible = okplane(camera);
 	return visible;
 }
 
 
-int Triangle::CalculateConvex(Vector pt[], Vector camera)
+int Triangle::calculate_convex(Vector pt[], Vector camera)
 {
 	for (int i = 0; i < 3; i++)
 		pt[i] = vertex[2-i];
 	return 3;
 }
 
-void Triangle::MapToScreen(
+void Triangle::map2screen(
 			   Uint32 *framebuffer, 
 			   int color, 
 			   int sides, 
@@ -142,12 +142,12 @@ void Triangle::MapToScreen(
 		be %= sides;
 	}
 	int size = (be + sides - bs) % sides;
-	ProjectHullPart(L, pt, bs, +1, size, sides, color, camera, w, fun_min, fround);
-	ProjectHullPart(R, pt, bs, -1, sides - size, sides, color, camera, w, fun_max);
-	MapHull(framebuffer, L, R, ys, ye, color, 0);
+	project_hull_part(L, pt, bs, +1, size, sides, color, camera, w, fun_min, fround);
+	project_hull_part(R, pt, bs, -1, sides - size, sides, color, camera, w, fun_max);
+	map_hull(framebuffer, L, R, ys, ye, color, 0);
 }
 
-bool Triangle::FastIntersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const
+bool Triangle::fastintersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const
 {
 	if (!visible) return false;
 	triangle_intersect_context *tic = (triangle_intersect_context*)IntersectContext;
@@ -176,7 +176,7 @@ bool Triangle::FastIntersect(const Vector& ray, const Vector& camera, const doub
 	return true;
 }
 
-bool Triangle::Intersect(const Vector& ray, const Vector &camera, void *IntersectContext)
+bool Triangle::intersect(const Vector& ray, const Vector &camera, void *IntersectContext)
 {
 	triangle_intersect_context *tic = (triangle_intersect_context*)IntersectContext;
 	Vector h;
@@ -203,14 +203,14 @@ bool Triangle::Intersect(const Vector& ray, const Vector &camera, void *Intersec
 	return true;
 }
 
-double Triangle::IntersectionDist(void *IntersectContext) const
+double Triangle::intersection_dist(void *IntersectContext) const
 {
 	triangle_intersect_context *tic = (triangle_intersect_context*)IntersectContext;
 
 	return tic->dist;
 }
 
-Uint32 Triangle::Solve3D(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
+Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
 		float *opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
 {
 	Vector CI;
@@ -229,7 +229,7 @@ Uint32 Triangle::Solve3D(Vector& ray, const Vector& camera, const Vector& light,
 	}
 	Vector Normal;
 	if (flags & NORMAL_MAP) {
-		Mesh *m = mesh + (GetMeshIndex());
+		Mesh *m = mesh + (get_mesh_index());
 		Vector xu, xv;
 		xu.make_vector(m->normal_map[nm_index[1]], m->normal_map[nm_index[0]]);
 		xv.make_vector(m->normal_map[nm_index[2]], m->normal_map[nm_index[0]]);
@@ -288,7 +288,7 @@ Uint32 Triangle::Solve3D(Vector& ray, const Vector& camera, const Vector& light,
 	Uint32 kolor;
 	if (flags & MAPPED) {
 		// get texture coordinates and fetch a texel
-		RawImg *map = mesh[GetMeshIndex()].image;
+		RawImg *map = mesh[get_mesh_index()].image;
 		Uint32 *data = (Uint32*)map->get_data();
 		unsigned xx = map->get_x();
 		unsigned yy = map->get_y();
@@ -338,8 +338,8 @@ Uint32 Triangle::Solve3D(Vector& ray, const Vector& camera, const Vector& light,
 			out.macc(vis, Cp, 1 - x_div_a);
 			out.norm();
 			// inside vector found. See where it breaks out
-			Mesh &M = mesh[GetMeshIndex()];
-			int tbase = M.GetTriangleBase();
+			Mesh &M = mesh[get_mesh_index()];
+			int tbase = M.get_triangle_base();
 			double totdist = 0;
 			bool found = false;
 			Triangle *last_tri = this;
@@ -361,8 +361,8 @@ Uint32 Triangle::Solve3D(Vector& ray, const Vector& camera, const Vector& light,
 					Triangle *t = trio + tbase + i;
 					triangle_intersect_context icontext;
 					if (t != last_tri) {
-						if (t->normal * out < 0 || !t->Intersect(out, I, &icontext)) continue;
-						double dist = t->IntersectionDist(&icontext);
+						if (t->normal * out < 0 || !t->intersect(out, I, &icontext)) continue;
+						double dist = t->intersection_dist(&icontext);
 						if (dist > 0 && dist < mindist) {
 							mindist = dist;
 							bt = t;
@@ -385,8 +385,8 @@ Uint32 Triangle::Solve3D(Vector& ray, const Vector& camera, const Vector& light,
 						Triangle *t = trio + tbase + i;
 						triangle_intersect_context icontext;
 						if (t != last_tri) {
-							if (t->normal * out < 0 || !t->Intersect(out, I, &icontext)) continue;
-							double dist = t->IntersectionDist(&icontext);
+							if (t->normal * out < 0 || !t->intersect(out, I, &icontext)) continue;
+							double dist = t->intersection_dist(&icontext);
 							if (dist > 0 && dist < mindist) {
 								mindist = dist;
 								bt = t;
@@ -449,7 +449,7 @@ Uint32 Triangle::Solve3D(Vector& ray, const Vector& camera, const Vector& light,
 #endif
 	return result;
 }
-int Triangle::GetBestMipLevel(double x0, double z0, FilteringInfo & fi)
+int Triangle::get_best_miplevel(double x0, double z0, FilteringInfo & fi)
 {
 	int& last_val = fi.last_val;
 	Vector through0, through1;
@@ -465,8 +465,8 @@ int Triangle::GetBestMipLevel(double x0, double z0, FilteringInfo & fi)
 		triangle_intersect_context tic;
 		v0.norm();
 		v1.norm();
-		FastIntersect(v0, fi.camera, 1.0, &tic);
-		Mesh *m = mesh + (GetMeshIndex());
+		fastintersect(v0, fi.camera, 1.0, &tic);
+		Mesh *m = mesh + (get_mesh_index());
 		Vector xu, xv;
 		xu.make_vector(m->normal_map[nm_index[1]], m->normal_map[nm_index[0]]);
 		xv.make_vector(m->normal_map[nm_index[2]], m->normal_map[nm_index[0]]);
@@ -476,7 +476,7 @@ int Triangle::GetBestMipLevel(double x0, double z0, FilteringInfo & fi)
 				xv*(tic.v)
 			   );
 		normal0.norm();
-		FastIntersect(v1, fi.camera, 1.0, &tic);
+		fastintersect(v1, fi.camera, 1.0, &tic);
 		normal1.add3(
 				m->normal_map[nm_index[0]],
 				xu*(tic.u),
@@ -533,7 +533,7 @@ void create_triangle_array(void)
 		mesh[0].set_flags( RAYTRACED | SEETHROUGH , 0.0026, 0.5, TYPE_OR, 0xdbf6e3);
 		mesh_count = 1;
 		*/
-		mesh[0].ReadFromObj("data/medusa.obj");
+		mesh[0].read_from_obj("data/medusa.obj");
 		mesh[0].scale(75);
 		mesh[0].translate(Vector(120, 10, 200));
 		mesh[0].bound(1, daFloor, daCeiling);
@@ -542,7 +542,7 @@ void create_triangle_array(void)
 		mesh_count = 1;
 
 	} else {
-		mesh[0].ReadFromObj("data/3pyramid.obj");
+		mesh[0].read_from_obj("data/3pyramid.obj");
 		mesh[0].scale(66);
 		mesh[0].translate(Vector(200, 0, 330));
 		mesh[0].bound(1, daFloor, daCeiling);

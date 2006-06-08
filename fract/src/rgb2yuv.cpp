@@ -126,24 +126,28 @@ static inline Uint32 fRGB2YUV(int r, int g, int b)
 // Benchmarks a RGB-to-YUY2 conversion function.
 // Exact results may depend on the test data (fakeRGBBuffer) and the BENCHSIZE
 // random data is a killer for ConvertRGB2YUV_MEM, as it performs about 6-10 times worse, but works fine on real data.
-void BenchmarkFunction( __convert_fn_t fu, int code, char *method, int *maxfps, Uint32 timetorun)
-{int cfps, frames=0;
- Uint32 ticks;
- printf("  ConvertRGB2YUV%s: ", method);
- fu(fakeYUVBuffer, fakeRGBBuffer, BENCHSIZE);
- ticks = GetTicks();
- while (ticks == GetTicks())
- 	/*nothing*/;
- ticks = GetTicks();
- while (GetTicks()-ticks<timetorun) {
- 	fu(fakeYUVBuffer, fakeRGBBuffer, BENCHSIZE);
- 	frames++;
- 	}
- ticks = GetTicks() - ticks;
- cfps = frames * 1000 / ticks;
- printf("%d fps\n", cfps);
- if (cfps > *maxfps) { *maxfps = cfps; bestmethod = code; }
- fflush(stdout);
+void benchmark_function( __convert_fn_t fu, int code, char *method, int *maxfps, Uint32 timetorun)
+{
+	int cfps, frames=0;
+	Uint32 ticks;
+	printf("  ConvertRGB2YUV%s: ", method);
+	fu(fakeYUVBuffer, fakeRGBBuffer, BENCHSIZE);
+	ticks = get_ticks();
+	while (ticks == get_ticks())
+		/*nothing*/;
+	ticks = get_ticks();
+	while (get_ticks()-ticks<timetorun) {
+		fu(fakeYUVBuffer, fakeRGBBuffer, BENCHSIZE);
+		frames++;
+	}
+	ticks = get_ticks() - ticks;
+	cfps = frames * 1000 / ticks;
+	printf("%d fps\n", cfps);
+	if (cfps > *maxfps) { 
+		*maxfps = cfps; 
+		bestmethod = code; 
+	}
+	fflush(stdout);
 }
 
 /*
@@ -159,19 +163,19 @@ void init_yuv_convert(int benchmark)
  int i;
  RawImg bm;
  // disable all benchmarking and algorithm selection if we have some input on the command line
- if (	OptionExists("--use-x86")    ||OptionExists("--use-x86asm")||
-	OptionExists("--use-mmx")    ||OptionExists("--use-mem")   ||
-	OptionExists("--use-x86-fpu")||OptionExists("--use-sse")   ||
-	OptionExists("--use-mmx2")) {
+ if (	option_exists("--use-x86")    ||option_exists("--use-x86asm")||
+	option_exists("--use-mmx")    ||option_exists("--use-mem")   ||
+	option_exists("--use-x86-fpu")||option_exists("--use-sse")   ||
+	option_exists("--use-mmx2")) {
  	bestmethod = -1;
-	if (OptionExists("--use-x86")) bestmethod = USE_X86;
+	if (option_exists("--use-x86")) bestmethod = USE_X86;
 #ifdef USE_ASSEMBLY
-	if (OptionExists("--use-x86asm")) bestmethod = USE_X86_ASM;
-	if (OptionExists("--use-x86-fpu")) bestmethod = USE_X86_FPU;
+	if (option_exists("--use-x86asm")) bestmethod = USE_X86_ASM;
+	if (option_exists("--use-x86-fpu")) bestmethod = USE_X86_FPU;
 #endif
-	if (OptionExists("--use-mmx") && SysInfo.supports("mmx")) bestmethod = USE_MMX;
-	if (OptionExists("--use-sse") && SysInfo.supports("mmx2") && SysInfo.supports("sse")) bestmethod = USE_SSE;
-	if (OptionExists("--use-mmx2") && SysInfo.supports("mmx2")) bestmethod = USE_MMX2;
+	if (option_exists("--use-mmx") && SysInfo.supports("mmx")) bestmethod = USE_MMX;
+	if (option_exists("--use-sse") && SysInfo.supports("mmx2") && SysInfo.supports("sse")) bestmethod = USE_SSE;
+	if (option_exists("--use-mmx2") && SysInfo.supports("mmx2")) bestmethod = USE_MMX2;
 	if (bestmethod!=-1) return;
  	}
 
@@ -180,7 +184,7 @@ void init_yuv_convert(int benchmark)
  for (i=0;i<BENCHSIZE;i++)
  	fakeRGBBuffer[i] = rand()%0x1000000;
  // it would be better if we can load a pre-rendered image to test the bigarray method on some 'real' data...
- if (bm.LoadBmp("data/fract_benchmark.bmp")) {
+ if (bm.load_bmp("data/fract_benchmark.bmp")) {
 	memcpy(fakeRGBBuffer, bm.get_data(), bm.get_size()*4);
  	}
  // if we have enough memory, then create the big lookup array.
@@ -245,19 +249,19 @@ void yuv_benchmark(int benchmark)
  int timetorun;
  timetorun = (benchmark?BENCH_LARGE_TICKS:BENCHTICKS);
  printf("Benchmarking RGB-to-YUV conversion functions:\n");
- 	BenchmarkFunction((__convert_fn_t) ConvertRGB2YUV_X86, USE_X86, "_X86", &maxfps, timetorun);
+ 	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86, USE_X86, "_X86", &maxfps, timetorun);
 #ifdef USE_ASSEMBLY
-	BenchmarkFunction((__convert_fn_t) ConvertRGB2YUV_X86_ASM, USE_X86_ASM, "_X86_ASM", &maxfps, timetorun);
-	BenchmarkFunction((__convert_fn_t) ConvertRGB2YUV_X86_FPU, USE_X86_FPU, "_X86_FPU", &maxfps, timetorun);
+	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86_ASM, USE_X86_ASM, "_X86_ASM", &maxfps, timetorun);
+	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86_FPU, USE_X86_FPU, "_X86_FPU", &maxfps, timetorun);
 #endif	
  if (SysInfo.supports("mmx"))
- 	BenchmarkFunction((__convert_fn_t) ConvertRGB2YUV_MMX, USE_MMX, "_MMX", &maxfps, timetorun);
+ 	benchmark_function((__convert_fn_t) ConvertRGB2YUV_MMX, USE_MMX, "_MMX", &maxfps, timetorun);
  if (SysInfo.supports("mmx2"))
- 	BenchmarkFunction((__convert_fn_t) ConvertRGB2YUV_MMX2, USE_MMX2, "_MMX2", &maxfps, timetorun);
+ 	benchmark_function((__convert_fn_t) ConvertRGB2YUV_MMX2, USE_MMX2, "_MMX2", &maxfps, timetorun);
  if (SysInfo.supports("mmx2") && SysInfo.supports("sse")) {
- 	BenchmarkFunction((__convert_fn_t) ConvertRGB2YUV_SSE, USE_SSE, "_SSE", &maxfps, timetorun);
+ 	benchmark_function((__convert_fn_t) ConvertRGB2YUV_SSE, USE_SSE, "_SSE", &maxfps, timetorun);
 	}
  if (SysInfo.largemem())
- 	BenchmarkFunction((__convert_fn_t) ConvertRGB2YUV_MEM, USE_BIGMEM, "_MEM", &maxfps, timetorun);
- if (OptionExists("--use-mem") && SysInfo.largemem()) bestmethod = USE_BIGMEM;
+ 	benchmark_function((__convert_fn_t) ConvertRGB2YUV_MEM, USE_BIGMEM, "_MEM", &maxfps, timetorun);
+ if (option_exists("--use-mem") && SysInfo.largemem()) bestmethod = USE_BIGMEM;
 }

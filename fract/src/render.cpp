@@ -58,7 +58,7 @@ int RowInfo[RES_MAXY];
 int RowMax[RES_MAXY], RowMin[RES_MAXY];
 ORNode obj_rows[2*MAX_OBJECTS];
 int OR_size;
-object_array allobjects;
+ObjectArray allobjects;
 int obj_count;
 int UseThreads = -1;
 int r_shadows  = 1;
@@ -99,13 +99,13 @@ MultiThreaded *mt;
  */
 int render_init(void)
 {
-	if (!tex.LoadBmp(floor_texture)) {
+	if (!tex.load_bmp(floor_texture)) {
 		printf("Unable to load main texture (%s), bailing out\n", floor_texture);
 		return 1;
 	}
- 	loop_mode = OptionExists("--loop")||OptionExists("--loops");
- 	if (OptionExists("--loops")) {
- 		loops_remaining = OptionValueInt("--loops");
+ 	loop_mode = option_exists("--loop")||option_exists("--loops");
+ 	if (option_exists("--loops")) {
+ 		loops_remaining = option_value_int("--loops");
  	}
 	return 0;
 }
@@ -228,7 +228,7 @@ if (apply_blur) {
 	if (wantdump) {
 		wantdump = false;
 		RawImg dump(xres(), yres(), framebuffer);
-		dump.SaveBmp("final_dump.bmp");
+		dump.save_bmp("final_dump.bmp");
 	}
 #endif
 	if (savevideo) {
@@ -236,19 +236,19 @@ if (apply_blur) {
 		RawImg frame(xres(), yres(), framebuffer);
 		char fn[100];
 		sprintf(fn, "video/frame_%03d.bmp", video_frame++);
-		frame.SaveBmp(fn);
+		frame.save_bmp(fn);
 	}
 #ifdef ACTUALLYDISPLAY
 #ifdef SHOWFPS
 	prof_enter(PROF_SHOWFPS);
  if (developer && stereo_mode == STEREO_MODE_NONE) {
  	fpsfrm++;
- 	if (GetTicks()-fpsclk>FPS_UPDATE_INTERVAL || not_fps_written_yet) {
+ 	if (get_ticks()-fpsclk>FPS_UPDATE_INTERVAL || not_fps_written_yet) {
  		not_fps_written_yet = 0;
- 		sprintf(buff, "fps: %.1lf", (double) fpsfrm / ((GetTicks()-fpsclk)/1000.0));
+ 		sprintf(buff, "fps: %.1lf", (double) fpsfrm / ((get_ticks()-fpsclk)/1000.0));
 		printxy(p, framebuffer, font0, 0, 0, FPS_COLOR, 0.8, buff);
  		fpsfrm = 0;
- 		fpsclk = GetTicks();
+ 		fpsclk = get_ticks();
  		} else printxy(p, framebuffer, font0, 0, 0, FPS_COLOR, 0.8, buff);
  }
  	prof_leave(PROF_SHOWFPS);
@@ -269,11 +269,11 @@ if (developer && stereo_mode == STEREO_MODE_NONE) {
 if (stereo_mode == STEREO_MODE_NONE || stereo_mode == STEREO_MODE_FINAL) {
 	Uint32 *thebuffer = stereo_mode == STEREO_MODE_FINAL ? stereo_buffer: framebuffer;
  if (ov==NULL) { // use the surface directly
- 	Slock(p);
+ 	surface_lock(p);
 		prof_enter(PROF_MEMCPY);
  	memcpy(p->pixels, thebuffer, p->h*p->w*4);
 		prof_leave(PROF_MEMCPY);
- 	Sulock(p);
+ 	surface_unlock(p);
 		prof_enter(PROF_SDL_FLIP);
  	SDL_Flip(p);
 		prof_leave(PROF_SDL_FLIP);
@@ -376,7 +376,7 @@ void preframe_do(Uint32 *ptr, Vector lw)
 			for (j=0;j<spherecount;j++) if (sp[j].flags & COLLIDEABLE)
 				for (i=j+1;i<spherecount;i++) if ((sp[i].flags & COLLIDEABLE) && can_collide(j, i))
 					if ((ttm=collide(sp+i, sp+j, btm))>0) // collision detected
-						ProcessIncident(sp+i, sp+j, ttm);
+						process_incident(sp+i, sp+j, ttm);
 		}
 		/*
 			Here is where advance takes place. All uncollided (and some collided, too)
@@ -413,7 +413,7 @@ void preframe_do(Uint32 *ptr, Vector lw)
 	for (i=0;i<allobjects.size();i++) {
 		allobjects[i]->id = i;
 		int y0 = 0, y1 = ysize_render(yres())-1;
-		projectIt(allobjects[i], pp[i], num_sides+i, ptr, cur, w, xsize_render(xres()), ysize_render(yres()), i+1,
+		project_it(allobjects[i], pp[i], num_sides+i, ptr, cur, w, xsize_render(xres()), ysize_render(yres()), i+1,
 			y0, y1);
 		if (y1 >= 0) {
 			obj_rows[OR_size].object_id = i;
@@ -423,8 +423,8 @@ void preframe_do(Uint32 *ptr, Vector lw)
 			obj_rows[OR_size].y = y1 + 1;
 			obj_rows[OR_size++].type = CLOSING;
 		}
-		if (allobjects[i]->GetType() == OB_SPHERE) {
-			sphere *s = (sphere*)allobjects[i];
+		if (allobjects[i]->get_type() == OB_SPHERE) {
+			Sphere *s = (Sphere*)allobjects[i];
 			pdlo[i] 	= lw.distto(s->pos);
 			sp[i].dist 	= cur.distto(s->pos);
 		}
@@ -436,7 +436,7 @@ void preframe_do(Uint32 *ptr, Vector lw)
 	prof_leave(PROF_YSORT);
 
 	prof_enter(PROF_PASS);
-	PassPre(pdlo, pith(lw, cur), lw);
+	pass_pre(pdlo, pith(lw, cur), lw);
 	prof_leave(PROF_PASS);
 	
 	prof_enter(PROF_MESHINIT);
@@ -457,7 +457,7 @@ void preframe_do(Uint32 *ptr, Vector lw)
 #ifdef DUMPPREPASS
 	if (wantdump) {
 		RawImg dump(xsize_render(xres()), ysize_render(yres()), ptr);
-		dump.SaveBmp("prepass_dump.bmp");
+		dump.save_bmp("prepass_dump.bmp");
 	}
 #endif
 }
@@ -520,7 +520,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 	bool antialias = is_adaptive_fsaa();
 	ML_Entry *mlbuff;
 	int ml_x;
-	object* row_active[MAX_OBJECTS];
+	Object* row_active[MAX_OBJECTS];
 	int RA_size = 0;
 	int rp = 0;
 
@@ -552,7 +552,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 			if (obj_rows[rp].type == OPENING) {
 				row_active[RA_size++] = allobjects[obj_rows[rp].object_id];
 			} else {
-				object *o = allobjects[obj_rows[rp].object_id];
+				Object *o = allobjects[obj_rows[rp].object_id];
 				int i = 0;
 				while (i < RA_size && row_active[i] != o) i++;
 				if (i >= RA_size) {
@@ -604,13 +604,13 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 						intersection_found = false;
 						for (int ii = 0; ii < fsaa_info[dropped].size; ii++) {
 							foundid = fsaa_info[dropped].ids[ii]-1;
-							object * obj = allobjects[foundid];
-							if (obj->FastIntersect(v, cur, A, context)) {
+							Object * obj = allobjects[foundid];
+							if (obj->fastintersect(v, cur, A, context)) {
 								intersection_found = true;
 								int k = 0;
 								while (k < buckets && bucket[k].id != foundid) k++;
 								if (k == buckets) {
-									fcol = obj->Solve3D(v, cur, lw, Arcp, &opacity, 
+									fcol = obj->shade(v, cur, lw, Arcp, &opacity, 
 										context, 0, fi);
 									bucket[k].id = foundid;
 									bucket[k].weight = fsaactx.weights[s];
@@ -626,13 +626,13 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 						}
 						if (!intersection_found) {
 							v.norm();
-							object * bestobj = NULL;
+							Object * bestobj = NULL;
 							double mdist = 1e99;
 							for (int foundid = 0; foundid < RA_size; foundid++) {
-								object * obj = row_active[foundid];
-								if (obj->Intersect(v, cur, context)) {
+								Object * obj = row_active[foundid];
+								if (obj->intersect(v, cur, context)) {
 									intersection_found = true;
-									double x = obj->IntersectionDist(context);
+									double x = obj->intersection_dist(context);
 									if (x > 0 && x < mdist) {
 										mdist = x;
 										bestobj = obj;
@@ -642,11 +642,11 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 							}
 							if (bestobj) {
 								int foundid = bestobj->id;
-								bestobj->FastIntersect(v, cur, 1, context);
+								bestobj->fastintersect(v, cur, 1, context);
 								int k = 0;
 								while (k < buckets && bucket[k].id != foundid) k++;
 								if (k == buckets) {
-									fcol = bestobj->Solve3D(v, cur, lw, 1,
+									fcol = bestobj->shade(v, cur, lw, 1,
 										&opacity, context, 0, fi);
 									bucket[k].weight = fsaactx.weights[s];
 									bucket[k].color[0] = 0xff & (fcol >> 16);
@@ -688,20 +688,20 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 					v.make_vector(t,cur); 
 					A = v.lengthSqr();
 					Arcp = 1.0/A;
-					if (allobjects[dropped-1]->FastIntersect(v, cur, A, context)) {
+					if (allobjects[dropped-1]->fastintersect(v, cur, A, context)) {
 #ifdef FSTAT
 						++good;
 #endif
 						fi.through = t;
-						fcol = allobjects[dropped-1]->Solve3D(v, cur, lw, Arcp, 
+						fcol = allobjects[dropped-1]->shade(v, cur, lw, Arcp, 
 								&opacity, context, 0, fi);
 						if (opacity > 0.99)  {
 							*fb=fcol;
 							*fbuffer = 65535;
 						} else {
 							if (backd) {
-								if (allobjects[backd-1]->FastIntersect(v, cur, A, context)) {
-									bfcol = allobjects[backd-1]->Solve3D(
+								if (allobjects[backd-1]->fastintersect(v, cur, A, context)) {
+									bfcol = allobjects[backd-1]->shade(
 										v, cur, lw, Arcp, &bopacity, context, 0, fi);
 									if (bopacity>0.99) {
 										*fb = blend(fcol, bfcol, opacity);
@@ -726,13 +726,13 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 #endif
 						foundsphere = 0;
 						double mindist = 1e99;
-						object * bestobj = NULL;
+						Object * bestobj = NULL;
 						v.norm();
 						for (ii=0;ii< RA_size;ii++) {
-							if (row_active[ii]->Intersect(v, cur, context))
+							if (row_active[ii]->intersect(v, cur, context))
 							{
 								foundsphere = 1;
-								double x = row_active[ii]->IntersectionDist(context);
+								double x = row_active[ii]->intersection_dist(context);
 								if (x > 0 && x < mindist) {
 									mindist = x;
 									bestobj = row_active[ii];
@@ -740,9 +740,9 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 							}
 						}
 						if (foundsphere) {
-							bestobj->FastIntersect(v, cur, 1, context);
+							bestobj->fastintersect(v, cur, 1, context);
 							fi.through = t;
-							fcol = bestobj->Solve3D(
+							fcol = bestobj->shade(
 								v, cur, lw, 1, &opacity, context, 0, fi);
 							if (opacity > 0.99) {
 								*fb=fcol;
@@ -794,7 +794,7 @@ void triangle_shadowize(int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
 	Vector ml(lx, ly, lz);
 	memset(tri_shadow, 0, xr * yr);
 	for (int l = 0; l < mesh_count; l++) {
-		int triangle_base = mesh[l].GetTriangleBase();
+		int triangle_base = mesh[l].get_triangle_base();
 		for (int k = 0; k < mesh[l].triangle_count; k++) {
 			Triangle &t = trio[triangle_base + k];
 			bool visible = true;
@@ -803,7 +803,7 @@ void triangle_shadowize(int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
 			for (int i = 0; i < 3; i++) {
 				int u, v;
 				bool plane;
-				if (!ProjectPointShadow(t.vertex[i], ml, &u, &v, xr, yr, cur, mtt, mti, mtti, plane)) {
+				if (!project_point_shadow(t.vertex[i], ml, &u, &v, xr, yr, cur, mtt, mti, mtti, plane)) {
 					visible = false;
 					break;
 				}
@@ -978,7 +978,7 @@ void render_shadows_old(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int
 	prof_enter(PROF_SHADOWIZE);
 	for (su=0;su<spherecount;su++) {
 		bool useless;
-		if (ProjectPointShadow(sp[su].pos, ml, &u, &v, xr, yr, cur, mtt, mti, mtti, useless)) {
+		if (project_point_shadow(sp[su].pos, ml, &u, &v, xr, yr, cur, mtt, mti, mtti, useless)) {
 			//if ((sbuffer[u + xr*v]&0x0f00) != 0) continue;
 			shadow_fill(sbuffer, xr, yr, u, v, su);
 		}

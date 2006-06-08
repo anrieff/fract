@@ -258,38 +258,38 @@ int  ysize_render(int y)
 */
 void check_fsaa_param(void)
 {
-	if (!OptionExists("--fsaa")) return;
-	if (!strcmp(OptionValueString("--fsaa"),"none")) {
+	if (!option_exists("--fsaa")) return;
+	if (!strcmp(option_value_string("--fsaa"),"none")) {
 		set_fsaa_mode(FSAA_MODE_NONE);
 		defaultconfig = 0;
 		return;
 	}
-	if (!strcmp(OptionValueString("--fsaa"),"4xlo-fi")) {
+	if (!strcmp(option_value_string("--fsaa"),"4xlo-fi")) {
 		set_fsaa_mode(FSAA_MODE_4X_LO_Q);
 		defaultconfig = 0;
 		return;
 	}
-	if (!strcmp(OptionValueString("--fsaa"),"4xhi-fi")) {
+	if (!strcmp(option_value_string("--fsaa"),"4xhi-fi")) {
 		set_fsaa_mode(FSAA_MODE_4X_HI_Q);
 		defaultconfig = 0;
 		return;
 	}
-	if (!strcmp(OptionValueString("--fsaa"),"4xAAA")) {
+	if (!strcmp(option_value_string("--fsaa"),"4xAAA")) {
 		set_fsaa_mode(FSAA_MODE_ADAPT_4);
 		defaultconfig = 0;
 		return;
 	}
-	if (!strcmp(OptionValueString("--fsaa"),"5xAAA")) {
+	if (!strcmp(option_value_string("--fsaa"),"5xAAA")) {
 		set_fsaa_mode(FSAA_MODE_ADAPT_QUINCUNX);
 		// this is the default	
 		return;
 	}
-	if (!strcmp(OptionValueString("--fsaa"),"10xAAA")) {
+	if (!strcmp(option_value_string("--fsaa"),"10xAAA")) {
 		set_fsaa_mode(FSAA_MODE_ADAPT_10);
 		defaultconfig = 0;
 		return;
 	}
-	if (!strcmp(OptionValueString("--fsaa"),"16xAAA")) {
+	if (!strcmp(option_value_string("--fsaa"),"16xAAA")) {
 		set_fsaa_mode(FSAA_MODE_ADAPT_16);
 		defaultconfig = 0;
 		return;
@@ -363,7 +363,7 @@ bool fsaa_set_entry::jagged() const
 	if (!jagflag) return false;
 	for (int i = 0; i < ED_KERNEL_SIZE; i++) {
 		int id = 0xffff & a[i];
-		if (id && allobjects[id-1]->GetType() == OB_SPHERE)
+		if (id && allobjects[id-1]->get_type() == OB_SPHERE)
 			return false;
 	}
 

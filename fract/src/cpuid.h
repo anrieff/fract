@@ -91,6 +91,7 @@ void removefeature(char *feature) {
 		cpucount = system_info.dwNumberOfProcessors;
 #else
 #ifdef __APPLE__
+		// ... and yet this is under Mac OS X
 		kern_return_t kr;
 		host_basic_info_data_t basic_info;
 		host_info_t info = (host_info_t)&basic_info;
@@ -140,14 +141,14 @@ void removefeature(char *feature) {
 // no assembly will be used. No need to check for supported features
 		flags[0]=0;
 #endif
-			if (OptionExists("--has-mmx")) addfeature("mmx");
-			if (OptionExists("--has-sse")) addfeature("sse");
-			if (OptionExists("--has-mmx2")) addfeature("mmx2");
-			if (OptionExists("--has-sse2")) addfeature("sse2");
-			if (OptionExists("--no-mmx")) removefeature("mmx");
-			if (OptionExists("--no-mmx2")) removefeature("mmx2");
-			if (OptionExists("--no-sse")) removefeature("sse");
-			if (OptionExists("--no-sse2")) removefeature("sse2");
+			if (option_exists("--has-mmx")) addfeature("mmx");
+			if (option_exists("--has-sse")) addfeature("sse");
+			if (option_exists("--has-mmx2")) addfeature("mmx2");
+			if (option_exists("--has-sse2")) addfeature("sse2");
+			if (option_exists("--no-mmx")) removefeature("mmx");
+			if (option_exists("--no-mmx2")) removefeature("mmx2");
+			if (option_exists("--no-sse")) removefeature("sse");
+			if (option_exists("--no-sse2")) removefeature("sse2");
 		}
 		return (strstr(flags, feature)!=NULL);
 	}
@@ -162,11 +163,11 @@ void removefeature(char *feature) {
 #else
 			printf("feature not implemented: getting amount of memory under windows\n");
 #endif
-			if (OptionExists("--force-mem")) {
+			if (option_exists("--force-mem")) {
 			// sufficient for bigarr
 				memory = MEMORY_REQUIREMENT*1024;
 			}
-			if (OptionExists("--no-mem")) {
+			if (option_exists("--no-mem")) {
 			// insufficient for bigarr:
 				memory = (MEMORY_REQUIREMENT-1)*1024;
 			}

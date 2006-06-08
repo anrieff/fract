@@ -99,17 +99,17 @@ class StopWatch {
 		void start(void)
 		{
 			is_running = true;
-			times[_size] = GetTicks()/1000.0;
+			times[_size] = get_ticks()/1000.0;
 		}
 		void stop(void)
 		{
-			times[_size] = GetTicks()/1000.0 - times[_size];
+			times[_size] = get_ticks()/1000.0 - times[_size];
 			is_running = false;
 			_size++;
 		}
 		void stop(const datatype& t)
 		{
-			times[_size] = GetTicks()/1000.0 - times[_size];
+			times[_size] = get_ticks()/1000.0 - times[_size];
 			data[_size] = t;
 			is_running = false;
 			_size++;

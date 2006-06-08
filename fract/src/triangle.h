@@ -27,7 +27,7 @@ struct triangle_intersect_context {
 
 /* ========================== Classes =================================== */
 
-struct Triangle : public object {
+struct Triangle : public Object {
 	Vector vertex[3];
 	Vector normal, crossproduct, a, b, ah, hb;
 	Vector center;
@@ -63,26 +63,26 @@ struct Triangle : public object {
 		hb = h^b;
 	}
 
-	int GetMeshIndex(void) const;
-	int GetTriangleIndex(void) const;
+	int get_mesh_index(void) const;
+	int get_triangle_index(void) const;
 	
 // implement the functions we need to comply with the `object' class
-	OBTYPE GetType(bool generic = true) const
+	OBTYPE get_type(bool generic = true) const
 	{
 		return OB_TRIANGLE;
 	}
-	bool OkPlane(const Vector & camera);
-	double GetDepth(const Vector &camera);
-	bool IsVisible(const Vector & camera, Vector w[3]);
-	int CalculateConvex(Vector pt[], Vector camera);
-	void MapToScreen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
+	bool okplane(const Vector & camera);
+	double get_depth(const Vector &camera);
+	bool is_visible(const Vector & camera, Vector w[3]);
+	int calculate_convex(Vector pt[], Vector camera);
+	void map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
 		int & min_y, int & max_y);
-	bool FastIntersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const;
-	bool Intersect(const Vector& ray, const Vector &camera, void *IntersectContext);
-	double IntersectionDist(void *IntersectContext) const;
-	Uint32 Solve3D(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
+	bool fastintersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const;
+	bool intersect(const Vector& ray, const Vector &camera, void *IntersectContext);
+	double intersection_dist(void *IntersectContext) const;
+	Uint32 shade(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
 			float *opacity, void *IntersectContext, int iteration, FilteringInfo& finfo);
-	int GetBestMipLevel(double x0, double z0, FilteringInfo & fi);
+	int get_best_miplevel(double x0, double z0, FilteringInfo & fi);
 };
 
 extern Triangle trio[MAX_TRIANGLES];

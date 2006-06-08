@@ -11,7 +11,7 @@
 #include "MyGlobal.h"
 #include "MyTypes.h"
 
-Uint32 GetTicks(void);
+Uint32 get_ticks(void);
 double bTime(void);
 int lform(int x, int y, int lx, int ly, int ysq);
 #ifdef ACTUALLYDISPLAY

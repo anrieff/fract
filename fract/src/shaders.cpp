@@ -263,7 +263,7 @@ void shader_cmdline_option(const char *opt)
                   ---
                   k=0
 */
-void FFT_1D_complex(int dir,int m,float *x,float *y)
+void fft_1D_complex(int dir,int m,float *x,float *y)
 {
    long nn,i,i1,j,k,i2,l,l1,l2;
    float c1,c2,tx,ty,t1,t2,u1,u2,z, sc;
@@ -345,7 +345,7 @@ void FFT_1D_complex(int dir,int m,float *x,float *y)
    Return false if there are memory problems or
       the dimensions are not powers of 2
 */
-void FFT_2D_complex(complex c[MAX_FFT_SIZE][MAX_FFT_SIZE], int dir, int fft_size)
+void fft_2D_complex(complex c[MAX_FFT_SIZE][MAX_FFT_SIZE], int dir, int fft_size)
 {
    int i, j, log_fft_size, usse, loopsize;
    SSE_ALIGN(float re[4*MAX_FFT_SIZE]);
@@ -367,9 +367,9 @@ void FFT_2D_complex(complex c[MAX_FFT_SIZE][MAX_FFT_SIZE], int dir, int fft_size
          		im[i] = c[i][j].im;
       		}
 	if (usse)
-		FFT_1D_complex_sse(dir, log_fft_size, re, im);
+		fft_1D_complex_sse(dir, log_fft_size, re, im);
 	else
-      		FFT_1D_complex    (dir, log_fft_size, re, im);
+      		fft_1D_complex    (dir, log_fft_size, re, im);
       if (usse) float_copy_i_ij(re, im, c[0]+j*4, fft_size);
       	else
       		for (i=0;i<fft_size;i++) {
@@ -386,9 +386,9 @@ void FFT_2D_complex(complex c[MAX_FFT_SIZE][MAX_FFT_SIZE], int dir, int fft_size
          im[j] = c[i][j].im;
       }
      if (usse)
-      	FFT_1D_complex_sse(dir, log_fft_size, re, im);
+      	fft_1D_complex_sse(dir, log_fft_size, re, im);
 	else
-      	FFT_1D_complex(dir,log_fft_size,re,im);
+      	fft_1D_complex(dir,log_fft_size,re,im);
      if (usse) float_copy_j_ij(re, im, c[i*4], fft_size);
        else
       for (j=0;j<fft_size;j++) {
@@ -491,10 +491,10 @@ int shader_FFT_Filter(Uint32 *src, Uint32 *dst, int resx, int resy)
 	for (k = 0; k < 3; ++k) {
 		//k+=2;k%=3;
 		//printf("%d\n", k);
-		FFT_2D_complex(in[k], 1, fft_size);
+		fft_2D_complex(in[k], 1, fft_size);
 		if (sse_enabled) apply_fft_filter_sse(in[k][0], fft_filter, fft_size);
 			else	 apply_fft_filter_x86(in[k][0], fft_filter, fft_size);
-		FFT_2D_complex(in[k], -1, fft_size);
+		fft_2D_complex(in[k], -1, fft_size);
 		//k++;
 		//k%=3;
 		}
@@ -818,7 +818,7 @@ void shader_prepare_for_glow(const char *which, const Uint32 *prefb, Uint8 * glo
 	}
 	match_id += om;
 	for (int i = 0; i < allobjects.size(); i++) {
-		OBTYPE type = allobjects[i]->GetType();
+		OBTYPE type = allobjects[i]->get_type();
 		if (om == OB_ALL || (om == type && allobjects[i]->tag == match_id)) {
 			included[i] = true;
 		}

@@ -1362,7 +1362,7 @@ int blockDecrypt(cipherInstance *cipher, keyInstance *key,
 #ifndef aeskey
 #define aeskey "thisisnotwhatisokforthebenchmark"
 #endif
-bool AESEncrypt(void *data, int octets)
+bool aes_encrypt(void *data, int octets)
 {
 	if (octets % 16) return false;
 	// BEGIN ENCRYPTION
@@ -1380,7 +1380,7 @@ bool AESEncrypt(void *data, int octets)
 	return true;
 }
 
-bool AESDecrypt(void *data, int octets)
+bool aes_decrypt(void *data, int octets)
 {
 	if (octets % 16) return false;
 	// BEGIN DECRYPTION

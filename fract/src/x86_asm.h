@@ -879,7 +879,7 @@ void convolve_mmx_w_shifts_3(Uint32 *src, Uint32 *dest, int resx, int resy,
 					ConvolveMatrix *M, int shift) __attribute__ ((noinline));
 void convolve_mmx_w_shifts_5(Uint32 *src, Uint32 *dest, int resx, int resy,
 					ConvolveMatrix *M, int shift) __attribute__ ((noinline));
-void FFT_1D_complex_sse(int dir, int m, float *x, float *y) __attribute__ ((noinline));
+void fft_1D_complex_sse(int dir, int m, float *x, float *y) __attribute__ ((noinline));
 
 void shader_gamma_shl(Uint32 *src, Uint32 *dest, int resx, int resy, int shift) __attribute__ ((noinline));
 void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift) __attribute__ ((noinline));
@@ -1562,7 +1562,7 @@ void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift)
 
 
 /*
-	FFT_1D_complex_sse
+	fft_1D_complex_sse
 
 		DESCRIPTION: SSE version of the 1-dimensional 2^m-point FFT, operating in the field of complex numbers.
 
@@ -1601,7 +1601,7 @@ void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift)
 			the conversion is done in-place
 */
 
-void FFT_1D_complex_sse(int dir, int m, float *x, float *y)
+void fft_1D_complex_sse(int dir, int m, float *x, float *y)
 {
    long i,nn,j,l;
    float __attribute__ ((aligned(16))) c1[4],c2[4];
@@ -5224,7 +5224,7 @@ void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift)
 
 
 /*
-	FFT_1D_complex_sse
+	fft_1D_complex_sse
 
 		DESCRIPTION: SSE version of the 1-dimensional 2^m-point FFT, operating in the field of complex numbers.
 
@@ -5263,7 +5263,7 @@ void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift)
 			the conversion is done in-place
 */
 
-void FFT_1D_complex_sse(int dir, int m, float *x, float *y)
+void fft_1D_complex_sse(int dir, int m, float *x, float *y)
 {
    long i,nn,j,l;
    int sdir = dir;

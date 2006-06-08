@@ -31,7 +31,7 @@ enum OBTYPE {
 };
 
 /**
- * @class object
+ * @class Object
  * @brief abstract 3d primitive.
  *
  * "object" defines which methods need to be implemented by the derivate
@@ -40,7 +40,7 @@ enum OBTYPE {
  * @date 2005-12-11
  * @author Veselin Georgiev
  */
-struct object {
+struct Object {
 public:
 
 	/// this data is used if you want to mark some of the objects
@@ -48,11 +48,11 @@ public:
 	unsigned tag, id;
 
 	/// Get the distance from the camera (used later in Z-sorting)
-	virtual double GetDepth(const Vector &camera) = 0;
+	virtual double get_depth(const Vector &camera) = 0;
 
 	/// If "w" are the three endpoints of the vector projection grid,
 	/// determine whether the object is visible on the screen
-	virtual bool IsVisible(const Vector & camera, Vector w[3]) = 0;
+	virtual bool is_visible(const Vector & camera, Vector w[3]) = 0;
 
 	/// Create a convex polygon of 3D points in the `pt' array.
 	/// The polygon must be created in such a way, so that if the
@@ -61,10 +61,10 @@ public:
 	///
 	/// @returns how many points the resulting polygon has; must be
 	/// &lt; MAX_SPHERE_SIDES
-	virtual int CalculateConvex(Vector pt[], Vector camera) = 0;
+	virtual int calculate_convex(Vector pt[], Vector camera) = 0;
 
 	/** Rasterize an object onto the screen. Use the polygon provided
-	*** by CalculateConvex().
+	*** by calculate_convex().
 	***
 	*** @param framebuffer - a virtual framebuffer, possibly larger than
 	***                     the physically visible; obtain dimensions with
@@ -78,7 +78,7 @@ public:
 	*** @param min_y       - the min. row on the screen, which contains the obj
 	*** @param max_y       - the max. row on the screen, which contains the obj
 	**/
-	virtual void MapToScreen(
+	virtual void map2screen(
 				Uint32 *framebuffer,
 				int color,
 				int sides,
@@ -98,22 +98,22 @@ public:
 	***        safely use at most 128 bytes of the provided memory.
 	*** @return whether intersection occured
 	**/
-	virtual bool FastIntersect(
+	virtual bool fastintersect(
 				const Vector& ray,
 				const Vector& camera,
 				const double& rls,
 				void *IntersectContext) const = 0;
 
-	/// The same as FastIntersect, except it doesn't use `rls' and assumes
+	/// The same as fastintersect, except it doesn't use `rls' and assumes
 	/// that the `ray' vector is unitary
-	virtual bool Intersect(
+	virtual bool intersect(
 				const Vector& ray,
 				const Vector &camera,
 				void *IntersectContext) = 0;
 
 	/// Returns the distance to the intersection, using the stored calculations
 	/// from Intersect or FastIntersect
-	virtual double IntersectionDist(void *IntersectContext) const = 0;
+	virtual double intersection_dist(void *IntersectContext) const = 0;
 
 	/**
 	*** Performs light, texturemapping, shading and reflections/refractions
@@ -132,7 +132,7 @@ public:
 	*** @param finfo     - This is used to perform mipmapping on the
 	***                    reflections/refractions
 	**/
-	virtual Uint32 Solve3D(
+	virtual Uint32 shade(
 				Vector& ray,
 				const Vector& camera,
 				const Vector& light,
@@ -164,13 +164,13 @@ public:
 	***
 	*** If you can't or don't want to handle it, return TEX_S or, indeed, any other level.
 	**/
-	virtual int GetBestMipLevel(double x0, double z0, FilteringInfo & fi) = 0;
+	virtual int get_best_miplevel(double x0, double z0, FilteringInfo & fi) = 0;
 
 	/**
 	*** Returns the type of the primitive, the id is like OB_SPHERE,
 	*** OB_TRIANGLE
 	**/
-	virtual OBTYPE GetType(bool generic = true) const = 0;
+	virtual OBTYPE get_type(bool generic = true) const = 0;
 };
 
 /**
@@ -190,27 +190,27 @@ public:
 	 * @param dir   - the direction of the ray (this vector must be unitary)
 	 * @param opt   - optional optimization parameter
 	*/ 
-	virtual bool SIntersect(const Vector & start, const Vector & dir, int opt = 0) = 0;
+	virtual bool sintersect(const Vector & start, const Vector & dir, int opt = 0) = 0;
 };
 
-struct compare_struct {
+struct CompareStruct {
 	double depth;
-	object* obj;
+	Object* obj;
 };
 
 
-class object_array {
+class ObjectArray {
 	int count;
 	Vector cam;
-	compare_struct *t;
+	CompareStruct *t;
 public:
-	compare_struct a[MAX_OBJECTS];
-	object_array ()
+	CompareStruct a[MAX_OBJECTS];
+	ObjectArray ()
 	{
-		t = new compare_struct[MAX_OBJECTS];
+		t = new CompareStruct[MAX_OBJECTS];
 	}
 
-	~object_array()
+	~ObjectArray()
 	{
 		delete [] t;
 	}
@@ -221,14 +221,14 @@ public:
 		count = 0;
 		cam = camera;
 	}
-	void operator += (object *o)
+	void operator += (Object *o)
 	{
 		a[count].obj = o;
-		a[count].depth = o->GetDepth(cam);
+		a[count].depth = o->get_depth(cam);
 		++count;
 	}
 
-	object * operator [] (const int idx) const
+	Object * operator [] (const int idx) const
 	{
 		return a[idx].obj;
 	}

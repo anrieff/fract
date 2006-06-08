@@ -87,13 +87,13 @@ void set_default_resolution(int newx, int newy)
 {
 	def_resx = newx;
 	def_resy = newy;
-	SetNewMode(newx, newy);
+	set_new_videomode(newx, newy);
 }
 
 
 void scene_check(void)
 {
-	if (OptionExists("--voxel"))
+	if (option_exists("--voxel"))
 		BackgroundMode = BACKGROUND_MODE_VOXEL;
 }
 
@@ -168,15 +168,15 @@ void Scene::precalc(void)
 
 	// the integrated multiplycolor + lightformulae assembly code requires SSE & MMX2
 	// I don't know of a processor which supports SSE, but does NOT MMX2; nevermind I make MMX2 required here, just in case...
-	if (!OptionExists("--no-sse"))
+	if (!option_exists("--no-sse"))
 		sse_enabled = SysInfo.supports("sse") && SysInfo.supports("mmx2");
 	
 	// the assembly bilinear filtering routine requires MMX and MMX extended instruction sets.
-	if (!OptionExists("--no-mmx2"))
+	if (!option_exists("--no-mmx2"))
 		mmx2_enabled = SysInfo.supports("mmx2");
 	
 	// the fast bluring routine requires only MMX
-	if (!OptionExists("--no-mmx"))
+	if (!option_exists("--no-mmx"))
 		mmx_enabled = SysInfo.supports("mmx");
 	
 	// if we don't have SSE, we will precalculate the distance values. 
@@ -201,12 +201,12 @@ void Scene::precalc(void)
 		// precalculate smaller (and possibly larger) textures
 		//gridify_texture(tex/*, 16, 0x33ff77, 0xff1234*/);
 		T[0] = tex;
-		T[0].RenderHack();
+		T[0].render_hack();
 		sz = MAX_TEXTURE_SIZE/2;
 		i=0;
 		while (sz) {
 			i++;
-			T[i-1].Shrink(T[i]);
+			T[i-1].shrink(T[i]);
 			sz/=2;
 	#ifdef ACTUALLYDISPLAY
 			intro_progress(screen, prog_text_precalc_base + prog_text_precalc*i/log2(MAX_TEXTURE_SIZE)); 
@@ -246,7 +246,7 @@ void Scene::init(void)
 		cd_frames = 0x7fffffff;
 		file_control = false;
 	} else {
-		int lcr = LoadContext(scenefilename);
+		int lcr = load_context(scenefilename);
 		if (lcr <= 0) {
 			printf("Can't open the scene file (`%s')!\n", scenefilename);
 			exit(2);
@@ -260,8 +260,8 @@ void Scene::init(void)
 		kbd_control = false;
 		file_control = true;
 	}
-	if (OptionExists("--generatecoords")) {
-		GenerateCoords();
+	if (option_exists("--generatecoords")) {
+		generate_coords();
 		developer = false;
 		kbd_control = false;
 		file_control = true;
@@ -291,7 +291,7 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 {
 	/* "Game" Loop initialisation */
 	int she=RUN_RUNNING, loop_iteration=0, lft;
-	clk = GetTicks();
+	clk = get_ticks();
 	if (watch)
 		watch->start();
 #ifdef SHOWFPS
@@ -303,16 +303,16 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 	defaultconfig = 0;
 #endif
 /* Here follows the Game loop :) */
-	lft = GetTicks();
+	lft = get_ticks();
 	 while (!she && !WantToQuit) {
 		 camera_moved = 0;
 		 if (ffm) { ffm = false; camera_moved = 1; }
-		 delta = (GetTicks()-lft)/1000.0;
+		 delta = (get_ticks()-lft)/1000.0;
 		//light_angle += delta/2;
 		//lx = (int) (200.0 + sin(light_angle)*200.0);
 		//ly = (int) (100.0 + cos(light_angle)*100.0);
 		//lz = (int)  (500.0 + cos(light_angle)*250.0);
-		lft = GetTicks();
+		lft = get_ticks();
 #ifdef ACTUALLYDISPLAY
 		if (kbd_control) {
 			kbd_do(&she);
@@ -359,7 +359,7 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 			}
 		}
 	}
-	clk = GetTicks() - clk;
+	clk = get_ticks() - clk;
 	if (watch) {
 		watch->stop(vframe);
 	}
@@ -413,17 +413,17 @@ void Scene::hwaccel_init(void)
 #endif
  if (!vi->hw_available)
  	printf("No hardware acceleration for surface-to-screen blits.\n");
- if (OptionExists("--no-overlay")) return;
- if (!vi->hw_available || OptionExists("--force-overlay")) {
+ if (option_exists("--no-overlay")) return;
+ if (!vi->hw_available || option_exists("--force-overlay")) {
 	 printf("Will try to use YUV overlay%s...",(vi->hw_available?"":" to speed things up"));
 	 ovr = SDL_CreateYUVOverlay(xres(), yres(), SDL_YUY2_OVERLAY, screen);
-	 if (ovr == NULL) {printf("FAILED\nCan't create YUY2 overlay!"); if (OptionExists("--force-overlay")) printf(" Won't use it no matter how much you --force it."); printf("\n"); }
+	 if (ovr == NULL) {printf("FAILED\nCan't create YUY2 overlay!"); if (option_exists("--force-overlay")) printf(" Won't use it no matter how much you --force it."); printf("\n"); }
 	 else {
 		 printf("OK\n");
-		 if (ovr->hw_overlay || OptionExists("--force-overlay")) {
+		 if (ovr->hw_overlay || option_exists("--force-overlay")) {
 			 if (ovr->hw_overlay)
 				 printf("Overlay is hardware accelerated :-)\n");
-			 if (!OptionExists("--force-overlay"))
+			 if (!option_exists("--force-overlay"))
 				 printf("To disable overlay usage, add --no-overlay to the command line.\n");
 			 init_yuv_convert(0);
 		 }
@@ -449,8 +449,8 @@ void Scene::videoinit(void)
 	atexit(SDL_Quit);
 	//-------------------------
 	SDL_f = SDLFLAGS;
-	if (OptionExists("-w")||OptionExists("--window")||OptionExists("--windowed")) SDL_f &= ~SDL_FULLSCREEN;
-	if (OptionExists("-f")||OptionExists("--fullscreen")) SDL_f |= SDL_FULLSCREEN;
+	if (option_exists("-w")||option_exists("--window")||option_exists("--windowed")) SDL_f &= ~SDL_FULLSCREEN;
+	if (option_exists("-f")||option_exists("--fullscreen")) SDL_f |= SDL_FULLSCREEN;
 	screen = SDL_SetVideoMode(def_resx * (parallel?2:1) + 8*parallel, def_resy, 32, SDL_f);
 	if (screen == NULL) {
 		printf("Unable to set %dx%d resolution...%s!\n", (parallel?def_resx*2+8:def_resx), def_resy, SDL_GetError());
@@ -458,10 +458,10 @@ void Scene::videoinit(void)
 	}
 		
 	SDL_WM_SetCaption("Anrieff's Fractal", "");
-	if (!font0.LoadBmp(default_font)) { printf("Unable to load default font, bailing out\n"); exit(1); }
+	if (!font0.load_bmp(default_font)) { printf("Unable to load default font, bailing out\n"); exit(1); }
 #endif
-	if (OptionExists("--xres")) {
-		SetNewMode(OptionValueInt("--xres"), OptionValueInt("--xres")/4*3);
+	if (option_exists("--xres")) {
+		set_new_videomode(option_value_int("--xres"), option_value_int("--xres")/4*3);
 		defaultconfig = 0;
 	}
 #ifdef ACTUALLYDISPLAY
@@ -502,7 +502,7 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 			exit_code != RUN_CKSUM_FAILED) return;
 	int she = 0;
 #ifdef SHOW_CPU_SPEED
-	int cpuspd = GetCPUSpeed();
+	int cpuspd = get_cpu_speed();
 	saved_cpuspd = cpuspd;
 #endif
 #ifdef MAKE_CHECKSUM
@@ -525,7 +525,7 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	if (exit_code == 4)
 		printxy(screen, framebuffer, font0, 45, 32, 0xeef9ff, 0.75, "Test complete.");
 	else
-		printxy(screen, framebuffer, font0, 45, 32, 0xeef9ff, 0.75, "Test complete -- %d loops.", OptionValueInt("--loops"));
+		printxy(screen, framebuffer, font0, 45, 32, 0xeef9ff, 0.75, "Test complete -- %d loops.", option_value_int("--loops"));
 	printxy(screen, framebuffer, font0, 45, 52, 0xeef9ff, 0.75, "This machine score:");
 	//printxy(screen, framebuffer, font0, 264,52, 0x22ff33, 0.99, "%.2lf FPS.", 1000.0 * (double) vframe / (double) clk);
 	int y = 72;
@@ -564,13 +564,13 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 				printxy(p, framebuffer, font0, 254, y, 0x22ff33, 0.75, "OK (for all loops).");
 		else
 			printxy(screen, framebuffer, font0, 254, y, 0xff4444, 0.99, "FAILED after loop #%d",
-				OptionValueInt("--loops")-loops_remaining);
+				option_value_int("--loops")-loops_remaining);
 		y += 20;
 	}
 #endif
 	if (defaultconfig) {
-	if (	 OptionExists("-w")|| OptionExists("--window")||OptionExists("--windowed") &&
-			!OptionExists("-f")&&!OptionExists("--fullscreen"))
+	if (	 option_exists("-w")|| option_exists("--window")||option_exists("--windowed") &&
+			!option_exists("-f")&&!option_exists("--fullscreen"))
 		printxy(screen, framebuffer, font0, 45, y, 0xeef9ff, 0.50, "(Test ran in windowed mode)");
 	}
 	char VersionString[100];
@@ -578,9 +578,9 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	strcat(VersionString, "/");
 	strcat(VersionString, Mod_Instruction_Set);
 	printxy(screen, framebuffer, font0, xres()-(4+11*strlen(VersionString)), yres()-18, 0xffddcc, 0.750, VersionString);
-	Slock(screen);
+	surface_lock(screen);
 	memcpy(screen->pixels, framebuffer, screen->h*screen->w*4);
-	Sulock(screen);
+	surface_unlock(screen);
 	SDL_Flip(screen);
 	while (!she) {
 		kbd_tiny_do(&she);

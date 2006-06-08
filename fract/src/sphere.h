@@ -31,7 +31,7 @@ struct sphere_intersection_context{
 };
 
 
-struct sphere : public object, public ShadowCaster {
+struct Sphere : public Object, public ShadowCaster {
 /*32*/ Vector pos; // coordinates
 /*32*/ Vector mov; // movement vector
 /* 8*/ double d; // radius
@@ -51,14 +51,14 @@ struct sphere : public object, public ShadowCaster {
 // -> sizeof(sphere) == 128
 
 // implement the functions we need to comply with the `object' class
-	double GetDepth(const Vector &camera);
-	bool IsVisible(const Vector & camera, Vector w[3]);
-	int CalculateConvex(Vector pt[], Vector camera);
-	void CalculateFixedConvex(Vector pt[], Vector source, int sides);
-	void MapToScreen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
+	double get_depth(const Vector &camera);
+	bool is_visible(const Vector & camera, Vector w[3]);
+	int calculate_convex(Vector pt[], Vector camera);
+	void calculate_fixed_convex(Vector pt[], Vector source, int sides);
+	void map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
 		int & min_y, int & max_y);
-	int GetBestMipLevel(double x0, double z0, FilteringInfo & fi);
-	inline bool FastIntersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const
+	int get_best_miplevel(double x0, double z0, FilteringInfo & fi);
+	inline bool fastintersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const
 	{
 		sphere_intersection_context *spc = (sphere_intersection_context*) IntersectContext;
 		Vector t;
@@ -69,7 +69,7 @@ struct sphere : public object, public ShadowCaster {
 		spc->determinant = spc->gB*spc->gB - rls*C;
 		return (spc->determinant >= 0.0f && spc->gB <= 0.0f);
 	}
-	inline bool Intersect(const Vector& ray, const Vector &camera, void *IntersectContext)
+	inline bool intersect(const Vector& ray, const Vector &camera, void *IntersectContext)
 	{
 		sphere_intersection_context *spc = (sphere_intersection_context*) IntersectContext;
 		Vector t;
@@ -78,40 +78,40 @@ struct sphere : public object, public ShadowCaster {
 		spc->determinant = spc->gB*spc->gB - t.lengthSqr() + d*d;
 		return (spc->determinant >= 0.0f && spc->gB <= 0.0f);
 	}
-	inline double IntersectionDist(void *IntersectContext) const
+	inline double intersection_dist(void *IntersectContext) const
 	{
 		sphere_intersection_context *spc = (sphere_intersection_context*) IntersectContext;
 		return (-spc->gB - fsqrt(spc->determinant));
 	}
-	inline OBTYPE GetType(bool generic = true) const
+	inline OBTYPE get_type(bool generic = true) const
 	{
 		return OB_SPHERE;
 	}
 
-	Uint32 Solve3D(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
+	Uint32 shade(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
 			float *opacity, void *IntersectContext, int iteration, FilteringInfo& finfo);
 	
 	/* From ShadowCaster */
-	bool SIntersect(const Vector & start, const Vector & dir, int opt = 0);
+	bool sintersect(const Vector & start, const Vector & dir, int opt = 0);
 
 private:
 	float _shadow_test(const Vector &I, const Vector & light, int opt);
 };
 
 typedef struct {
-double cx, cy, cz;
-double radius;
-double alpha, beta;
-double speed, betaspeed;
-double unused;
+	double cx, cy, cz;
+	double radius;
+	double alpha, beta;
+	double speed, betaspeed;
+	double unused;
 }AniSphere;
 
 
-void setcolor(sphere *a, int col);
-void create_fract_array(sphere *a, int *count);
-void create_voxel_sphere_array(sphere *a, int *count);
-void calculate_XYZ(sphere *a, double time, Vector& o);
-void print_sphere_info(FILE *f, sphere *a);
+void setcolor(Sphere *a, int col);
+void create_fract_array(Sphere *a, int *count);
+void create_voxel_sphere_array(Sphere *a, int *count);
+void calculate_XYZ(Sphere *a, double time, Vector& o);
+void print_sphere_info(FILE *f, Sphere *a);
 void sphere_check_for_first_hit(void);
 void sphere_close(void);
 

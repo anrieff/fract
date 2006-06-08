@@ -74,17 +74,17 @@ void prof_statistics(void)
 
 
 // gets the CPU speed using RDTSC.
-int GetCPUSpeed(void)
+int get_cpu_speed(void)
 {
 	long long start, end;
 	Uint32 clk0, clk;
 	int res;
 
-	clk0 = GetTicks();
-	while ((clk=GetTicks()) == clk0);
+	clk0 = get_ticks();
+	while ((clk=get_ticks()) == clk0);
 	start = prof_rdtsc();
 	clk0 = clk;
-	while ((clk=GetTicks()) - clk0 < CPU_CALIBRATE_TIME) ;
+	while ((clk=get_ticks()) - clk0 < CPU_CALIBRATE_TIME) ;
 	end = prof_rdtsc();
 
 	res = (end - start) / ((long long)(clk - clk0));

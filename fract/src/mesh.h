@@ -57,24 +57,24 @@ protected:
 public:
 	BBox()
 	{
-		ReCalc();
+		recalc();
 	}
-	void ReCalc(void)
+	void recalc(void)
 	{
 		vmin = Vector(+1e9, +1e9, +1e9);
 		vmax = Vector(-1e9, -1e9, -1e9);
 	}
-	void Add(const Vector & v)
+	void add(const Vector & v)
 	{
 		for (int i = 0; i < 3; i++) {
 			vmin.v[i] = vmin.v[i] > v[i] ? v[i] : vmin.v[i];
 			vmax.v[i] = vmax.v[i] < v[i] ? v[i] : vmax.v[i];
 		}
 	}
-	void Add(const Triangle & t)
+	void add(const Triangle & t)
 	{
 		for (int i = 0; i < 3; i++)
-			Add(t.vertex[i]);
+			add(t.vertex[i]);
 	}
  	inline bool inside(const Vector & v)
 	{
@@ -85,7 +85,7 @@ public:
 	}
 
 	// does a ray, starting at `start' and heading to `dir' intersect the BBox?
-	inline bool TestIntersect(const Vector & start, const Vector & dir)
+	inline bool testintersect(const Vector & start, const Vector & dir)
 	{
 		if (inside(start)) {
 			return true;
@@ -134,14 +134,14 @@ struct Mesh : public BBox, public ShadowCaster {
 	int num_edges;
 
 	/// get the index (in the trio[] array) of the first triangle of the mesh
-	int GetTriangleBase() const;
+	int get_triangle_base() const;
 
 	/// reads a mesh from a simplistic text file (see mesh.cpp for format details)
-	void ReadFromTextFile(const char *fn, bool use_mapping_coords = false);
+	void read_from_text_file(const char *fn, bool use_mapping_coords = false);
 
 	/// reads a mesh from a Wavefront .obj file
 	/// @returns true on success, false otherwise
-	bool ReadFromObj(const char *fn);
+	bool read_from_obj(const char *fn);
 
 	/// scales the mesh around its center
 	void scale(double factor);
@@ -166,26 +166,26 @@ struct Mesh : public BBox, public ShadowCaster {
 	
 	/// gets the flags of the first triangle (effectively, the flags
 	/// of the whole mesh
-	Uint32 GetFlags(void) const;
+	Uint32 get_flags(void) const;
 	
 	/// Rebuilds the normal map. Works ONLY if the object has been loaded from
 	/// .OBJ file
-	void RebuildNormalMap(void);
+	void rebuild_normal_map(void);
 
 	/// Checks if the ray, starting at start, crosses any triangle of the mesh
 	/// The optional parameter opt is an optimization hint and should be in [0..15]
-	bool FullIntersect(const Vector &start, const Vector & dir, int opt = 0);
+	bool fullintersect(const Vector &start, const Vector & dir, int opt = 0);
 	
 	// From ShadowCaster
-	bool SIntersect(const Vector &start, const Vector & dir, int opt = 0);
+	bool sintersect(const Vector &start, const Vector & dir, int opt = 0);
 
 	char file_name[64];
 	Vector total_translation;
 	double total_scale;
 
 private:
-	bool ParseMtlLib(const char *fn, const char *base_dir);
-	void ReCalc(void);
+	bool parse_mtl_lib(const char *fn, const char *base_dir);
+	void recalc(void);
 	int lastind[16];
 };
 extern Mesh mesh[MAX_OBJECTS];

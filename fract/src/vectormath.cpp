@@ -56,7 +56,7 @@
 /*double ambient = 0.2;
 double diffuse = 0.55;
 double specular = 0.15;*/
-extern sphere sp[];
+extern Sphere sp[];
 extern int spherecount;
 extern double fov;
 extern int vframe;
@@ -121,7 +121,7 @@ double MatrixRoot(double M[3][3])
 // determines where the center of the given sphere will map on the 2d screen
 // works correctly with any FOV, X/Y ratio, etc.
 // returns 0 if the center will be wildly of the screen (most probably when the sphere will not render at all)
-int  ProjectSphere(sphere *d, const Vector & cur, const Vector w[3], int *dx, int *dy, int xres, int yres)
+int  project_sphere(Sphere *d, const Vector & cur, const Vector w[3], int *dx, int *dy, int xres, int yres)
 {
  Vector a, b, c, h;
  double m[3][3];
@@ -170,7 +170,7 @@ int  ProjectSphere(sphere *d, const Vector & cur, const Vector w[3], int *dx, in
  }
 
 /**
- * ProjectPoint - determines where the given point will map on the 2d screen
+ * project_point - determines where the given point will map on the 2d screen
  * NOTE: Works correctly with any FOV, X/Y ratio, etc.
  * @param dx - output - x coordinate (scaled by X resolution)
  * @param dy - output - y coordinate
@@ -185,7 +185,7 @@ int  ProjectSphere(sphere *d, const Vector & cur, const Vector w[3], int *dx, in
  * 2 - The point is outside the Y range
  * 1 - The point is outside the X range
  */ 
-int  ProjectPoint(float *dx, float *dy, const  Vector & d, const Vector & cur, Vector w[3], int xres, int yres)
+int  project_point(float *dx, float *dy, const  Vector & d, const Vector & cur, Vector w[3], int xres, int yres)
 {
 	Vector a, b, c, h;
 	double m[3][3];
@@ -227,20 +227,20 @@ int  ProjectPoint(float *dx, float *dy, const  Vector & d, const Vector & cur, V
 }
 
 /**
- * ProjectPoint - the same as the above version, but returns ints, and the return value is
+ * project_point - the same as the above version, but returns ints, and the return value is
  * 1 for success, 0 for failure of the kind 4 | 8 in the above version
  */ 
-int  ProjectPoint(int *dx, int *dy, const  Vector & d, const Vector & cur, Vector w[3], int xres, int yres)
+int  project_point(int *dx, int *dy, const  Vector & d, const Vector & cur, Vector w[3], int xres, int yres)
 {
 	float x, y;
-	int res = ProjectPoint(&x, &y, d, cur, w, xres, yres);
+	int res = project_point(&x, &y, d, cur, w, xres, yres);
 	if (res >= 4) return 0;
 	*dx = (int) round(x);
 	*dy = (int) round(y);
 	return 1;
 }
 
-/** ProjectPointShadow
+/** project_point_shadow
  * @brief Projects where a point will map on the screen.
  * @param vs - point to be mapped
  * @param l - light source
@@ -263,7 +263,7 @@ int  ProjectPoint(int *dx, int *dy, const  Vector & d, const Vector & cur, Vecto
  *  0x10 and 0x08 happen if the light projection goes to infinity (with an
  *  epsilon DST_THRESHOLD, used for floor rendering)
 */
-int  ProjectPointShadow(const Vector & vs, const Vector & l, float result[], int xres, int yres, Vector& cur, Vector& tt,
+int  project_point_shadow(const Vector & vs, const Vector & l, float result[], int xres, int yres, Vector& cur, Vector& tt,
 			Vector& a, Vector& b, bool& isfloor, Vector &casted)
 {
 	double x, y, y_to_be, z, planeDist, m, lambda, theta, zurla, Dcr;
@@ -324,12 +324,12 @@ int  ProjectPointShadow(const Vector & vs, const Vector & l, float result[], int
 	return ret;
 }
 // old verse
-int  ProjectPointShadow(const Vector & vs, const Vector & l, int *x_2d, int *y_2d, int xres, int yres, Vector& cur, Vector& tt,
+int  project_point_shadow(const Vector & vs, const Vector & l, int *x_2d, int *y_2d, int xres, int yres, Vector& cur, Vector& tt,
 			 Vector& a, Vector& b, bool& isfloor)
 {
 	float ret[2];
 	Vector temp;
-	int res = ProjectPointShadow(vs, l, ret, xres, yres, cur, tt, a, b, isfloor, temp);
+	int res = project_point_shadow(vs, l, ret, xres, yres, cur, tt, a, b, isfloor, temp);
 	if (res > 4) return 0;
 	if (!(res & 0x01)) *x_2d = (int) ret[0];
 	if (!(res & 0x02)) *y_2d = (int) ret[1];
@@ -339,7 +339,7 @@ int  ProjectPointShadow(const Vector & vs, const Vector & l, int *x_2d, int *y_2
 
 double predlo[MAX_SPHERES], dlc;
 
-void PassPre(double *p, double plc, Vector LL)
+void pass_pre(double *p, double plc, Vector LL)
 {int i;
  dlc = plc;
  for (i=0;i<MAX_SPHERES;i++) predlo[i] = p[i];
@@ -376,7 +376,7 @@ double normangle(double angle)
  * of them only.                                                         *
  *                                                                       *
  *************************************************************************/
-static inline double SearchExactDist(sphere *a, const Vector& c, const Vector& v)
+static inline double search_exact_dist(Sphere *a, const Vector& c, const Vector& v)
 {Vector f;
  f.make_vector(c, a->pos);
  double ua, ub, uc, Dt;
@@ -397,7 +397,7 @@ static inline double SearchExactDist(sphere *a, const Vector& c, const Vector& v
    returns 0 if the math operation is unapplicable (that is, the points are colinear)
    returns 1 and a vector in v  otherwise
 */
-static inline int FindNormalVector(const Vector& a, const Vector& b, const Vector& c, Vector& v)
+static inline int find_normal_vector(const Vector& a, const Vector& b, const Vector& c, Vector& v)
 {Vector u = b-a, w = c-a;
  // are u and w colinear?
  if (eq(u[0]/w[0], u[1]/w[1]) && eq(u[1]/w[1], u[2]/w[2]))
@@ -416,7 +416,7 @@ static inline int FindNormalVector(const Vector& a, const Vector& b, const Vecto
 // `last_object' a pointer to the object the ray is traced from. This avoids a ray to hit again the sphere it just hit.
 // `finfo' is a helper to determine which mipmap level to use
 
-Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, object *last_object, FilteringInfo & finfo)
+Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Object *last_object, FilteringInfo & finfo)
 {
 	double ydist,scalefactor;
 	double cx, cy, dist, mind;
@@ -424,7 +424,7 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, obje
 	float dp;
 	bool is_trio = false;
 
-	object *z;
+	Object *z;
 	int i;
 	if (iteration > MAX_RAYTRACE_ITERATIONS)
 		return RAYTRACE_BLEND_COLOR;
@@ -433,8 +433,8 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, obje
 		mind = 999999999.0;
 		z = NULL;
 		for (i = 0; i < spherecount; i++) if (sp + i != last_object) {
-			if (sp[i].Intersect(v, cur, context)) {
-				dist = sp[i].IntersectionDist(context);
+			if (sp[i].intersect(v, cur, context)) {
+				dist = sp[i].intersection_dist(context);
 				if (dist > 0.0f && dist < mind) {
 					mind = dist;
 					z = sp + i;
@@ -442,22 +442,22 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, obje
 			}
 		}
 		int group_to_avoid = -1;
-		if (last_object->GetType() == OB_TRIANGLE && 0==(static_cast<Triangle*>(last_object)->flags & RECURSE_SELF)) {
-			group_to_avoid = static_cast<Triangle*>(last_object)->GetMeshIndex();
+		if (last_object->get_type() == OB_TRIANGLE && 0==(static_cast<Triangle*>(last_object)->flags & RECURSE_SELF)) {
+			group_to_avoid = static_cast<Triangle*>(last_object)->get_mesh_index();
 			is_trio = true;
 		}
 		for (int j = 0; j < mesh_count; j++) {
-			if (j != group_to_avoid && mesh[j].TestIntersect(cur,v)) {
+			if (j != group_to_avoid && mesh[j].testintersect(cur,v)) {
 				for (i = 0; i < mesh[j].triangle_count; i++) {
 					Triangle * t = trio + i + (j << TRI_ID_BITS);
 
-					if (!t->OkPlane(cur)) {
+					if (!t->okplane(cur)) {
 						i += t->tri_offset;
 						continue;
 					}
 
-					if (t != last_object && t->Intersect(v, cur, context)) {
-						dist = t->IntersectionDist(context);
+					if (t != last_object && t->intersect(v, cur, context)) {
+						dist = t->intersection_dist(context);
 						if (dist > 0.0f && dist < mind) {
 							mind = dist;
 							z = t;
@@ -467,8 +467,8 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, obje
 			}
 		}
 		if (z!=NULL) {
-			z->Intersect(v, cur, context);
-			return z->Solve3D(v, cur, lix, 1.0, &dp, context, iteration + 1, finfo);
+			z->intersect(v, cur, context);
+			return z->shade(v, cur, lix, 1.0, &dp, context, iteration + 1, finfo);
 		}
 	}
 	if (BackgroundMode == BACKGROUND_MODE_VOXEL) {
@@ -485,7 +485,7 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, obje
 	cx = cur.v[0] + v.v[0]*scalefactor;
 	cy = cur.v[2] + v.v[2]*scalefactor;
 #ifdef TEX_OPTIMIZE
-	int level = iteration == 1 ? last_object->GetBestMipLevel(cx, cy, finfo) : TEX_S;
+	int level = iteration == 1 ? last_object->get_best_miplevel(cx, cy, finfo) : TEX_S;
 	/*
 	int level = TEX_S;
 	if (1 == iteration) {
@@ -534,7 +534,7 @@ double time_calc(double time, double resistance, double value, int dir)
 }
 
 // adds the gravity to the Y component of the vector
-void apply_gravity(sphere *a, double t)
+void apply_gravity(Sphere *a, double t)
 {
  if (a->flags & GRAVITY) {
  	a->mov.v[1] -= sv_gravity*(t-a->time);
@@ -544,7 +544,7 @@ void apply_gravity(sphere *a, double t)
 // mask is a bitmask: which components will the air be applied to
 // Use APPLY_ALL to mean all components
 // dir is direction: if 1, the air resistance is applied, otherwise it is undone ("un-applied")
-void apply_air(sphere *a, double t, int mask, int dir)
+void apply_air(Sphere *a, double t, int mask, int dir)
 {
  double multiplyer;
  if (a->flags & AIR) {
@@ -584,7 +584,7 @@ double get_hit_time(double a, double b, double c)
  * generated.                   *
  ********************************/
 
-void advance(sphere *a, double t)
+void advance(Sphere *a, double t)
 {double ytoadd, x, rtime = t - a->time;
  int bModif = 0;
  a->pos.v[0] += a->mov[0] * rtime;
@@ -657,7 +657,7 @@ int can_collide(int i, int j)
 }
 
 // calculates the distance between a and b at time t
-static inline double time_dist(sphere *a, sphere *b, double t)
+static inline double time_dist(Sphere *a, Sphere *b, double t)
 {double t1, t2;
  t1 = t - a->time;
  t2 = t - b->time;
@@ -668,7 +668,7 @@ static inline double time_dist(sphere *a, sphere *b, double t)
 
 // checks if two spheres collide until time `t'.
 // if collision occurs it returns the exact collision time. Else a value of -1 is returned
-double collide (sphere *a, sphere *b, double t)
+double collide (Sphere *a, Sphere *b, double t)
 {double l, r, m, d0, d1;
  m = r = t;
  l = (a->time>b->time?a->time:b->time); // get the latter of the a's and b's times
@@ -711,32 +711,33 @@ double collide (sphere *a, sphere *b, double t)
 }
 
 // assumes that a and b collide at time t. Upon that assumption it calculates the new motion vectors for a and b
-void ProcessIncident(sphere *a, sphere *b, double t)
-{double strength, d1;
- a->pos += a->mov * (t - a->time);
- b->pos += b->mov * (t - b->time);
- a->time = t;
- b->time = t;
- d1 = time_dist(a, b, t);
- strength = d1 - time_dist(a, b, t+TIME_EPS);
- d1 *= 0.5;
- if (strength<0) return; // the hit is too weak
- strength *= T_1_TIME_EPS / (a->mass + b->mass) / d1;
- if (!(a->flags & STATIC)) {
-	a->mov += (a->pos-b->pos)*(b->mass * strength);
+void process_incident(Sphere *a, Sphere *b, double t)
+{
+	double strength, d1;
+	a->pos += a->mov * (t - a->time);
+	b->pos += b->mov * (t - b->time);
+	a->time = t;
+	b->time = t;
+	d1 = time_dist(a, b, t);
+	strength = d1 - time_dist(a, b, t+TIME_EPS);
+	d1 *= 0.5;
+	if (strength<0) return; // the hit is too weak
+	strength *= T_1_TIME_EPS / (a->mass + b->mass) / d1;
+	if (!(a->flags & STATIC)) {
+		a->mov += (a->pos-b->pos)*(b->mass * strength);
 	}
- if (!(b->flags & STATIC)) {
-	b->mov += (b->pos-a->pos)*(a->mass * strength);
+	if (!(b->flags & STATIC)) {
+		b->mov += (b->pos-a->pos)*(a->mass * strength);
 	}
- // custom onHit modification goes here:
- if (!(a->flags & STATIC)) {
- 	a->flags &= ~ANIMATED;
-	a->flags |= GRAVITY|AIR;
- 	}
- if (!(b->flags & STATIC)) {
- 	b->flags &= ~ANIMATED;
-	b->flags |= GRAVITY|AIR;
- 	}
+	// custom onHit modification goes here:
+	if (!(a->flags & STATIC)) {
+		a->flags &= ~ANIMATED;
+		a->flags |= GRAVITY|AIR;
+	}
+	if (!(b->flags & STATIC)) {
+		b->flags &= ~ANIMATED;
+		b->flags |= GRAVITY|AIR;
+	}
 }
 
 

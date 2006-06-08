@@ -23,7 +23,7 @@
 cmdinfo *cmdroot = NULL;
 char cmdnullterm[2] = "0";
 
-void OptionAdd(char *argv)
+void option_add(char *argv)
 {
 	unsigned int i, found;
 	static cmdinfo *p=NULL, *q;
@@ -62,13 +62,13 @@ void OptionAdd(char *argv)
 void initcmdline(int argc, char * argv[])
 {
  	for (int j=1; j< argc; j++) {
-		OptionAdd(argv[j]);
+		option_add(argv[j]);
  	}
 }
-// int OptionExists
+// int option_exists
 //    return 1 if the given string is found within the command line parameters
 //    returns 0 otherwise
-int OptionExists(char *opt)
+int option_exists(char *opt)
 {cmdinfo *p;
  p = cmdroot;
  while (p) {
@@ -81,7 +81,7 @@ int OptionExists(char *opt)
 
 // searches for commandline parameters in the  --option=VALUE style. 
 //If everything is in order it returns a pointer to that VALUE
-char *OptionValueString(char *opt)
+char *option_value_string(char *opt)
 {cmdinfo *p;
  p = cmdroot;
  while (p) {
@@ -96,50 +96,49 @@ char *OptionValueString(char *opt)
 }
 
 // same as above, except that the value is transformed to int
-int OptionValueInt(char *opt)
+int option_value_int(char *opt)
 {int z;
- if (!sscanf(OptionValueString(opt),"%d",&z))
+ if (!sscanf(option_value_string(opt),"%d",&z))
  	z = 0;
  return z;
 }
 
 //... and the float version
-float OptionValueFloat(char *opt)
+float option_value_float(char *opt)
 {float f;
- if (!sscanf(OptionValueString(opt), "%f", &f))
+ if (!sscanf(option_value_string(opt), "%f", &f))
  	f = 0.0;
  return f;
 }
 
-void DisplayUsage(void)
+void display_usage(void)
 {
- printf("fract %s By Vesselin Georgiev\n", Fract_Version);
- printf("Usage: fract [options]\n");
- printf(" OPTIONS: \n");
- printf("  --scene=xxx     - load the given scene instead of the default one\n");
- printf("  --no-mem        - disable bigarr allocation\n");
- printf("  --force-overlay - use overlay video drawing mode\n");
- printf("                    even if it's not hardware accelerated\n");
- printf("  --no-overlay    - use surface drawing mode even\n");
- printf("                    if it's not hardware accelerated\n");
- printf("  --no-sse, --no-mmx, --no-mmx2	- disable usage of\n");
- printf("                     SSE, MMX, MMX2 respectively\n");
- printf("  --has-sse, --has-mmx, --has-mmx2	- force usage of\n");
- printf("                     SSE, MMX, MMX2 respectively\n");
- printf("  --force-mem   - use bigarr even if insufficient memory is reported by linux\n");
- printf("  --xres=xxx    - use custom video mode: xxx by yyy pixels, yyy = xxx * 3/4\n");
- printf("  --benchmark   - benchmark your machine by running the RGB2YUV \n");
- printf("                  functions for 20 seconds\n");
- printf("  --fullscreen  - run in fullscreen mode, if supported\n");
- printf("  --windowed    - run in a window, if supported\n");
- printf("  --fsaa=x      - Use selected Fullscreen Antialiasing. Invoke with\n");
- printf("                  --fsaa=? to see a list\n");
- printf("  --cpus=n      - Use the specified number of processors\n");
- printf("  --thread      - Use all (detected) processors in the system (default)\n");
- printf("  --no-thread   - Use only one processor\n");
- printf("  --shadows, --no-shadows - Enable/Disable shadows\n");
- printf("  --save-video  - Save a sequence of .BMPs to a video/ subfolder\n");
-
+	printf("fract %s By Vesselin Georgiev\n", Fract_Version);
+	printf("Usage: fract [options]\n");
+	printf(" OPTIONS: \n");
+	printf("  --scene=xxx     - load the given scene instead of the default one\n");
+	printf("  --no-mem        - disable bigarr allocation\n");
+	printf("  --force-overlay - use overlay video drawing mode\n");
+	printf("                    even if it's not hardware accelerated\n");
+	printf("  --no-overlay    - use surface drawing mode even\n");
+	printf("                    if it's not hardware accelerated\n");
+	printf("  --no-sse, --no-mmx, --no-mmx2	- disable usage of\n");
+	printf("                     SSE, MMX, MMX2 respectively\n");
+	printf("  --has-sse, --has-mmx, --has-mmx2	- force usage of\n");
+	printf("                     SSE, MMX, MMX2 respectively\n");
+	printf("  --force-mem   - use bigarr even if insufficient memory is reported by linux\n");
+	printf("  --xres=xxx    - use custom video mode: xxx by yyy pixels, yyy = xxx * 3/4\n");
+	printf("  --benchmark   - benchmark your machine by running the RGB2YUV \n");
+	printf("                  functions for 20 seconds\n");
+	printf("  --fullscreen  - run in fullscreen mode, if supported\n");
+	printf("  --windowed    - run in a window, if supported\n");
+	printf("  --fsaa=x      - Use selected Fullscreen Antialiasing. Invoke with\n");
+	printf("                  --fsaa=? to see a list\n");
+	printf("  --cpus=n      - Use the specified number of processors\n");
+	printf("  --thread      - Use all (detected) processors in the system (default)\n");
+	printf("  --no-thread   - Use only one processor\n");
+	printf("  --shadows, --no-shadows - Enable/Disable shadows\n");
+	printf("  --save-video  - Save a sequence of .BMPs to a video/ subfolder\n");
 }
 
 void cmdline_close(void)

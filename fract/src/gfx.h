@@ -45,9 +45,9 @@ extern double PreSC[MAX_SPHERE_SIDES+1][MAX_SPHERE_SIDES+1][2];
 typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
 
 #ifdef ACTUALLYDISPLAY
- void Slock(SDL_Surface *screen);
- void Sulock(SDL_Surface *screen);
- void PasteRaw(SDL_Surface *p, const RawImg& a, int x, int y);
+ void surface_lock(SDL_Surface *screen);
+ void surface_unlock(SDL_Surface *screen);
+ void paste_raw(SDL_Surface *p, const RawImg& a, int x, int y);
  void intro_progress(SDL_Surface *p, double prog);
  void intro_progress_init(SDL_Surface *p, char * message);
  void printxy(SDL_Surface *p, Uint32 *a, const RawImg& font, int x, int y, Uint32 col, float opacity, const char *buf, ...);
@@ -55,13 +55,13 @@ typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
 
  int xres(void);
  int yres(void);
- void SetNewMode(int x, int y);
+ void set_new_videomode(int x, int y);
  void gfx_update_2nds(void);
- void DrawPixel(Uint32 *p, int x, int y, Uint8 r, Uint8 g, Uint8 b);
- void DrawPixeld(Uint32 *p, int x, int y, Uint32 v);
- Uint32 GetPixeld(Uint32 *p, int x, int y);
- void DrawTransparent(Uint32 *p, int x, int y, Uint32 col, float alpha);
- void wLine(Uint32 *p, int x1, int y1, int x2, int y2, Uint32 col);
+ void draw_pixel(Uint32 *p, int x, int y, Uint8 r, Uint8 g, Uint8 b);
+ void draw_pixeld(Uint32 *p, int x, int y, Uint32 v);
+ Uint32 get_pixeld(Uint32 *p, int x, int y);
+ void draw_transparent(Uint32 *p, int x, int y, Uint32 col, float alpha);
+ void w_line(Uint32 *p, int x1, int y1, int x2, int y2, Uint32 col);
  Uint32 multiplycolor(Uint32 color, int amp);
  Uint32 multiplycolorf(Uint32 color, float amp);
  Uint32 desaturate(Uint32 color, double factor);
@@ -69,7 +69,7 @@ typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
  extern _blend_fn blend;
  Uint32 blend_sse(Uint32 foreground, Uint32 background, float opacity);
  Uint32 blend_p5(Uint32 foreground, Uint32 background, float opacity);
- int projectIt(object *a, 
+ int project_it(Object *a, 
 	       Vector pt[], 
 	       int *ns, 
 	       Uint32 *fb, 
@@ -90,11 +90,11 @@ bool fun_more(int a, int b);
 int truncate(float x);
 int fround(float x);
 
-void ProjectHullPart(int *hull, Vector pt[], int start, int incr, int count, int sides, int color, Vector c, Vector w[3], int (*fun) (int,int), int (*rounding_fn) (float) = truncate, int yres = -1);
-void MapHull(Uint32 *fb, int *left, int *right, int ys, int ye, int color, int bias = 0, int xres=-1, int yres=-1);
+void project_hull_part(int *hull, Vector pt[], int start, int incr, int count, int sides, int color, Vector c, Vector w[3], int (*fun) (int,int), int (*rounding_fn) (float) = truncate, int yres = -1);
+void map_hull(Uint32 *fb, int *left, int *right, int ys, int ye, int color, int bias = 0, int xres=-1, int yres=-1);
 int accumulate(Vector pt[], int sides, Vector c, Vector w[3], bool (*fun) (int, int), int start_val, int & bi);
-void MapToScreen(Uint16 *sb, Vector pt[], int sides, Uint16 color, Vector& cur, Vector w[3], int xr, int yr);
-void OutLineToScreen(Uint16 *sbuffer, Vector pt[], int sides, Uint16 color, Vector &cur, Vector w[3], int xres, int yres);
+void map_to_screen(Uint16 *sb, Vector pt[], int sides, Uint16 color, Vector& cur, Vector w[3], int xr, int yr);
+void outline_to_screen(Uint16 *sbuffer, Vector pt[], int sides, Uint16 color, Vector &cur, Vector w[3], int xres, int yres);
 
 
 struct AbstractDrawer {

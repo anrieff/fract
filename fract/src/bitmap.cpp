@@ -37,7 +37,7 @@
  * @returns false on failure          *
  **************************************/
 
-bool RawImg:: CreateRaw(int x, int y)
+bool RawImg:: create_raw(int x, int y)
 {
  int asize;
  this->x = x;
@@ -57,7 +57,7 @@ bool RawImg:: CreateRaw(int x, int y)
 
 void RawImg:: copyraw(const RawImg & r)
 {
- CreateRaw(r.x, r.y);
+ create_raw(r.x, r.y);
  memcpy(data, r.data, x*y*4);
 }
 
@@ -88,7 +88,7 @@ RawImg:: RawImg()
  RawImg:: RawImg(int x, int y, void * data)
  {
   default_init();
-  CreateRaw(x,y);
+  create_raw(x,y);
   if (data) {
   	memcpy(this->data, data, x*y*4);
   }
@@ -137,11 +137,11 @@ RawImg & RawImg:: operator = (const RawImg & r)
  * *this - The source RawImg structure *
  * b     - Destination RawImg          *
  ***************************************/
-void RawImg:: Shrink(RawImg &b)
+void RawImg:: shrink(RawImg &b)
 {int i,j,p=0;
  int sum[MAX_TEXTURE_SIZE][3];
  int *adata = (int*) data;
- if (!b.CreateRaw(x/2, y/2)) return;
+ if (!b.create_raw(x/2, y/2)) return;
 
  int *bdata = (int*) b.data;
  for (j=0;j<y;j++) {
@@ -177,7 +177,7 @@ void RawImg:: Shrink(RawImg &b)
  *------------------------------------*
  * On failure, LoadBmp returns false. *
  **************************************/
-bool RawImg:: LoadBmp(const char *fn)
+bool RawImg:: load_bmp(const char *fn)
 {FILE *f;
  int i, j, p, k;
  BMHEADER hd;
@@ -225,7 +225,7 @@ bool RawImg:: LoadBmp(const char *fn)
  	rowsz = (rowsz / 4 + 1) * 4; // round the row size to the next exact multiple of 4
  xx = (unsigned char *) malloc(rowsz);
  p = itohl(hi.x) * itohl(hi.y);
- if (!CreateRaw(itohl(hi.x), itohl(hi.y))) {
+ if (!create_raw(itohl(hi.x), itohl(hi.y))) {
  	printf("LoadBmp: cannot allocate memory for bitmap! Check file integrity!\n");
 	fflush(stdout);
 	free(xx);
@@ -272,7 +272,7 @@ bool RawImg:: LoadBmp(const char *fn)
  *  failure                           *
  **************************************/
 
-bool RawImg:: LoadFda(const char *fn)
+bool RawImg:: load_fda(const char *fn)
 {FILE *f;
  FDAHeaDeR FDA;
  if (( f = fopen(fn, "rb"))==NULL) {
@@ -290,7 +290,7 @@ bool RawImg:: LoadFda(const char *fn)
 	fclose(f);
 	return false;
      }
- CreateRaw(FDA.x_size, FDA.y_size);
+ create_raw(FDA.x_size, FDA.y_size);
  unsigned totsize = FDA.x_size * FDA.y_size;
  if (totsize != fread(data, sizeof(float), totsize, f)) {
  	printf("LoadFda: short read while reading image info; file may be broken or incomplete\n");
@@ -313,7 +313,7 @@ bool RawImg:: LoadFda(const char *fn)
  *------------------------------------*
  * On failure, SaveBmp returns 0.     *
  **************************************/
-bool RawImg:: SaveBmp(const char *fn)
+bool RawImg:: save_bmp(const char *fn)
 {FILE *f;
  int i,j, rowsz;
  unsigned short msh=BM_MAGIC;
@@ -358,7 +358,7 @@ bool RawImg:: SaveBmp(const char *fn)
  return true;
 }
 
-void RawImg:: RenderHack()
+void RawImg:: render_hack()
 {
  int * adata = (int*) data;
  adata[x*y]=adata[x*y-1];
@@ -366,7 +366,7 @@ void RawImg:: RenderHack()
  // consult Shrink() method for more info
 }
 
-void Take_Snapshot(RawImg & a)
+void take_snapshot(RawImg & a)
 {int i=1;
  char fn[30];
  FILE *f;
@@ -378,7 +378,7 @@ void Take_Snapshot(RawImg & a)
 	   else fclose(f);
 	i++;
  	}
- a.SaveBmp(fn);
+ a.save_bmp(fn);
 }
 
 RawImg:: RawImg(const char*fn)
@@ -388,15 +388,15 @@ RawImg:: RawImg(const char*fn)
 	while (i>0 && fn[i]!='.') i--;
 	const char *extptr = fn + i + 1;
 	if (!strcmp_without_case("BMP", extptr)) {
-		LoadBmp(fn);
+		load_bmp(fn);
 		return;
 	}
 	if (!strcmp_without_case("FDA", extptr)) {
-		LoadFda(fn);
+		load_fda(fn);
 		return ;
 	}
 	printf("Unknown file type: .%s\n", extptr);
-	CreateRaw(64,64);
+	create_raw(64,64);
 }
 
 void RawImg:: fill(unsigned color)

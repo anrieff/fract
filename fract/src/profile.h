@@ -34,7 +34,7 @@ void prof_init(void);
 
 void prof_statistics(void);
 
-int  GetCPUSpeed(void);
+int  get_cpu_speed(void);
 
 
 // a list of IDs follow:

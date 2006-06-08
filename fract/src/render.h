@@ -71,7 +71,7 @@ struct ORNode {
 	}
 };
 
-extern object_array allobjects;
+extern ObjectArray allobjects;
 extern bool parallel;
 extern double stereo_separation;
 extern double stereo_depth;
@@ -84,7 +84,7 @@ void render_single_frame(void);
 void postframe_do(void);
 #endif
 
-bool testsphere(sphere *a, const Vector & v, const Vector & cur, const double & A, double & determinant, double & gB);
+bool testsphere(Sphere *a, const Vector & v, const Vector & cur, const double & A, double & determinant, double & gB);
 
 int render_init(void);
 void bash_preframe(Vector& lw, Vector& tt, Vector& ti, Vector& tti);

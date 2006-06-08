@@ -55,7 +55,7 @@ static char *mdfilelist[] = {
 };
 
 unsigned file_hash_ok[4] = {0x0E8D9991, 0x98EEE322, 0x1EC1EE09, 0x859B7967};
-bool MD5Check(void)
+static bool md5_check(void)
 {
 	MD5Hasher hash;
 	for (int i = 0; mdfilelist[i][0]; i++) {
@@ -88,7 +88,7 @@ bool MD5Check(void)
 Implementation specific things:
 */
 
-const char *get_OS(void)
+static const char *get_OS(void)
 {
 #if defined __linux__ || defined linux
 	return "Linux";
@@ -97,7 +97,7 @@ const char *get_OS(void)
 #endif
 }
 
-void get_compiler_version(char *out)
+static void get_compiler_version(char *out)
 {
 #ifdef _MSC_VER
 	strcpy(out, "MSVC ");
@@ -124,7 +124,7 @@ void generate_result_file(FPSWatch & watch)
 		printf("Sorry, you can't run fract for official result with these options!\n");
 		return;
 	}
-	if (!MD5Check()) {
+	if (!md5_check()) {
 		printf("The program's data files seem to be modified or corrupted.\n");
 		printf("Please, download a fresh copy from http://fbench.com\n");
 		return;
@@ -205,7 +205,7 @@ void generate_result_file(FPSWatch & watch)
 	a.cpu_count = SysInfo.cpu_count();
 	strcpy(a.cpu_type, cputype);
 	if (saved_cpuspd == -1) {
-		saved_cpuspd = GetCPUSpeed();
+		saved_cpuspd = get_cpu_speed();
 	}
 	a.cpu_mhz = saved_cpuspd;
 	a.res_x = xres();
@@ -222,7 +222,7 @@ void generate_result_file(FPSWatch & watch)
 	strcpy(a.chipset, chipset);
 	float saved_fps = a.overall_fps;
 	a.calculate_md5_sum((void*)a.md5sum);
-	AESEncrypt(&a, sizeof(a));
+	aes_encrypt(&a, sizeof(a));
 	char fn[64];
 	sprintf(fn, "%s_%.2f", username, saved_fps);
 	for (unsigned i = 0; i < strlen(fn); i++)
@@ -240,5 +240,5 @@ void generate_result_file(FPSWatch & watch)
 
 int query_integrity(void)
 {
-	return MD5Check()?0:1;
+	return md5_check()?0:1;
 }

@@ -53,10 +53,10 @@ const flag2strmapper flag2str[32] = {
 
 /* ----------------------------------- prototype seciton --------------------------------- */
 
-int SaveContext(const char *fn);
-void SaveCoords(const char *fn);
-int LoadContext(const char *fn);
-void GenerateCoords(void);
+int save_context(const char *fn);
+void save_coords(const char *fn);
+int load_context(const char *fn);
+void generate_coords(void);
 void record_do(double time);
 bool load_frame(int frame_no, double time, int mySceneType);
 void saveload_close(void);

@@ -31,9 +31,9 @@
 #include "mesh.h"
 #include "vectormath.h"
 
-sphere *a;
+Sphere *a;
 extern int spherecount, r_shadows;
-extern sphere *sp;
+extern Sphere *sp;
 
 int n;
 int defaultflags=0;
@@ -54,7 +54,7 @@ void sphere_check_for_first_hit(void)
 }
 
 // decompose a RGB value to its components
-void setcolor(sphere *a, int col)
+void setcolor(Sphere *a, int col)
 {
  a->b = (col & 0xff);
  col >>= 8;
@@ -68,7 +68,7 @@ int rand_color(void)
     return (0x606060 + ((rand()%0x1000000)&0x7f7f7f));
 }
 int isec = 0;
-int intersect(sphere *a)
+int intersect(Sphere *a)
 {
     int i;
 
@@ -89,7 +89,7 @@ int intersect(sphere *a)
     return 0;
 }
 
-void set_params(sphere *a, double x, double y, double z, double d, double xi, double yi, double zi)
+void set_params(Sphere *a, double x, double y, double z, double d, double xi, double yi, double zi)
 {
  a->pos = Vector(x , y , z );
  a->mov = Vector(xi, yi, zi);
@@ -104,7 +104,7 @@ void set_params(sphere *a, double x, double y, double z, double d, double xi, do
 }
 
 // the recursive routine to create the fractal
-void recu(sphere *a, double x, double y, double z, double r, int level)
+void recu(Sphere *a, double x, double y, double z, double r, int level)
 {
  if (level == 0) {
 	a[n].pos = Vector(x, y, z);
@@ -130,7 +130,7 @@ void recu(sphere *a, double x, double y, double z, double r, int level)
 
 }
 
-void create_fract_array2(sphere *a, int *count)
+void create_fract_array2(Sphere *a, int *count)
 {
 	for (int i = 0; i < 6; i++) {
 		double ang = M_PI * 2 * i / 6.0;
@@ -145,12 +145,12 @@ void create_fract_array2(sphere *a, int *count)
 	}
 }
 
-void create_fract_array1(sphere *a, int *count)
+void create_fract_array1(Sphere *a, int *count)
 {int j;
  double M_SPEED=2.5;
 
- if (OptionExists("--speed"))
-    M_SPEED = OptionValueFloat("--speed");
+ if (option_exists("--speed"))
+    M_SPEED = option_value_float("--speed");
  n = 0;
  srand(5);
  recu(a, 200, 95, 330, 26, 0);
@@ -207,12 +207,12 @@ void create_fract_array1(sphere *a, int *count)
  *count = n;
  }
  
-void create_fract_array(sphere *a, int *count)
+void create_fract_array(Sphere *a, int *count)
 {
 	create_fract_array2(a, count);
 }
 
-void create_1fract_array(sphere *a, int *count)
+void create_1fract_array(Sphere *a, int *count)
 {
 	*count = 1;
 	a[0].d = 10;
@@ -224,7 +224,7 @@ void create_1fract_array(sphere *a, int *count)
 	setcolor(a, rand_color());
 }
 
-void create_voxel_sphere_array(sphere *a, int *count)
+void create_voxel_sphere_array(Sphere *a, int *count)
 {
 	/**count = 3;
 	a[0].d = 6;
@@ -254,7 +254,7 @@ void create_voxel_sphere_array(sphere *a, int *count)
 	a[0].d = 10.0;
 }
 /*
-void create_fract_array(sphere *a, int *count)
+void create_fract_array(Sphere *a, int *count)
 {
  srand(5);
  defaultflags = GRAVITY|AIR|COLLIDEABLE;
@@ -278,7 +278,7 @@ void create_fract_array(sphere *a, int *count)
 	animation data is stored. This function determines where a sphere should be at a specific time,
 	according to the `animation data'.
 */
-void calculate_XYZ(sphere *a, double time, Vector& o)
+void calculate_XYZ(Sphere *a, double time, Vector& o)
 {
 	double alpha, beta, speed, betaspeed;
 	int num = a->AniIndex;
@@ -307,7 +307,7 @@ void calculate_XYZ(sphere *a, double time, Vector& o)
 	}
 }
 
-void print_sphere_info(FILE *f, sphere *a)
+void print_sphere_info(FILE *f, Sphere *a)
 {
     fprintf(f, " ->(x , y , z ) = (%.4lf, %.4lf, %.4lf)\n", a->pos[0], a->pos[1], a->pos[2]);
     fprintf(f, " ->(xi, yi, zi) = (%.4lf, %.4lf, %.4lf)\n", a->mov[0], a->mov[1], a->mov[2]);
@@ -321,19 +321,19 @@ void print_sphere_info(FILE *f, sphere *a)
 /*
 	Sphere class implementation
 */
-double sphere::GetDepth(const Vector &camera)
+double Sphere::get_depth(const Vector &camera)
 {
 	return pos.distto(camera);
 }
 
-bool sphere::IsVisible(const Vector & camera, Vector w[3])
+bool Sphere::is_visible(const Vector & camera, Vector w[3])
 {
 	int x, y;
-	return ProjectSphere(this, camera, w, &x, &y, xsize_render(xres()), ysize_render(yres()));
+	return project_sphere(this, camera, w, &x, &y, xsize_render(xres()), ysize_render(yres()));
 }
 
 
-int sphere::CalculateConvex(Vector pt[], Vector c)
+int Sphere::calculate_convex(Vector pt[], Vector c)
 {
 	int steps;
 	steps = 4;
@@ -346,12 +346,12 @@ int sphere::CalculateConvex(Vector pt[], Vector c)
 	if (steps >= MAX_SPHERE_SIDES) steps = MAX_SPHERE_SIDES-1;
 	if (steps <  MIN_SPHERE_SIDES) steps = MIN_SPHERE_SIDES;
 	
-	CalculateFixedConvex(pt, c, steps);
+	calculate_fixed_convex(pt, c, steps);
 
 	return steps;
 }
 
-void sphere::CalculateFixedConvex(Vector pt[], Vector c, int steps)
+void Sphere::calculate_fixed_convex(Vector pt[], Vector c, int steps)
 {
 	double alpha, beta;
 	double sina, sinb, cosa, cosb;
@@ -385,7 +385,7 @@ void sphere::CalculateFixedConvex(Vector pt[], Vector c, int steps)
 	pt[steps] = pt[0];
 }
 
-void sphere::MapToScreen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
+void Sphere::map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
 			 int & min_y, int & max_y)
 {
 	int L[RES_MAXY], R[RES_MAXY];
@@ -393,9 +393,9 @@ void sphere::MapToScreen(Uint32 *framebuffer, int color, int sides, Vector pt[],
 	min_y = ys = accumulate(pt, sides, camera, w, fun_less, 999666111, bs);
 	max_y = ye = accumulate(pt, sides, camera, w, fun_more,-999666111, be);
 	int size = (be + sides - bs) % sides;
-	ProjectHullPart(L, pt, bs, +1, size, sides, color, camera, w, fun_min);
-	ProjectHullPart(R, pt, bs, -1, sides - size, sides, color, camera, w, fun_max);
-	MapHull(framebuffer, L, R, ys, ye, color);
+	project_hull_part(L, pt, bs, +1, size, sides, color, camera, w, fun_min);
+	project_hull_part(R, pt, bs, -1, sides - size, sides, color, camera, w, fun_max);
+	map_hull(framebuffer, L, R, ys, ye, color);
 }
 
 /**********************************************************************************
@@ -423,7 +423,7 @@ void sphere::MapToScreen(Uint32 *framebuffer, int color, int sides, Vector pt[],
  * @param finfo 
  * @return 
  */
-Uint32 sphere::Solve3D(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
+Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 		float *opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
 {
 #define limit1(a) (a>1?1:(a))
@@ -626,18 +626,18 @@ Uint32 sphere::Solve3D(Vector& v, const Vector& c, const Vector& l, double rlsrc
 	}
 }
 
-float sphere::_shadow_test(const Vector & I, const Vector & light, int opt)
+float Sphere::_shadow_test(const Vector & I, const Vector & light, int opt)
 {
 	Vector dir;
 	dir.make_vector(light, I);
 	dir.norm();
 	for (int i = 0; i < occluders_size; i++) {
-		if (occluders[occluders_ind + i]->SIntersect(I, dir, opt)) return 0.0f;
+		if (occluders[occluders_ind + i]->sintersect(I, dir, opt)) return 0.0f;
 	}
 	return 1.0f;
 }
 
-int sphere::GetBestMipLevel(double x0, double z0, FilteringInfo & fi)
+int Sphere::get_best_miplevel(double x0, double z0, FilteringInfo & fi)
 {
 	char context0[128], context1[128];
 	int& last_val = fi.last_val;
@@ -650,12 +650,12 @@ int sphere::GetBestMipLevel(double x0, double z0, FilteringInfo & fi)
 	double A0, A1;
 	A0 = v0.lengthSqr();
 	A1 = v1.lengthSqr();
-	if (!FastIntersect(v0, fi.camera, A0, context0) ||
-	    !FastIntersect(v1, fi.camera, A1, context1)) return last_val;
+	if (!fastintersect(v0, fi.camera, A0, context0) ||
+	    !fastintersect(v1, fi.camera, A1, context1)) return last_val;
 	//
 	double lambda0, lambda1;
-	lambda0 = IntersectionDist(context0) / A0;
-	lambda1 = IntersectionDist(context1) / A1;
+	lambda0 = intersection_dist(context0) / A0;
+	lambda1 = intersection_dist(context1) / A1;
 	Vector i0, i1;
 	i0.macc(fi.camera, v0, lambda0);
 	i1.macc(fi.camera, v1, lambda1);
@@ -749,10 +749,10 @@ int sphere::GetBestMipLevel(double x0, double z0, FilteringInfo & fi)
 	return last_val;
 }
 
-bool sphere::SIntersect(const Vector & start, const Vector & dir, int opt)
+bool Sphere::sintersect(const Vector & start, const Vector & dir, int opt)
 {
 	char ctx[128];
-	return FastIntersect(dir, start, 1.0, ctx);
+	return fastintersect(dir, start, 1.0, ctx);
 }
 
 void sphere_close(void)

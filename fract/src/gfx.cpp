@@ -53,7 +53,7 @@ extern RawImg font0;
 double PreSC[MAX_SPHERE_SIDES+1][MAX_SPHERE_SIDES+1][2];
 
 #ifdef ACTUALLYDISPLAY
-void Slock(SDL_Surface *screen)
+void surface_lock(SDL_Surface *screen)
 {
   if ( SDL_MUSTLOCK(screen) )
   {
@@ -64,7 +64,7 @@ void Slock(SDL_Surface *screen)
   }
 }
 
-void Sulock(SDL_Surface *screen)
+void surface_unlock(SDL_Surface *screen)
 {
   if ( SDL_MUSTLOCK(screen) )
   {
@@ -81,7 +81,7 @@ int yres(void){
 	return Yres;
 }
 
-void SetNewMode(int x, int y)
+void set_new_videomode(int x, int y)
 {
  if (x%RESOLUTION_X_ALIGN) {
  	printf("I can't set the desired resolution (%dx%d)\n - setting X to the previous multiple-of-%d value\n",
@@ -112,35 +112,35 @@ static inline int intensity(Uint32 color)
 }
 
 
-void DrawPixel(Uint32 *p, int x, int y, Uint8 r, Uint8 g, Uint8 b)
+void draw_pixel(Uint32 *p, int x, int y, Uint8 r, Uint8 g, Uint8 b)
 {
  Uint32 *bfp;
  bfp = p + y*Xres + x;
  *bfp = (int) b + (((int)g)<<8) + (((int)r)<<16);
 }
 
-void DrawPixeld(Uint32 *p, int x, int y, Uint32 v)
+void draw_pixeld(Uint32 *p, int x, int y, Uint32 v)
 {
  Uint32 *bfp;
  bfp = p + y*Xres + x;
  *bfp = v;
 }
 
-Uint32 GetPixeld640(Uint32 *p, int x, int y)
+Uint32 get_pixeld640(Uint32 *p, int x, int y)
 {
  Uint32 *bfp;
  bfp = p + y*640 + x;
  return ((*bfp));
 }
 
-void DrawPixel640(Uint32 *p, int x, int y, Uint8 r, Uint8 g, Uint8 b)
+void draw_pixel640(Uint32 *p, int x, int y, Uint8 r, Uint8 g, Uint8 b)
 {
  Uint32 *bfp;
  bfp = p + y*640 + x;
  *bfp = (int) b + (((int)g)<<8) + (((int)r)<<16);
 }
 
-void DrawPixeldsafe(Uint32 *p, int x, int y, Uint32 v)
+void draw_pixeldsafe(Uint32 *p, int x, int y, Uint32 v)
 {
  Uint32 *bfp;
  if ((unsigned) x >= (unsigned)Xres || (unsigned) y >= (unsigned)Yres)
@@ -149,7 +149,7 @@ void DrawPixeldsafe(Uint32 *p, int x, int y, Uint32 v)
  *bfp = v;
 }
 
-void DrawPixeldxsafe(Uint32 *p, int x, int y, Uint32 v)
+void draw_pixeldxsafe(Uint32 *p, int x, int y, Uint32 v)
 {
  Uint32 *bfp;
  if ((unsigned) x >= (unsigned)Xres2 || (unsigned) y >= (unsigned)Yres2)
@@ -159,14 +159,14 @@ void DrawPixeldxsafe(Uint32 *p, int x, int y, Uint32 v)
 }
 
 
-Uint32 GetPixeld(Uint32 *p, int x, int y)
+Uint32 get_pixeld(Uint32 *p, int x, int y)
 {
  Uint32 *bfp;
  bfp = p + y*Xres + x;
  return (*bfp);
 }
 
-void DrawPixeldx(Uint32 *p, int x, int y, Uint32 v)
+void draw_pixeldx(Uint32 *p, int x, int y, Uint32 v)
 {
  Uint32 *bfp;
  bfp = p + y*Xres2 + x;
@@ -174,7 +174,7 @@ void DrawPixeldx(Uint32 *p, int x, int y, Uint32 v)
 }
 
 
-Uint32 GetPixeldx(Uint32 *p, int x, int y)
+Uint32 get_pixeldx(Uint32 *p, int x, int y)
 {
  Uint32 *bfp;
  bfp = p + y*Xres2 + x;
@@ -182,30 +182,31 @@ Uint32 GetPixeldx(Uint32 *p, int x, int y)
 }
 
 
-void LineFast( Uint32 *p, int x0, int y0, int x1, int y1, Uint32 color)
-{int x, y, i, steps, xi, yi, x_int, y_int;
-
- x = abs(x1-x0); y = abs(y1-y0);
- if (x>y) steps = x; else steps = y;
- if (!steps) steps =1 ;
-
- xi = (int) (65536.0 * ((double)(x1-x0)/(double)steps));
- yi = (int) (65536.0 * ((double)(y1-y0)/(double)steps));
- x = x0 << 16;
- y = y0 << 16;
- for (i=1;i<=steps;i++) {
- 	x_int = x>>16;
-	y_int = y>>16;
-	if ((unsigned) y_int < (unsigned) Yres2) {
-		DrawPixeldxsafe(p, x_int, y_int, color);
-		if (x_int > RowMax[y_int])
-			RowMax[y_int] = x_int;
-		if (x_int < RowMin[y_int])
-			RowMin[y_int] = x_int;
+void line_fast( Uint32 *p, int x0, int y0, int x1, int y1, Uint32 color)
+{
+	int x, y, i, steps, xi, yi, x_int, y_int;
+	
+	x = abs(x1-x0); y = abs(y1-y0);
+	if (x>y) steps = x; else steps = y;
+	if (!steps) steps =1 ;
+	
+	xi = (int) (65536.0 * ((double)(x1-x0)/(double)steps));
+	yi = (int) (65536.0 * ((double)(y1-y0)/(double)steps));
+	x = x0 << 16;
+	y = y0 << 16;
+	for (i=1;i<=steps;i++) {
+		x_int = x>>16;
+		y_int = y>>16;
+		if ((unsigned) y_int < (unsigned) Yres2) {
+			draw_pixeldxsafe(p, x_int, y_int, color);
+			if (x_int > RowMax[y_int])
+				RowMax[y_int] = x_int;
+			if (x_int < RowMin[y_int])
+				RowMin[y_int] = x_int;
+		}
+		x += xi;
+		y += yi;
 	}
- 	x += xi;
-	y += yi;
- }
 }
 
 
@@ -213,16 +214,16 @@ void LineFast( Uint32 *p, int x0, int y0, int x1, int y1, Uint32 color)
 
 // draws transparent pixel at X, Y
 // with color col and transparency factor alpha
-void DrawTransparent(Uint32 *p, int x, int y, Uint32 col, float alpha)
+void draw_transparent(Uint32 *p, int x, int y, Uint32 col, float alpha)
 {Uint32 z;
  if ((unsigned)x>=(unsigned)Xres||(unsigned)y>=(unsigned)Yres) return;
- z = GetPixeld(p, x, y);
- DrawPixel(p, x, y, (int) (alpha * ((col>>16)& 0xff) + (1-alpha) * ((z >> 16)& 0xff)),
+ z = get_pixeld(p, x, y);
+ draw_pixel(p, x, y, (int) (alpha * ((col>>16)& 0xff) + (1-alpha) * ((z >> 16)& 0xff)),
                     (int) (alpha * ((col>>8)& 0xff) + (1-alpha) * ((z >> 8)& 0xff)),
 		    (int) (alpha * (float) (col&0xff) + (1-alpha) * (float) (z& 0xff)));
 }
 
-void wLine(Uint32 *p, int x1, int y1, int x2, int y2, Uint32 col)
+void w_line(Uint32 *p, int x1, int y1, int x2, int y2, Uint32 col)
 {int i, steps, v1, v2;
  float x, xi=0, y, yi=0;
  v1 = x1-x2;
@@ -236,29 +237,29 @@ void wLine(Uint32 *p, int x1, int y1, int x2, int y2, Uint32 col)
     }
  if (v1<v2) {
     for (i=0,x=x1,y=y1;i<=steps;i++,x+=xi,y+=yi) {
-	DrawTransparent(p, (int) floor(x), (int) y, col, ceil(x)-x);
-	DrawTransparent(p, (int) ceil(x), (int) y, col, x-floor(x));
+	draw_transparent(p, (int) floor(x), (int) y, col, ceil(x)-x);
+	draw_transparent(p, (int) ceil(x), (int) y, col, x-floor(x));
 	}
     } else
     {
     for (i=0,x=x1,y=y1;i<=steps;i++,y+=yi,x+=xi) {
-	DrawTransparent(p, (int) x, (int) floor(y), col, ceil(y)-y);
-	DrawTransparent(p, (int) x, (int) ceil (y), col,y-floor(y));
+	draw_transparent(p, (int) x, (int) floor(y), col, ceil(y)-y);
+	draw_transparent(p, (int) x, (int) ceil (y), col,y-floor(y));
 	}
     }
 }
 
 #ifdef ACTUALLYDISPLAY
-/* PasteRaw -- puts a RawImg on a surface at coords x, y */
+/* paste_raw -- puts a RawImg on a surface at coords x, y */
 /* comments: really FAST */
-void PasteRaw(SDL_Surface *p, const RawImg &a, int x, int y)
+void paste_raw(SDL_Surface *p, const RawImg &a, int x, int y)
 {int i, bytx=a.get_x()*4, rowy=a.get_y();
  Uint32 *xx ;
  if (y+a.get_y()>p->h)
  	rowy = p->h - y;
  if (x+a.get_x()>p->w)
  	bytx = (p->w - x)*4;
- Slock(p);
+ surface_lock(p);
  int *adata = (int*) a.get_data();
  int ax = a.get_x();
  for (i=0;i<rowy;i++)
@@ -266,7 +267,7 @@ void PasteRaw(SDL_Surface *p, const RawImg &a, int x, int y)
 	xx = (Uint32 *) p->pixels + y*p->pitch/4 + i*p->pitch/4 + x;
  	memcpy(xx, adata+i*ax, bytx);
 	}
- Sulock(p);
+ surface_unlock(p);
  SDL_Flip(p);
 }
 /*
@@ -280,7 +281,7 @@ struct introstruct {
 introstruct intro;
 void intro_progress_init(SDL_Surface *p, char * message)
 {
-	Slock(p);
+	surface_lock(p);
 	memset(p->pixels, 0, p->w * p->h * sizeof(Uint32));
 	int xr = p->w, yr = p->h;
 	intro.width  = FONT_XSIZE_CEIL * strlen(message) + PROG_XSPACE;
@@ -296,22 +297,22 @@ void intro_progress_init(SDL_Surface *p, char * message)
 		if (i == 1 || i == intro.width - 2) {
 			_0 = 1;
 		}
-		DrawPixeld(pix, 
+		draw_pixeld(pix, 
 			   intro.x + i,
 			   intro.y + _0,
 			   PROG_FRAME_COLOR);
-		DrawPixeld(pix, 
+		draw_pixeld(pix, 
 			   intro.x + i,
 			   intro.y + intro.height - 1 - _0,
 			   PROG_FRAME_COLOR);
 	}
 	for (int i = 0; i < intro.height; i++) {
 		if (i < 2 || i >= intro.height - 2) continue;
-		DrawPixeld(pix,
+		draw_pixeld(pix,
 			   intro.x,
 			   intro.y+i,
 			   PROG_FRAME_COLOR);
-		DrawPixeld(pix,
+		draw_pixeld(pix,
 			   intro.x + intro.width - 1,
 			   intro.y + i,
 			   PROG_FRAME_COLOR);
@@ -319,7 +320,7 @@ void intro_progress_init(SDL_Surface *p, char * message)
 	printxy(p, pix, font0, intro.x + PROG_XSPACE / 2, intro.y + PROG_YSPACE / 2,
 	       PROG_TEXT_COLOR, 1.0f, message);
 	intro.last = 0;
-	Sulock(p);
+	surface_unlock(p);
 	SDL_Flip(p);
 }
 
@@ -330,15 +331,15 @@ void intro_progress_old(SDL_Surface *p, double prog)
  int i, j, endx, sx=31;
  int rg = 81, b = 250, rgi=2, bi=4;
  if (prog > 1.0+1E-14) return;
- Slock(p);
+ surface_lock(p);
  endx = (int) (31 + 592.0 * prog);
  for (j=233;j<=247;j++, sx--, endx--, rg-=rgi, b-=bi) {
 	for (i=sx;i<=endx;i++)
-		if (GetPixeld640((Uint32*)p->pixels, i, j) < 0x300000) {
-			DrawPixel640((Uint32*)p->pixels, i, j, rg + rand()%5-2, rg + rand()%5-2, b + rand()%10-5);
+		if (get_pixeld640((Uint32*)p->pixels, i, j) < 0x300000) {
+			draw_pixel640((Uint32*)p->pixels, i, j, rg + rand()%5-2, rg + rand()%5-2, b + rand()%10-5);
 			}
  	}
- Sulock(p);
+ surface_unlock(p);
  SDL_Flip(p);
 }
 
@@ -347,18 +348,18 @@ void intro_progress(SDL_Surface *p, double prog)
 	int ex;
 	ex = (int)((intro.width - 2) * prog);
 	if (prog > 1.0 + 1E-14 || ex <= intro.last) return;
-	Slock(p);
+	surface_lock(p);
 	Uint32 *pix = (Uint32 *) p->pixels;
 	for (int i = intro.last + 1; i <= ex; i++) {
 		Uint32 color = (i/16)%2 ? PROG_INNER_COLOR1 : PROG_INNER_COLOR2;
 		int _0 = (i == 1 || i == intro.width - 2);
 		for (int j = intro.y + 1 + _0; j < intro.y + intro.height - _0; j++) {
-			Uint32 old = GetPixeld(pix, intro.x + i, j);
+			Uint32 old = get_pixeld(pix, intro.x + i, j);
 			float rel_intensity = intensity(old) / (float)intensity(PROG_TEXT_COLOR);
-			DrawPixeld(pix, intro.x + i, j, multiplycolorf(color, 1 - rel_intensity));
+			draw_pixeld(pix, intro.x + i, j, multiplycolorf(color, 1 - rel_intensity));
 		}
 	}
-	Sulock(p);
+	surface_unlock(p);
 	SDL_Flip(p);
 	intro.last = ex;
 }
@@ -491,7 +492,7 @@ static inline int inrange2(int x, int y)
 	the ray CA.) It determines how many points to generate so that the resulting polygon would be smooth enough.
 
 */
-int calculate_convex(sphere *a, Vector pt[], Vector& c)
+int calculate_convex(Sphere *a, Vector pt[], Vector& c)
 {double alpha, beta;
  double sina, sinb, cosa, cosb;
  int steps,i;
@@ -542,13 +543,13 @@ bool fun_more(int a, int b) { return a > b; }
 int truncate(float x) { return (int) x; }
 int fround(float x) { return (int) (x + 0.5); }
 
-void ProjectHullPart(int *hull, Vector pt[], int start, int incr, int count, int sides, int color, Vector c, Vector w[3], int (*fun) (int,int), int (*rounding_fn) (float), int yres)
+void project_hull_part(int *hull, Vector pt[], int start, int incr, int count, int sides, int color, Vector c, Vector w[3], int (*fun) (int,int), int (*rounding_fn) (float), int yres)
 {
 	int x, yy, last_y=0, wy=-1;
 	if (yres == -1) yres = Yres2;
 	float f_x=0, f_e, f_xi;
 	for (int i = 0; i <= count; i++,start+=incr) {
-		ProjectPoint(&x, &yy, pt[(start+sides) % sides], c, w, Xres2, Yres2);
+		project_point(&x, &yy, pt[(start+sides) % sides], c, w, Xres2, Yres2);
 		f_e = x;
 		if (i) {
 			int steps = imax(1, yy - last_y);
@@ -568,7 +569,7 @@ void ProjectHullPart(int *hull, Vector pt[], int start, int incr, int count, int
 	}
 }
 
-void MapHull(Uint32 *fb, int *left, int *right, int ys, int ye, int color, int bias, int xres, int yres)
+void map_hull(Uint32 *fb, int *left, int *right, int ys, int ye, int color, int bias, int xres, int yres)
 {
 	if (xres == -1) xres = Xres2;
 	if (yres == -1) yres = Yres2;
@@ -597,7 +598,7 @@ void MapHull(Uint32 *fb, int *left, int *right, int ys, int ye, int color, int b
 	}
 }
 
-void MapHull16(Uint16 *fb, int *left, int *right, int ys, int ye, Uint16 color, int bias, int xres, int yres)
+void map_hull_16(Uint16 *fb, int *left, int *right, int ys, int ye, Uint16 color, int bias, int xres, int yres)
 {
 	if (xres == -1) xres = Xres2;
 	if (yres == -1) yres = Yres2;
@@ -626,7 +627,7 @@ int accumulate(Vector pt[], int sides, Vector c, Vector w[3], bool (*fun) (int, 
 	int opt = start_val;
 	for (int i = 0; i < sides; i++) {
 		int x, y;
-		ProjectPoint(&x, &y, pt[i], c, w, Xres2, Yres2);
+		project_point(&x, &y, pt[i], c, w, Xres2, Yres2);
 		if (fun(y, opt)) {
 			opt = y;
 			bi = i;
@@ -646,28 +647,28 @@ void mapsphere(Uint32 *fb, int Ox, int Oy, int color, int sides, Vector pt[], Ve
 	ys = accumulate(pt, sides, c, w, fun_less, 999666111, bs);
 	ye = accumulate(pt, sides, c, w, fun_more,-999666111, be);
 	int size = (be + sides - bs) % sides;
-	ProjectHullPart(L, pt, bs, +1, size, sides, color, c, w, fun_min);
-	ProjectHullPart(R, pt, bs, -1, sides - size, sides, color, c, w, fun_max);
-	MapHull(fb, L, R, ys, ye, color);
+	project_hull_part(L, pt, bs, +1, size, sides, color, c, w, fun_min);
+	project_hull_part(R, pt, bs, -1, sides - size, sides, color, c, w, fun_max);
+	map_hull(fb, L, R, ys, ye, color);
 
 }
 
 // the pre-filler part: this fills the circular area of the screen where the selected sphere will map with the given color
 // returns 0 if the sphere does not visualise at all
-int projectIt(object *a, Vector pt[], int *ns, Uint32 *fb, Vector& cur, Vector w[3], int xres, int yres, int color, int & min_y, int & max_y)
+int project_it(Object *a, Vector pt[], int *ns, Uint32 *fb, Vector& cur, Vector w[3], int xres, int yres, int color, int & min_y, int & max_y)
 {
-	if (!a->IsVisible(cur, w)) {
+	if (!a->is_visible(cur, w)) {
 		min_y = -20;
 		max_y = -10;
 		return 0;
 	}
 	if (camera_moved)
- 		*ns = a->CalculateConvex(pt, cur);
-	a->MapToScreen(fb, color, *ns, pt, cur, w, min_y, max_y);
+ 		*ns = a->calculate_convex(pt, cur);
+	a->map2screen(fb, color, *ns, pt, cur, w, min_y, max_y);
 	return 1;
 }
 
-void MapToScreen(
+void map_to_screen(
 		Uint16 *sbuffer, 
 		Vector pt[], 
 		int sides, 
@@ -681,17 +682,17 @@ void MapToScreen(
 	ys = accumulate(pt, sides, cur, w, fun_less, 999666111, bs);
 	ye = accumulate(pt, sides, cur, w, fun_more,-999666111, be);
 	int size = (be + sides - bs) % sides;
-	ProjectHullPart(L, pt, bs, +1, size, sides, color, cur, w, fun_min, truncate,  yres);
-	ProjectHullPart(R, pt, bs, -1, sides - size, sides, color, cur, w, fun_max, truncate, yres);
-	MapHull16(sbuffer, L, R, ys, ye, color, 0, xres, yres);
+	project_hull_part(L, pt, bs, +1, size, sides, color, cur, w, fun_min, truncate,  yres);
+	project_hull_part(R, pt, bs, -1, sides - size, sides, color, cur, w, fun_max, truncate, yres);
+	map_hull_16(sbuffer, L, R, ys, ye, color, 0, xres, yres);
 }
 
-void OutLineToScreen(Uint16 *sbuffer, Vector pt[], int sides, Uint16 color, Vector& cur, Vector w[3], int xres, int yres)
+void outline_to_screen(Uint16 *sbuffer, Vector pt[], int sides, Uint16 color, Vector& cur, Vector w[3], int xres, int yres)
 {
 	for (int i = 0; i < sides; i++) {
 		float a[2], b[2];
-		int res = ProjectPoint(a, a+1, pt[i], cur, w, xres, yres);
-		res |= ProjectPoint(b, b+1, pt[(i + 1) % sides], cur, w, xres, yres);
+		int res = project_point(a, a+1, pt[i], cur, w, xres, yres);
+		res |= project_point(b, b+1, pt[(i + 1) % sides], cur, w, xres, yres);
 		if (res < 8) {
 			int steps = (int) ceil(fabs(a[0]- b[0]));
 			int t = (int) ceil(fabs(a[1] - b[1]));

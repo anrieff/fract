@@ -17,12 +17,12 @@ cmdinfo *next;
 };
 
 void initcmdline(int argc, char * argv[]);
-void OptionAdd(char *opt);
-int OptionExists(char *opt);
-char *OptionValueString(char *opt);
-int OptionValueInt(char *opt);
-float OptionValueFloat(char *opt);
-void DisplayUsage(void);
+void option_add(char *opt);
+int option_exists(char *opt);
+char *option_value_string(char *opt);
+int option_value_int(char *opt);
+float option_value_float(char *opt);
+void display_usage(void);
 void cmdline_close(void);
 
 class ArgumentIterator {
