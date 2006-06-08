@@ -63,6 +63,8 @@ const IdNameStruct IdName[] = {
 	{ PROF_POLY_REARRANGE,	"poly_rearrange"},
 	{ PROF_POLY_DISPLAY,    "poly_display"  },
 	{ PROF_CONNECT_GRAPH,	"connect_graph" },
+	{ PROF_MAKE_WEDGES,	"make_wedges"	},
+	{ PROF_FRUSTRUM_CLIP,	"frustrum_clip" },
 	{ PROF_MERGE,		"shadow-merge"	},
 
 	{ PROF_BUFFER_CLEAR,	"buffer clear"	},

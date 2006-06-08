@@ -129,6 +129,43 @@ struct WedgeDrawer : public AbstractDrawer {
 	}
 };
 
+struct Simplex {
+	vec2f v[3];
+	float coeff[3];
+
+	Simplex() {}
+	Simplex(const vec2f& a, float ac, const vec2f& b, float bc, const vec2f& c, float cc)
+	{
+		v[0] = a; coeff[0] = ac;
+		v[1] = b; coeff[1] = bc;
+		v[2] = c; coeff[2] = cc;
+	}
+};
+
+struct Triangularized {
+	Array<Simplex> tris;
+	bool isfloor;
+	void _kopy(const Triangularized &r)
+	{
+		tris = r.tris;
+		isfloor = r.isfloor;
+	}
+
+	Triangularized() {}
+	Triangularized(const Triangularized& r)
+	{
+		_kopy(r);
+	}
+	Triangularized & operator = (const Triangularized & r)
+	{
+		if (this != &r) {
+			_kopy(r);
+		}
+		return *this;
+	}
+	
+};
+
 static void raster_wedge(float aa[], float bb[], float cc[], int w1, int w2, int w3, int xr, int yr, Uint16 *sbuffer)
 {
 	vec2f a(aa), b(bb), c(cc);
@@ -652,13 +689,9 @@ static void thresh_light(Vector verts[], int n, Vector l)
 	}
 }
 
-int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, double beta, PolyInfo o[])
+static int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, double beta, PolyInfo o[])
 {
 	Array<Vector> up, down;
-	//
-	Vector pvec(sin(alpha) * cos(beta), sin(beta), cos(alpha) * cos(beta));
-	pvec.norm();
-	double D = - evaluate(pvec, cur, 0.0);
 	//
 	thresh_light(verts, n, l);
 	for (int i = 0; i < n; i++) {
@@ -668,30 +701,6 @@ int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, do
 		Vector a = plane_cast(l, va);
 		Vector b = plane_cast(l, vb);
 		bool afloor = a.v[1] == (double) daFloor;
-		double ad = evaluate(pvec, a, D);
-		double bd = evaluate(pvec, b, D);
-		bool aok = ad > VALIDITY_THRESH;
-		bool bok = bd > VALIDITY_THRESH;
-		if (!(aok || bok)) continue;
-		if (aok ^ bok) {
-			// find valid, using binsearch
-			double left = 0.0, right = 1.0, mid;
-			Vector dv; dv.make_vector(vb, va);
-			while (right - left > 1e-6) {
-				mid = (left + right) *0.5;
-				Vector temp;
-				temp.macc(va, dv, mid);
-				double td = evaluate(pvec, plane_cast(l, temp), D);
-				if ((aok && td < VALIDITY_THRESH) || (!aok && td > VALIDITY_THRESH))
-					right = mid;
-				else
-					left = mid;
-			}
-			Vector good;
-			good.macc(va, dv, mid);
-			if (aok) vb = good;
-			else     va = good;
-		}
 		if ((va[1] - l[1])*(vb[1] - l[1]) < 0) {
 			double t = (l[1] - va[1])/(vb[1] - va[1]);
 			Vector dv; dv.make_vector(vb, va);
@@ -759,6 +768,126 @@ int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, do
 	return os;
 }
 
+static inline bool floorness(const Vector& v, const Vector &l)
+{
+	return l[1] > v[1];
+}
+
+static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, Triangularized &wedgy)
+{
+	solid.tris.clear();
+	wedgy.tris.clear();
+	Array<vec2f> inner;
+	Array<vec2f> outer;
+	vec2f *temp = new vec2f[n * 4];
+	//
+	solid.isfloor = wedgy.isfloor = floorness(verts[0], l);
+	//
+	for (int i = 0; i < n; i++) {
+		Vector a = verts[i];
+		Vector b = verts[(i+1)%n];
+		Vector ab, ac;
+		ab.make_vector(b, a);
+		ac.make_vector(l, a);
+		Vector normal = ab ^ ac;
+		normal.make_length(light_radius);
+		for (int j = 0; j < 4; j++) {
+			Vector light = l;
+			if (j < 2) light += normal;
+			else light -= normal;
+			Vector X = (j % 2 ? b : a);
+			if (floorness(X, light) != solid.isfloor) {
+				if (solid.isfloor) light[1] = X[1] + DST_THRESHOLD;
+				else light[1] = X[1] - DST_THRESHOLD;
+			}
+			Vector t = plane_cast(light, X);
+			temp[i * 4 + j] = vec2f(t[0], t[2]);
+		}
+		
+	}
+	
+	for (int i = 0; i < n; i++) {
+		int j = (i+1)%n;
+		vec2f a, b, c, d, r;
+		a = temp[i * 4    ];
+		b = temp[i * 4 + 1];
+		c = temp[j * 4    ];
+		d = temp[j * 4 + 1];
+		intersect(a.v, b.v, c.v, d.v, r.v);
+		inner += r;
+		a = temp[i * 4 + 2];
+		b = temp[i * 4 + 3];
+		c = temp[j * 4 + 2];
+		d = temp[j * 4 + 3];
+		intersect(a.v, b.v, c.v, d.v, r.v);
+		outer += r;
+	}
+	delete [] temp;
+	//
+	float si = (float) shadow_intensity;
+	for (int i = 0; i < n; i++) {
+		int j = (i + 1) % n;
+		vec2f v0 = inner[i];
+		vec2f v1 = inner[j];
+		vec2f v2 = outer[i];
+		vec2f v3 = outer[j];
+		//
+		
+		wedgy.tris += Simplex(v2, 0.0f, v1,   si, v0, si);
+		wedgy.tris += Simplex(v2, 0.0f, v3, 0.0f, v1, si);
+	}
+	
+	static vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
+	int cs1a, cs2a;
+	cs1a = n; memcpy(cs1, &inner[0], n * sizeof(cs1[0]));
+	while (cs1a > 2) {
+		cs2a = 0;
+		int i = 0;
+		while (i < cs1a - 1) {
+			if (face(cs1[i], cs1[i+1], cs1[(i+2)%cs1a]) < +1e-6) {
+				//draw it
+				solid.tris += Simplex(cs1[i], si, cs1[i+1], si, cs1[(i+2)%cs1a], si);
+				//discard the second point
+				cs2[cs2a++] = cs1[i];
+				i += 2;
+			} else {
+				cs2[cs2a++] = cs1[i];
+				i++;
+			}
+		}
+		if (i == cs1a - 1) cs2[cs2a++] = cs1[i];
+
+		if (cs2a == cs1a) break;
+		cs1a = cs2a;
+		memcpy(cs1, cs2, cs1a * sizeof(cs1[0]));
+	}
+
+}
+
+static void frustrum_clip(Vector cur, Vector mtt, Vector mti, Vector mtti, Triangularized &t)
+{
+}
+//int  project_point(float *x, float *y, const Vector& d, const Vector& cur, Vector w[3], int xres, int yres);
+//static void raster_wedge(float aa[], float bb[], float cc[], int w1, int w2, int w3, int xr, int yr, Uint16 *sbuffer)
+static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector mtt, Vector mti, Vector mtti, Uint16 *sbuffer, bool solid)
+{
+	for (int i = 0; i < t.tris.size(); i++) {
+		Simplex & s = t.tris[i];
+		vec2f v[3];
+		for (int j = 0; j < 3; j++) {
+			Vector d = Vector(s.v[j][0], t.isfloor ? daFloor : daCeiling, s.v[j][1]);
+			project_point(&v[j][0], &v[j][1], d, cur, w, xr, yr);
+		}
+		if (solid) {
+			SolidDrawer sd(sbuffer, shadow_intensity << 8, xr);
+			TriangleRasterizer ras(xr, yr, v[0], v[1], v[2]);
+			ras.draw(sd);
+		} else {
+			raster_wedge(v[0].v, v[1].v, v[2].v, (int) s.coeff[0], (int) s.coeff[1], (int) s.coeff[2], xr, yr, sbuffer);
+		}
+	}
+}
+
 static void expand_poly(Vector verts[], int n, Vector center, Vector l)
 {
 	thresh_light(verts, n, l);
@@ -772,115 +901,6 @@ static void expand_poly(Vector verts[], int n, Vector center, Vector l)
 		verts[i] += v;
 	}
 	thresh_light(verts, n, l);
-}
-
-void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
-{
-	Vector ml(lx, ly, lz);
-	ceilmax = floormin = -1;
-
-	prof_enter(PROF_ZERO_SBUFFER); // reset the S-buffer;
-	memset(sbuffer, 0, xr*yr*sizeof(Uint16));
-	prof_leave(PROF_ZERO_SBUFFER);
-	
-	shadows_precalc(xr, yr, mtt, mti, mtti);
-	
-	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
-		Vector poly[SPHERE_SIDES*2+8];
-		
-		prof_enter(PROF_POLY_GEN);
-		sp[i].calculate_fixed_convex(poly, ml, SPHERE_SIDES);
-		prof_leave(PROF_POLY_GEN);
-		PolyInfo pif[2];
-		
-		prof_enter(PROF_POLY_REARRANGE);
-		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif);
-		prof_leave(PROF_POLY_REARRANGE);
-
-		prof_enter(PROF_POLY_DISPLAY);
-		for (int i = 0; i < pir; i++) {
-			display_poly(poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
-		}
-		prof_leave(PROF_POLY_DISPLAY);
-	}
-	
-	
-	for (int i = 0; i < mesh_count; i++) if (mesh[i].get_flags() & CASTS_SHADOW) {
-		recu_es = 0;
-		prof_enter(PROF_CONNECT_GRAPH);
-		for (int j = 0; j < mesh[i].num_edges; j++)
-		{
-			Mesh::EdgeInfo &e = mesh[i].edges[j];
-			Vector p = (e.a + e.b) * 0.5 - ml;
-			if ((p * e.norm1) * (p * e.norm2) < 0.0)
-				recu_edges[recu_es++] = e;
-#ifdef DEBUG
-			if (fabs(p * e.norm1) < 1e-8) {
-				printf("Warning: zero at edge %d\n", j);
-				printf("Normal is "); e.norm1.print();
-			}
-			if (fabs(p * e.norm2) < 1e-8) {
-				printf("Warning: zero at edge %d\n", j);
-				printf("Normal is "); e.norm2.print();
-			}
-#endif
-		}
-		int r = connect_graph(recu_edges, recu_es);
-		prof_leave(PROF_CONNECT_GRAPH);
-	
-		PolyInfo pif[2];
-		prof_enter(PROF_POLY_REARRANGE);
-		int pir = rearrange_poly(mesh_poly, r, ml, cur, alpha, beta, pif);
-		prof_leave(PROF_POLY_REARRANGE);
-		prof_enter(PROF_POLY_DISPLAY);
-		for (int i = 0; i < pir; i++) {
-			display_poly(mesh_poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
-		}
-		prof_leave(PROF_POLY_DISPLAY);
-	}
-	shadows_merge(xr, yr, target_framebuffer, sbuffer);
-}
-
-void render_shadows_fake(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
-{
-	Vector ml(lx, ly, lz);
-	ceilmax = floormin = -1;
-
-	prof_enter(PROF_ZERO_SBUFFER); // reset the S-buffer;
-	memset(sbuffer, 0, xr*yr*sizeof(Uint16));
-	prof_leave(PROF_ZERO_SBUFFER);
-	
-	shadows_precalc(xr, yr, mtt, mti, mtti);
-	
-	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
-		Vector poly[SPHERE_SIDES*2+8];
-		
-		prof_enter(PROF_POLY_GEN);
-		sp[i].calculate_fixed_convex(poly, ml, SPHERE_SIDES);
-		prof_leave(PROF_POLY_GEN);
-		PolyInfo pif[2];
-		
-		expand_poly(poly, SPHERE_SIDES, sp[i].pos, ml);
-		
-		prof_enter(PROF_POLY_REARRANGE);
-		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif);
-		prof_leave(PROF_POLY_REARRANGE);
-
-		prof_enter(PROF_POLY_DISPLAY);
-		for (int i = 0; i < pir; i++) {
-			//display_poly(poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
-			display_poly_fake_sphere(poly + pif[i].start, pif[i].size,
-					ml, xr, yr, cur, mtt, mti, mtti, sbuffer, &sp[i]);
-		}
-		prof_leave(PROF_POLY_DISPLAY);
-
-	}
-	shadows_merge(xr, yr, target_framebuffer, sbuffer);
-}
-
-void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
-{
-	render_shadows_fake(target_framebuffer, sbuffer, xr, yr, mtt, mti, mtti);
 }
 
 static int occlusions(const Sphere & a, const Sphere & b, const Vector & light)
@@ -990,4 +1010,135 @@ void check_for_shadowed_spheres(void)
 
 void shadows_close(void)
 {
+}
+
+
+void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
+{
+	Vector ml(lx, ly, lz);
+	ceilmax = floormin = -1;
+
+	prof_enter(PROF_ZERO_SBUFFER); // reset the S-buffer;
+	memset(sbuffer, 0, xr*yr*sizeof(Uint16));
+	prof_leave(PROF_ZERO_SBUFFER);
+	
+	shadows_precalc(xr, yr, mtt, mti, mtti);
+	
+	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
+		Vector poly[SPHERE_SIDES*2+8];
+		
+		prof_enter(PROF_POLY_GEN);
+		sp[i].calculate_fixed_convex(poly, ml, SPHERE_SIDES);
+		prof_leave(PROF_POLY_GEN);
+		
+		PolyInfo pif[2];
+		prof_enter(PROF_POLY_REARRANGE);
+		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif);
+		prof_leave(PROF_POLY_REARRANGE);
+		
+
+		for (int i = 0; i < pir; i++) {
+			prof_enter(PROF_MAKE_WEDGES);
+			Triangularized solid, wedgy;
+			make_wedges(poly + pif[i].start, pif[i].size, ml, solid, wedgy);
+			prof_leave(PROF_MAKE_WEDGES);
+			
+			prof_enter(PROF_FRUSTRUM_CLIP);
+			frustrum_clip(cur, mtt, mti, mtti, solid);
+			frustrum_clip(cur, mtt, mti, mtti, wedgy);
+			prof_leave(PROF_FRUSTRUM_CLIP);
+			
+			prof_enter(PROF_POLY_DISPLAY);
+			poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, true);
+			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, false);
+			prof_leave(PROF_POLY_DISPLAY);
+		}
+
+		/*
+		prof_enter(PROF_POLY_DISPLAY);
+		for (int i = 0; i < pir; i++) {
+			display_poly(poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
+		}
+		prof_leave(PROF_POLY_DISPLAY);
+		*/
+	}
+	
+/*
+	for (int i = 0; i < mesh_count; i++) if (mesh[i].get_flags() & CASTS_SHADOW) {
+		recu_es = 0;
+		prof_enter(PROF_CONNECT_GRAPH);
+		for (int j = 0; j < mesh[i].num_edges; j++)
+		{
+			Mesh::EdgeInfo &e = mesh[i].edges[j];
+			Vector p = (e.a + e.b) * 0.5 - ml;
+			if ((p * e.norm1) * (p * e.norm2) < 0.0)
+				recu_edges[recu_es++] = e;
+#ifdef DEBUG
+			if (fabs(p * e.norm1) < 1e-8) {
+				printf("Warning: zero at edge %d\n", j);
+				printf("Normal is "); e.norm1.print();
+			}
+			if (fabs(p * e.norm2) < 1e-8) {
+				printf("Warning: zero at edge %d\n", j);
+				printf("Normal is "); e.norm2.print();
+			}
+#endif
+		}
+		int r = connect_graph(recu_edges, recu_es);
+		prof_leave(PROF_CONNECT_GRAPH);
+	
+		PolyInfo pif[2];
+		prof_enter(PROF_POLY_REARRANGE);
+		int pir = rearrange_poly(mesh_poly, r, ml, cur, alpha, beta, pif);
+		prof_leave(PROF_POLY_REARRANGE);
+		prof_enter(PROF_POLY_DISPLAY);
+		for (int i = 0; i < pir; i++) {
+			display_poly(mesh_poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
+		}
+		prof_leave(PROF_POLY_DISPLAY);
+	}
+*/
+	shadows_merge(xr, yr, target_framebuffer, sbuffer);
+}
+
+void render_shadows_fake(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
+{
+	Vector ml(lx, ly, lz);
+	ceilmax = floormin = -1;
+
+	prof_enter(PROF_ZERO_SBUFFER); // reset the S-buffer;
+	memset(sbuffer, 0, xr*yr*sizeof(Uint16));
+	prof_leave(PROF_ZERO_SBUFFER);
+	
+	shadows_precalc(xr, yr, mtt, mti, mtti);
+	
+	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
+		Vector poly[SPHERE_SIDES*2+8];
+		
+		prof_enter(PROF_POLY_GEN);
+		sp[i].calculate_fixed_convex(poly, ml, SPHERE_SIDES);
+		prof_leave(PROF_POLY_GEN);
+		PolyInfo pif[2];
+		
+		expand_poly(poly, SPHERE_SIDES, sp[i].pos, ml);
+		
+		prof_enter(PROF_POLY_REARRANGE);
+		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif);
+		prof_leave(PROF_POLY_REARRANGE);
+
+		prof_enter(PROF_POLY_DISPLAY);
+		for (int i = 0; i < pir; i++) {
+			//display_poly(poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
+			display_poly_fake_sphere(poly + pif[i].start, pif[i].size,
+					ml, xr, yr, cur, mtt, mti, mtti, sbuffer, &sp[i]);
+		}
+		prof_leave(PROF_POLY_DISPLAY);
+
+	}
+	shadows_merge(xr, yr, target_framebuffer, sbuffer);
+}
+
+void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
+{
+	render_shadows_real(target_framebuffer, sbuffer, xr, yr, mtt, mti, mtti);
 }

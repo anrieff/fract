@@ -94,7 +94,9 @@ int  get_cpu_speed(void);
 #define PROF_POLY_GEN		0x63
 #define PROF_POLY_REARRANGE	0x64
 #define PROF_CONNECT_GRAPH	0x65
-#define PROF_POLY_DISPLAY	0x66
+#define PROF_MAKE_WEDGES	0x66
+#define PROF_FRUSTRUM_CLIP	0x67
+#define PROF_POLY_DISPLAY	0x6a
 #define PROF_MERGE		0x6f
 
 // PROF_RENDER_VOXEL
