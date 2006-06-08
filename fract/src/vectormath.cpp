@@ -765,6 +765,91 @@ void switch_gravity(void)
 
 }
 
+/** ** ** ** ** ** ** ** ** ** ** ** **
+ * ** ** @class FrustrumClipper ** ** **
+ * *** ** ** ** ** ** ** ** ** ** ** **
+*/
+
+const Vector imatrix[3] = {
+	Vector(1.0, 0.0, 0.0),
+	Vector(0.0, 1.0, 0.0),
+	Vector(0.0, 0.0, 1.0)
+};
+
+FrustrumClipper::FrustrumClipper(const Vector& camera, const Vector& ul, const Vector& x, const Vector &y)
+{
+	Vector e[4];
+	e[0] = ul;
+	e[1] = ul + x;
+	e[2] = ul + y;
+	e[3] = ul + x + y;
+	
+	form_plane(camera, e[1], e[0], 0);
+	form_plane(camera, e[0], e[2], 1);
+	form_plane(camera, e[3], e[1], 2);
+	form_plane(camera, e[2], e[3], 3);
+	
+	
+}
+
+void FrustrumClipper::form_plane(const Vector &a, const Vector &b, const Vector &c, int index)
+{
+	Vector x = b - a;
+	Vector y = c - a;
+	Vector nor = x ^ y;
+	nor.norm();
+	n[index] = nor;
+	D[index] = -(a*nor);
+}
+
+double FrustrumClipper::eval(const Vector &v, int which)
+{
+	if (which == -1) which = defeval;
+	return D[which] + (v * n[which]);
+}
+
+void FrustrumClipper::clip(ClipRes& cr, Vector trio[], int which)
+{
+	if (which == 0) {
+		cr.n = 3;
+		for (int i = 0; i < 3; i++) {
+			cr.v[i] = trio[i];
+			cr.bary[i] = imatrix[i];
+		}
+		return;
+	}
+	if (which & (which - 1)) {
+		printf("%s: Clipping against more than one plane is (still) not supported\n", __FUNCTION__);
+		cr.n = 0;
+		return;
+	}
+	defeval = ffs(which) - 1;
+	
+	cr.n = 0;
+	bool vis[3];
+	for (int i = 0; i < 3; i++) {
+		vis[i] = eval(trio[i]) > -0.001;
+	}
+	for (int i = 0; i < 3; i++) {
+		int j = (i + 1) % 3;
+		if (vis[i]) {
+			cr.v[cr.n] = trio[i];
+			cr.bary[cr.n++] = imatrix[i];
+		}
+		if (vis[i] ^ vis[j]) {
+			double av = eval(trio[i]);
+			double bv = eval(trio[j]);
+			double p = - av / (bv - av);
+			if (p < 0) p = 0;
+			if (p > 1) p = 1;
+			cr.v[cr.n] = trio[i] * (1.0-p) + trio[j] * p;
+			cr.bary[cr.n++] = imatrix[i] * (1.0-p) + imatrix[j] * p;
+		}
+	}
+}
+
+////////////////////////
+
 void vectormath_close(void)
 {
  //printf("diffuse: %.2lf, specular: %.2lf\n", diffuse, specular);

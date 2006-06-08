@@ -664,7 +664,7 @@ static void reversed_check(Vector verts[], const PolyInfo &pi, const Vector & l)
 		total_angle += copysign(M_PI - acos((a*a+b*b-c*c)/(2*a*b)), face(casted[i-1], casted[i%n], casted[(i+1)%n]));
 	}
 	float mul = 1.0;
-	if (verts[pi.start][1] < l[1]) mul = -1.0;
+	if (verts[pi.start][1] > l[1]) mul = -1.0;
 	if (mul*total_angle > -1e-6*mul) {
 		int i = pi.start;
 		int j = pi.start + pi.size - 1;
@@ -825,6 +825,7 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 	delete [] temp;
 	//
 	float si = (float) shadow_intensity;
+	float so = 0.0f;
 	for (int i = 0; i < n; i++) {
 		int j = (i + 1) % n;
 		vec2f v0 = inner[i];
@@ -833,8 +834,8 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 		vec2f v3 = outer[j];
 		//
 		
-		wedgy.tris += Simplex(v2, 0.0f, v1,   si, v0, si);
-		wedgy.tris += Simplex(v2, 0.0f, v3, 0.0f, v1, si);
+		wedgy.tris += Simplex(v2, si, v1, si, v0, so);
+		wedgy.tris += Simplex(v2, so, v3, si, v1, so);
 	}
 	
 	static vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
@@ -864,13 +865,51 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 
 }
 
-static void frustrum_clip(Vector cur, Vector mtt, Vector mti, Vector mtti, Triangularized &t)
+static Simplex gen_simplex(Simplex & orig, ClipRes & cr, int ia, int ib, int ic)
 {
+	int ind[3] = {ia, ib, ic};
+	vec2f verts[3];
+	float coefs[3];
+	Vector Co = Vector(orig.coeff[0], orig.coeff[1], orig.coeff[2]);
+	for (int i = 0; i < 3; i++) {
+		verts[i] = vec2f(cr.v[ind[i]][0], cr.v[ind[i]][2]);
+		coefs[i] = (float) (Co * cr.bary[ind[i]]);
+	}
+	return Simplex(verts[0], coefs[0], verts[1], coefs[1], verts[2], coefs[2]);
 }
-//int  project_point(float *x, float *y, const Vector& d, const Vector& cur, Vector w[3], int xres, int yres);
-//static void raster_wedge(float aa[], float bb[], float cc[], int w1, int w2, int w3, int xr, int yr, Uint16 *sbuffer)
+
+static void frustrum_clip(FrustrumClipper& clipper, Triangularized &t)
+{
+	for (int i = 0; i < 4; i++) {
+		Array<Simplex> n;
+		for (int j = 0; j < t.tris.size(); j++) {
+			Simplex& s = t.tris[j];
+			Vector v[3];
+			for (int k = 0; k < 3; k++) {
+				v[k] = Vector(s.v[k][0], t.isfloor ? daFloor: daCeiling, s.v[k][1]);
+			}
+	/*		if (i == 3 && j == 8) {
+				printf("boo!\n");
+		}*/
+			ClipRes cr;
+			clipper.clip(cr, v, 1<<i);
+			if (cr.n) {
+				n += gen_simplex(s, cr, 0, 1, 2);
+				if (cr.n == 4) {
+					n += gen_simplex(s, cr, 2, 3, 0);
+				}
+			}
+		}
+		t.tris = n;
+	}
+}
+
+int activetri=-1;
 static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector mtt, Vector mti, Vector mtti, Uint16 *sbuffer, bool solid)
 {
+	all_min_x = all_min_y = inf;
+	all_max_x = all_max_y = -inf;
+	
 	for (int i = 0; i < t.tris.size(); i++) {
 		Simplex & s = t.tris[i];
 		vec2f v[3];
@@ -879,11 +918,32 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 			project_point(&v[j][0], &v[j][1], d, cur, w, xr, yr);
 		}
 		if (solid) {
-			SolidDrawer sd(sbuffer, shadow_intensity << 8, xr);
+			int intensity = shadow_intensity << 8;
+			if (activetri != -1 && i != activetri) intensity = 0;
+			SolidDrawer sd(sbuffer, intensity, xr);
 			TriangleRasterizer ras(xr, yr, v[0], v[1], v[2]);
 			ras.draw(sd);
+			ras.update_limits(all_min_x, all_max_x, all_min_y, all_max_y);
 		} else {
-			raster_wedge(v[0].v, v[1].v, v[2].v, (int) s.coeff[0], (int) s.coeff[1], (int) s.coeff[2], xr, yr, sbuffer);
+			raster_wedge(
+					v[0].v, v[1].v, v[2].v, 
+					(int) s.coeff[0], (int) s.coeff[1], (int) s.coeff[2], 
+					xr, yr, sbuffer);
+		}
+	}
+	/* stage 3: reblend */
+	
+	CLAMP(all_min_x, 0, xr-1);	
+	CLAMP(all_max_x, 0, xr-1);	
+	CLAMP(all_min_y, 0, yr-1);	
+	CLAMP(all_max_y, 0, yr-1);	
+	for (int j = all_min_y; j <= all_max_y; j++) {
+		Uint16 *buff = &sbuffer[j * xr];
+		for (int i = all_min_x; i <= all_max_x; i++) {
+			Uint16 t = buff[i];
+			t = (t & 0xff) + (t >> 8);
+			if (t > shadow_intensity) t = shadow_intensity;
+			buff[i] = t; 
 		}
 	}
 }
@@ -1044,8 +1104,9 @@ void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 			prof_leave(PROF_MAKE_WEDGES);
 			
 			prof_enter(PROF_FRUSTRUM_CLIP);
-			frustrum_clip(cur, mtt, mti, mtti, solid);
-			frustrum_clip(cur, mtt, mti, mtti, wedgy);
+			FrustrumClipper frustrum(cur, mtt, mti * (double)xr, mtti * (double)yr);
+			frustrum_clip(frustrum, solid);
+			frustrum_clip(frustrum, wedgy);
 			prof_leave(PROF_FRUSTRUM_CLIP);
 			
 			prof_enter(PROF_POLY_DISPLAY);
@@ -1053,17 +1114,9 @@ void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, false);
 			prof_leave(PROF_POLY_DISPLAY);
 		}
-
-		/*
-		prof_enter(PROF_POLY_DISPLAY);
-		for (int i = 0; i < pir; i++) {
-			display_poly(poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
-		}
-		prof_leave(PROF_POLY_DISPLAY);
-		*/
 	}
 	
-/*
+
 	for (int i = 0; i < mesh_count; i++) if (mesh[i].get_flags() & CASTS_SHADOW) {
 		recu_es = 0;
 		prof_enter(PROF_CONNECT_GRAPH);
@@ -1091,13 +1144,33 @@ void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 		prof_enter(PROF_POLY_REARRANGE);
 		int pir = rearrange_poly(mesh_poly, r, ml, cur, alpha, beta, pif);
 		prof_leave(PROF_POLY_REARRANGE);
+		
+		for (int i = 0; i < pir; i++) {
+			prof_enter(PROF_MAKE_WEDGES);
+			Triangularized solid, wedgy;
+			make_wedges(mesh_poly + pif[i].start, pif[i].size, ml, solid, wedgy);
+			prof_leave(PROF_MAKE_WEDGES);
+			
+			prof_enter(PROF_FRUSTRUM_CLIP);
+			FrustrumClipper frustrum(cur, mtt, mti * (double)xr, mtti * (double)yr);
+			frustrum_clip(frustrum, solid);
+			frustrum_clip(frustrum, wedgy);
+			prof_leave(PROF_FRUSTRUM_CLIP);
+			
+			prof_enter(PROF_POLY_DISPLAY);
+			poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, true);
+			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, false);
+			prof_leave(PROF_POLY_DISPLAY);
+		}
+		/*
 		prof_enter(PROF_POLY_DISPLAY);
 		for (int i = 0; i < pir; i++) {
 			display_poly(mesh_poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
 		}
 		prof_leave(PROF_POLY_DISPLAY);
+		*/
 	}
-*/
+
 	shadows_merge(xr, yr, target_framebuffer, sbuffer);
 }
 

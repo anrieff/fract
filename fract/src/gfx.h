@@ -164,7 +164,7 @@ public:
 	}
 	void draw(AbstractDrawer & drawer)
 	{
-		if (p[0][1] == p[2][1] || p[0][1] == p[1][1] || p[1][1] == p[2][1]) return;
+	//	if (p[0][1] == p[2][1] || p[0][1] == p[1][1] || p[1][1] == p[2][1]) return;
 		ymin = (int) round(p[0][1]);
 		ymax = (int) round(p[2][1]);
 		if (ymin >= yr) return;

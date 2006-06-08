@@ -59,3 +59,56 @@ void switch_gravity(void);
 //void modify(int which, double amount);
 void vectormath_close(void);
 
+/**
+ * @struct	ClipRes
+ * @brief	Defines a result from FrustrumClipper::clip function
+ * 
+ * @param n	- Number of points in the resulting poly (may be 0 -
+ * 		  this means the triangle is out of the frustrum)
+ * @param v	- Vertices of the resulting poly
+ * @param bary	- The barycentric coordinates of the resulting poly,
+ *		  relative to the original triangle
+*/
+#define MAX_CLIP_RESULT 16
+struct ClipRes {
+	int n;
+	Vector v[MAX_CLIP_RESULT];
+	Vector bary[MAX_CLIP_RESULT];
+};
+
+/**
+ * @class	FrustrumClipper
+ * @date	2006-06-08
+ * @author	Veselin Georgiev
+ * @brief	Intersects and clips triangles against a view frustrum
+*/ 
+class FrustrumClipper {
+	double D[4];
+	Vector n[4];
+	int defeval;
+	
+	void form_plane(const Vector &a, const Vector &b, const Vector &c, int index);
+	double eval(const Vector &v, int which = -1);
+public:
+	/**
+	 * Constructor:
+	 * @param camera	- The location of the camera
+	 * @param upleft	- a point that lies along the upleft corner ray of the view frustrum
+	 * @param xdir		- X direction (upleft + xdir must be the upright corner of the frustrum)
+	 * @param ydir		- Y direction (upleft + ydir must be the downleft corner of the frustrum)
+	 */ 
+	FrustrumClipper(const Vector &camera, const Vector& upleft, const Vector& xdir, const Vector &ydir);
+	
+	/**
+	 * Performs clipping of the given triangle, with the specified planes
+	 * @param clipres	Struct to store result
+	 * @param trio		Array of 3 Vectors (the triangle itself)
+	 * @param which		A bit mask of the view planes to clip against (may be ORed together):
+	 * 	1	- up plane
+	 * 	2	- left plane
+	 * 	4	- right plane
+	 * 	8	- down plane
+	 * 	(the default, 15, is "clip against all planes")
+	*/ 
+	void clip(ClipRes& clipres, Vector trio[], int which = 15);
+};

@@ -280,6 +280,7 @@ void move_sphere(char c)
 	}
 }
 
+extern int activetri;//FIXME
 void kbd_do(int *ShouldExit)
 {
 #ifdef ACTUALLYDISPLAY
@@ -346,6 +347,9 @@ void kbd_do(int *ShouldExit)
 					else speed/=10.0;
 			}
 
+			if (e.key.keysym.sym == SDLK_F4) {
+				++activetri;
+			}
 			if (e.key.keysym.sym == SDLK_i) move_sphere('i');
 			if (e.key.keysym.sym == SDLK_o) move_sphere('o');
 			if (e.key.keysym.sym == SDLK_p) move_sphere('p');
@@ -473,6 +477,7 @@ int main(int argc, char *argv[])
 	initcmdline(argc, argv);
 	option_add("--developer");
 	option_add("--scene=data/shadowtest.fsv");
+	option_add("--no-overlay");
 	commandline_parse();
 	init_program();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {
