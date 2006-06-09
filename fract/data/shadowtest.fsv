@@ -10,7 +10,6 @@
 #Global Entries:
 #
 
-
 # The scene type, may be FrameBased or TimeBased
 # Time based scenes run for a fixed time, frame based render
 # in fixed amount of frames.
@@ -22,11 +21,11 @@ Light.y=125.00000
 Light.z=256.00000
 
 # User position information:
-User.x=100.00000
-User.y=25.00000
-User.z=200.00000
-alpha=0
-beta=-0.150000
+User.x=65.3451
+User.y=11.8875
+User.z=280.0
+alpha=1.5708
+beta=-0.1464
 
 # Physics (1=on)
 Physics=1
