@@ -22,9 +22,9 @@ Light.y=125.00000
 Light.z=256.00000
 
 # User position information:
-User.x=30.00000
+User.x=250.00000
 User.y=45.00000
-User.z=50.00000
+User.z=150.00000
 alpha=-0.950000
 beta=-0.150000
 

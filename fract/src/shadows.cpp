@@ -24,6 +24,7 @@
 #undef shadows_related
 
 double light_radius = 7.5f;
+int g_biasmethod = 1;
 ShadowCaster* occluders[2000];
 const int max_neighs = 7;
 
@@ -231,8 +232,12 @@ struct SolidDrawer : public AbstractDrawer
 	inline bool draw_line(int x, int y, int size)
 	{
 		Uint16 *p = &buff[y * xr + x];
-		for (int i = 0; i < size; i++)
-			p[i] |= fill;
+		if (size >= 16 && mmx_enabled) {
+			fast_line_fill(p, size, fill);
+		} else {
+			for (int i = 0; i < size; i++)
+				p[i] |= fill;
+		}
 		return true;
 	}
 };
@@ -677,7 +682,29 @@ static void frustrum_clip(FrustrumClipper& clipper, Triangularized &t)
 	}
 }
 
-int activetri=-1;
+static void poly_bias(Vector verts[], int n, const Vector& light, const Vector& center)
+{
+	switch (g_biasmethod) {
+		case 1:
+		{
+			for (int i = 0; i < n; i++) {
+				verts[i] = center + (verts[i]-center) * 0.98;
+			}
+			break;
+		}
+		case 2:
+		{
+			for (int i = 0; i < n; i++) 
+				if (verts[i][1] > daCeiling - 5 || verts[i][1] < daFloor + 5) {
+					Vector v = light - verts[i];
+					v.make_length(10);
+					verts[i] += v;
+				}
+			break;
+		}
+	}
+}
+
 static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector mtt, Vector mti, Vector mtti, Uint16 *sbuffer, bool solid)
 {
 	all_min_x = all_min_y = inf;
@@ -692,7 +719,6 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 		}
 		if (solid) {
 			int intensity = shadow_intensity << 8;
-			if (activetri != -1 && i != activetri) intensity = 0;
 			SolidDrawer sd(sbuffer, intensity, xr);
 			TriangleRasterizer ras(xr, yr, v[0], v[1], v[2]);
 			ras.draw(sd);
@@ -709,14 +735,18 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 	CLAMP(all_min_x, 0, xr-1);	
 	CLAMP(all_max_x, 0, xr-1);	
 	CLAMP(all_min_y, 0, yr-1);	
-	CLAMP(all_max_y, 0, yr-1);	
-	for (int j = all_min_y; j <= all_max_y; j++) {
-		Uint16 *buff = &sbuffer[j * xr];
-		for (int i = all_min_x; i <= all_max_x; i++) {
-			Uint16 t = buff[i];
-			t = (t & 0xff) + (t >> 8);
-			if (t > shadow_intensity) t = shadow_intensity;
-			buff[i] = t; 
+	CLAMP(all_max_y, 0, yr-1);
+	if (mmx_enabled) {
+		fast_reblend_mmx(all_min_x, all_min_y, all_max_x, all_max_y, sbuffer, xr, shadow_intensity);
+	} else {
+		for (int j = all_min_y; j <= all_max_y; j++) {
+			Uint16 *buff = &sbuffer[j * xr];
+			for (int i = all_min_x; i <= all_max_x; i++) {
+				Uint16 t = buff[i];
+				t = (t & 0xff) + (t >> 8);
+				if (t > shadow_intensity) t = shadow_intensity;
+				buff[i] = t; 
+			}
 		}
 	}
 }
@@ -849,6 +879,8 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		sp[i].calculate_fixed_convex(poly, ml, SPHERE_SIDES);
 		prof_leave(PROF_POLY_GEN);
 		
+		poly_bias(poly, SPHERE_SIDES, ml, sp[i].pos);
+		
 		PolyInfo pif[2];
 		prof_enter(PROF_POLY_REARRANGE);
 		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif);
@@ -897,6 +929,8 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		}
 		int r = connect_graph(recu_edges, recu_es);
 		prof_leave(PROF_CONNECT_GRAPH);
+		
+		poly_bias(mesh_poly, r, ml, mesh[i].center);
 	
 		PolyInfo pif[2];
 		prof_enter(PROF_POLY_REARRANGE);

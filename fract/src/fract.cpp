@@ -280,7 +280,6 @@ void move_sphere(char c)
 	}
 }
 
-extern int activetri;//FIXME
 void kbd_do(int *ShouldExit)
 {
 #ifdef ACTUALLYDISPLAY
@@ -347,21 +346,10 @@ void kbd_do(int *ShouldExit)
 					else speed/=10.0;
 			}
 
-			if (e.key.keysym.sym == SDLK_F4) {
-				++activetri;
+			if (e.key.keysym.sym == SDLK_i) {
+				g_biasmethod = (g_biasmethod+1) % 3;
 			}
-			if (e.key.keysym.sym == SDLK_i) move_sphere('i');
-			if (e.key.keysym.sym == SDLK_o) move_sphere('o');
-			if (e.key.keysym.sym == SDLK_p) move_sphere('p');
-			if (e.key.keysym.sym == SDLK_j) move_sphere('j');
-			if (e.key.keysym.sym == SDLK_k) move_sphere('k');
-			if (e.key.keysym.sym == SDLK_l) move_sphere('l');
-			if (e.key.keysym.sym == SDLK_u) move_sphere('u');
-			if (e.key.keysym.sym == SDLK_h) move_sphere('h');
-			if (e.key.keysym.sym == SDLK_a) move_sphere('a');
-			if (e.key.keysym.sym == SDLK_q) move_sphere('q');
-			if (e.key.keysym.sym == SDLK_w) move_sphere('w');
-
+			
 			if (e.key.keysym.sym == SDLK_g) switch_gravity();
 			if (e.key.keysym.sym == SDLK_m) do_mipmap = !do_mipmap;
 			if (e.key.keysym.sym == SDLK_c) switch_rgbmethod();
@@ -475,11 +463,10 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	option_add("--cpus=1");
-	option_add("--prof-stats");
-//	option_add("--developer");
+	//option_add("--prof-stats");
+	//option_add("--developer");
+	//option_add("--no-overlay");
 	option_add("--scene=data/benchmark.fsv");
-	option_add("-w");
 	commandline_parse();
 	init_program();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {

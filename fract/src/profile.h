@@ -8,7 +8,7 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
-#define MAKE_PROFILING
+//#define MAKE_PROFILING
 
 #define MAX_PROF_ENTRIES 256
 

@@ -23,6 +23,18 @@ extern double light_radius;
 // this list are indices in the sp[] and mesh[] arrays
 extern ShadowCaster* occluders[];
 
+/* This defines how the shadow caster copes with shadows of objects that
+   actually lie on the floor. Due to inaccuracy, the shadow actually shows
+   ugly as a 1-pixel border around the object. There are three defined 
+   methods to cope with this:
+
+   1.	Do nothing
+   2.	Pretend that the mesh is smaller, thus casting smaller shadow
+   3.	Pretend that the mesh is slightly off floor, thus casting a smoother
+   	shadow
+*/
+extern int g_biasmethod;
+
 const int SPHERE_SIDES = 16;
 const int MAX_SIDES = 4096;
 const int shadow_intensity = 0xB2;

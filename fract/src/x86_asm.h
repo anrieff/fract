@@ -3160,6 +3160,80 @@ void triangle_sp_merge(Uint16 *dst, Uint8 *src, int count)
 		dst[i] |= src[i];
 	}
 }
+
+void fast_line_fill(Uint16 *p, int size, Uint16 fill)
+{
+	SSE_ALIGN(Uint16 bigfill[4]) = {fill, fill, fill, fill};
+	int k = size / 4;
+	__asm __volatile("movq	%0,	%%mm7\n"
+	: 
+	:"m"(*bigfill)
+	:"memory"
+			);
+	while (k--) {
+		__asm __volatile(
+				"	movq	%0,	%%mm0\n"
+				"	por	%%mm7,	%%mm0\n"
+				"	movq	%%mm0,	%0\n"
+			:"=m"(*p)
+			::"memory"
+				);
+		p += 4;
+	}
+	__asm __volatile ("emms");
+	size %= 4;
+	for (int i = 0; i < size; i++)
+		p[i] |= fill;
+}
+
+static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int xr, Uint16 sintensity)
+{
+	sintensity = 255 - sintensity;
+	SSE_ALIGN(Uint16 x_mor[4]) = { 0xff, 0xff, 0xff, 0xff} ;
+	SSE_ALIGN(Uint16 x_add[4]) = { sintensity, sintensity, sintensity, sintensity };
+	x2 = ((x2/4)+1)*4;
+	y2 = ((y2/4)+1)*4;
+	x1 &= ~3;
+	y1 &= ~3;
+	int xsize = (x2 - x1)/4;
+	int ysize = y2 - y1;
+	if (xsize <= 0 || ysize <= 0) return;
+	Uint16 *p = &sbuff[y1 * xr + x1];
+	xr *= 2;
+	//
+	__asm __volatile (// 0 - p, 1 - ysize, 2 - xsize, 3 - xr
+			"	mov	%0,	%%esi\n"
+			"	mov	%1,	%%edx\n"
+			"	movq	%4,	%%mm7\n"
+			"	movq	%5,	%%mm6\n"
+			
+			"yyloop:\n"
+			"	mov	%%esi,	%%edi\n"
+			"	add	%3,	%%esi\n"
+			"	mov	%2,	%%eax\n"
+			
+			"xxloop:\n"
+			"	movq	(%%edi),	%%mm0\n"
+			"	movq	%%mm0,	%%mm1\n"
+			"	pand	%%mm7,	%%mm0\n"
+			"	psrlw	$8,	%%mm1\n"
+			"	paddusb	%%mm1,	%%mm0\n"
+			"	paddusb	%%mm6,	%%mm0\n"
+			"	psubusb	%%mm6,	%%mm0\n"
+			"	movq	%%mm0,	(%%edi)\n"
+			
+			"	add	$8,	%%edi\n"
+			"	dec	%%eax\n"
+			"	jnz	xxloop\n"
+			
+			"	dec	%%edx\n"
+			"	jnz	yyloop\n"
+			
+			"	emms\n"
+	::"m"(p), "m"(ysize), "m"(xsize), "m"(xr), "m"(*x_mor), "m"(*x_add)
+	:"memory", "eax", "edx", "esi", "edi");
+}
+
 #endif
 
 #ifdef rgb2yuv_asm
