@@ -2,8 +2,11 @@ For the new release:
 
 GENERAL:
 fract:
-	[   ] Working shadows (+eventual speedup)
-	[   ] Better multithreading, multithreaded shadows
+	[** ] Working shadows (+eventual speedup)
+	[   ] Remove the STL, add generic sort, add hashing instead of the std::map
+	[   ] Better multithreading
+	[   ] multithreaded shadows
+	[   ] multithreaded antibuffer init
 	[   ] Readd SSE2 and SSE3 implementations of vector3
 	[   ] Try compile with VC 8.0
 	[   ] Output to temp.txt (FPS & CPU MHz atleast)
@@ -13,8 +16,8 @@ fract:
 
 wxfractgui:
 	[   ] Browse the last result
-	[   ] Show my.rtab and db.rtab in the result browsing window
-              (and suggest downloading newer db.rtab)
+	[   ] Show my.xml and db.xml in the result browsing window
+              (and suggest downloading newer db.xml)
 	[   ] 
 
 MINOR:
