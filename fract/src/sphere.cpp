@@ -480,6 +480,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
  // to calculate phong shading we need the cosine of the angle CIE
 
 	float shadow_mul = 1.0;
+	/*
 	if (r_shadows && (flags & (SHADOWED | PART_SHADOWED))) {
 		shadow_mul = 0.0;
 		if ((flags & PART_SHADOWED) && occluders != NULL) {
@@ -488,21 +489,22 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 			const float rns = 1/7.0f;
 #if SHADOW_TYPE == ST_FIXED
 			shadow_mul += _shadow_test(i, l, 0);
+			
 			shadow_mul += _shadow_test(i, l + Vector( +R, 0.0, 0.0), 1);
 			shadow_mul += _shadow_test(i, l + Vector( -R, 0.0, 0.0), 2);
 			shadow_mul += _shadow_test(i, l + Vector(0.0,  +R, 0.0), 3);
 			shadow_mul += _shadow_test(i, l + Vector(0.0,  -R, 0.0), 4);
 			shadow_mul += _shadow_test(i, l + Vector(0.0, 0.0,  +R), 5);
 			shadow_mul += _shadow_test(i, l + Vector(0.0, 0.0,  -R), 6);
-			/*
+			
 			shadow_mul += _shadow_test(i, l + Vector(+R1, +R1, 0.0), 7);
 			shadow_mul += _shadow_test(i, l + Vector(-R1, -R1, 0.0), 8);
 			shadow_mul += _shadow_test(i, l + Vector(+R1, 0.0, +R1), 9);
 			shadow_mul += _shadow_test(i, l + Vector(-R1, 0.0, -R1), 10);
 			shadow_mul += _shadow_test(i, l + Vector(0.0, +R1, +R1), 11);
 			shadow_mul += _shadow_test(i, l + Vector(0.0, -R1, -R1), 12);
-			*/
-			shadow_mul *= rns; 
+			
+			//shadow_mul *= rns; 
 
 #else 
 			for (int q = 0; q < SHADOW_SAMPLES; q++) {
@@ -516,6 +518,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 #endif
 		}
 	}
+	*/
 
 	rezult = iambient;
 	if (shadow_mul) {

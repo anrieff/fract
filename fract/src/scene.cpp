@@ -55,7 +55,7 @@ char scenes[5][256] ={
 	"data/oldbench.fsv",
 };
 char dev_scene[256] = "data/benchmark.fsv";
-char *default_font = "data/font1.bmp";
+char default_font[64] = "data/font1.bmp";
 const char *introtex = "data/intro.bmp";
 
 

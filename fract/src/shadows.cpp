@@ -74,7 +74,9 @@ static void shadows_merge(int xr, int yr, Uint32 *target_framebuffer, Uint16 *sb
 
 class bary_t {
 	float s[2], u[2], v[2], d;
+	float inc[3];
 public:
+	float state[3];
 	bary_t(){}
 	bary_t(float a[], float b[], float c[])
 	{
@@ -85,14 +87,27 @@ public:
 		v[0] = c[0] - a[0];
 		v[1] = c[1] - a[1];
 		d = 1.0f / (u[0] * v[1] - u[1] * v[0]);
+		inc[1] = d * (+1.0 * v[1]);
+		inc[2] = d * (-1.0 * u[1]);
+		inc[0] = -inc[1] - inc[2];
 	}
 	void eval(float x, float y, float res[])
 	{
 		x -= s[0];
 		y -= s[1];
-		res[0] = d * (x * v[1] - y * v[0]);
-		res[1] = d * (y * u[0] - x * u[1]);
-		res[2] = 1.0f - res[0] - res[1];
+		res[1] = d * (x * v[1] - y * v[0]);
+		res[2] = d * (y * u[0] - x * u[1]);
+		res[0] = 1.0f - res[1] - res[2];
+	}
+	void eval_first(float x, float y)
+	{
+		eval(x, y, state);
+	}
+	inline void eval_next(void)
+	{
+		state[0] += inc[0];
+		state[1] += inc[1];
+		state[2] += inc[2];
 	}
 };
 
@@ -114,15 +129,16 @@ struct WedgeDrawer : public AbstractDrawer {
 	inline bool draw_line(int xs, int y, int size)
 	{
 		Uint16 * buff = &sbuffer[y*xr];
-		float h[3];
+		bary.eval_first((float) xs, (float) y);
 		for (int i = xs; i < xs + size; i++) {
-			bary.eval((float) i, (float) y, h);
+			float *h = bary.state;
 			if (h[0] >= 0.0f && h[0] <= 1.0f && h[1] >= 0.0f && h[1] <= 1.0f && h[2] >= 0.0f && h[2] <= 1.0f) 
 			{
 				//
 				int value = (int) (h[0] * w1 + h[1] * w2 + h[2] * w3);
 				buff[i] = (buff[i] & 0xff) | (value << 8);
 			}
+			bary.eval_next();
 
 		}
 		return true;
@@ -139,6 +155,13 @@ struct Simplex {
 		v[0] = a; coeff[0] = ac;
 		v[1] = b; coeff[1] = bc;
 		v[2] = c; coeff[2] = cc;
+	}
+	void print(void) const
+	{
+		for (int i = 0; i < 3; i++)
+			printf("\tv%d = (%.3f, %.3f), c = %.3f\n", i, v[i][0], v[i][1], coeff[i]);
+		printf("\n");
+		
 	}
 };
 
@@ -213,253 +236,6 @@ struct SolidDrawer : public AbstractDrawer
 		return true;
 	}
 };
-
-static void display_poly(
-		Vector poly[],
-		int n,
-		const Vector &ml,
-		int xr, int yr,
-		Vector &cur,
-		Vector &mtt,
-		Vector &mti,
-		Vector & mtti,
-		Uint16 *sbuffer
-		)
-{
-	static Vector casted[MAX_SIDES + 1];
-	static float scr_coords[MAX_SIDES + 1][2];
-	int c = 0;
-	for (int j = 0; j < n + 1; j++) {
-		bool useless; int res;
-		res = project_point_shadow(poly[j], ml, scr_coords[j], xr, yr, cur, mtt, mti, mtti, useless, casted[j]);
-		c += (useless == true);
-		if (res >= 4) c += 1000;
-	}
-	if (c != 0 && c != n + 1) return;
-
-	all_min_x = all_min_y = inf;
-	all_max_x = all_max_y = -inf;
-		
-	/* Stage 1: Render hard shadows */
-	static vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
-	int cs1a, cs2a;
-	cs1a = n; memcpy(cs1, scr_coords, n * sizeof(cs1[0]));
-	while (cs1a > 2) {
-		cs2a = 0;
-		int i = 0;
-		while (i < cs1a - 1) {
-			if (face(cs1[i], cs1[i+1], cs1[(i+2)%cs1a]) < +1e-6) {
-				//draw it
-				SolidDrawer sd(sbuffer, shadow_intensity << 8, xr);
-				TriangleRasterizer ras(xr, yr, cs1[i], cs1[i+1], cs1[(i+2)%cs1a]);
-				ras.draw(sd);
-				ras.update_limits(all_min_x, all_max_x, all_min_y, all_max_y);
-				//discard the second point
-				cs2[cs2a++] = cs1[i];
-				i += 2;
-			} else {
-				cs2[cs2a++] = cs1[i];
-				i++;
-			}
-		}
-		if (i == cs1a - 1) cs2[cs2a++] = cs1[i];
-
-		if (cs2a == cs1a) break;
-		cs1a = cs2a;
-		memcpy(cs1, cs2, cs1a * sizeof(cs1[0]));
-	}
-
-		
-		
-		
-	//OutLineToScreen(sbuffer, casted, n, 0x8086, cur, w, xr, yr);
-	//MapToScreen(sbuffer, casted, n, shadow_intensity << 8, cur, w, xr, yr);
-	
-	/* Recalc and splat wedges */
-
-#ifndef DONT_DRAW_WEDGES
-	static Vector wed[MAX_SIDES][2][2];
-	static float fed[MAX_SIDES][2][2][2];
-	static bool xvalid[MAX_SIDES], valid[MAX_SIDES];
-	for (int j = 0; j < n; j++) {
-		Vector a = ml - poly[j+1];
-		Vector b = ml - poly[j];
-		Vector n = a ^ b;
-		n.make_length( light_radius );
-		int res[2];
-		bool u1, u2;
-		res[0] = project_point_shadow(poly[j], ml + n, fed[j][0][0], xr, yr, cur, mtt, mti, mtti, u1, wed[j][0][0]);
-		res[1] = project_point_shadow(poly[j], ml - n, fed[j][0][1], xr, yr, cur, mtt, mti, mtti, u2, wed[j][0][1]);
-		xvalid[j] = (res[0] < 4 && res[1] < 4 /*&& u1 == u2*/);
-		res[0] = project_point_shadow(poly[j+1], ml + n, fed[j][1][0], xr, yr, cur, mtt, mti, mtti, u1, wed[j][1][0]);
-		res[1] = project_point_shadow(poly[j+1], ml - n, fed[j][1][1], xr, yr, cur, mtt, mti, mtti, u2, wed[j][1][1]);
-		xvalid[j] &= (res[0] < 4 && res[1] < 4 /*&& u1 == u2*/);
-	}
-	for (int j = 0; j < n; j++) {
-		valid[j] = xvalid[(j-1+n) % n] && xvalid[j] && xvalid[(j+1)%n];
-		if (!valid[j]) continue;
-		float f[2][2][2];
-		for (int k = -1; k <= 1; k+=2)
-			for (int l = 0; l < 2; l++) 
-				intersect(fed[j][1][l], fed[j][0][l], fed[(j+k+n)%n][1][l], fed[(j+k+n)%n][0][l], f[(k+1)/2][l]);
-		raster_wedge(f[0][1], f[0][0], f[1][0], shadow_intensity, shadow_intensity, 0, xr, yr, sbuffer);
-		raster_wedge(f[1][1], f[1][0], f[0][1], shadow_intensity, 0,                0, xr, yr, sbuffer);
-	}
-#endif
-	/* stage 3: reblend */
-	
-	CLAMP(all_min_x, 0, xr-1);	
-	CLAMP(all_max_x, 0, xr-1);	
-	CLAMP(all_min_y, 0, yr-1);	
-	CLAMP(all_max_y, 0, yr-1);	
-	for (int j = all_min_y; j <= all_max_y; j++) {
-		Uint16 *buff = &sbuffer[j * xr];
-		for (int i = all_min_x; i <= all_max_x; i++) {
-			Uint16 t = buff[i];
-			t = (t & 0xff) + (t >> 8);
-			if (t > shadow_intensity) t = shadow_intensity;
-			buff[i] = t; 
-		}
-	}
-	
-}
-
-struct DensityDrawer : public AbstractDrawer
-{
-	Uint16 *buff, fill;
-	Sphere *S;
-	Vector l;
-	int xr;
-	DensityDrawer(Uint16 *sbuffer, Uint16 _fillc, int _xr, Sphere *ss, Vector ll) : 
-			buff(sbuffer), fill(_fillc), S(ss), l(ll), xr(_xr) {}
-	
-	inline bool computeminmax(const Vector& in, float &f1, float &f2)
-	{
-		Vector f;
-		f.make_vector(in, S->pos);
-		Vector v = l - in;
-		float ua, ub, uc, Dt;
-
-		ua = v.lengthSqr();
-		ub = f*v*2.0;
-		uc = f.lengthSqr() - sqr(S->d);
-		Dt = sqr(ub) - 4.0f*ua*uc;
-		if (Dt < 0) return false;
-		float div_er = 1.0f / (2.0f * ua);
-		Dt = fast_sqrt(Dt);
-		f1 = div_er * (-ub - Dt);
-		f2 = div_er * (-ub + Dt);
-		if (f1 > f2) {
-			float t = f1;
-			f1 = f2;
-			f2 = t;
-		}
-		return true;
-	}
-	
-	inline bool draw_line(int x, int y, int size)
-	{
-		Uint16 *p = &buff[y * xr + x];
-		Vector v(
-				rowstart[y][0] + x * rowincrease[y][0],
-				y > floormin ? daFloor : daCeiling,
-				rowstart[y][1] + x * rowincrease[y][1]);
-		//for (int i = 0; i < size; i++)
-		//	p[i] |= fill;
-		for (int i = 0; i < size; i++) {
-			float f1, f2;
-			if (computeminmax(v, f1, f2)) {
-				float f = (f2-f1)/(0.01f+f1);
-				if (f > 1.0f) {
-					f = 1.0f;
-				}
-				p[i] |= ((Uint16)(fill*f)) << 8;
-			} 
-			//
-			v.v[0] += rowincrease[y][0];
-			v.v[2] += rowincrease[y][1];
-		}
-		return true;
-	}
-};
-
-
-static void display_poly_fake_sphere(
-		Vector poly[],
-		int n,
-		const Vector &ml,
-		int xr, int yr,
-		Vector &cur,
-		Vector &mtt,
-		Vector &mti,
-		Vector & mtti,
-		Uint16 *sbuffer,
-		Sphere *S
-			)
-{
-	static Vector casted[MAX_SIDES + 1];
-	static float scr_coords[MAX_SIDES + 1][2];
-	int c = 0;
-	for (int j = 0; j < n + 1; j++) {
-		bool useless; int res;
-		res = project_point_shadow(poly[j], ml, scr_coords[j], xr, yr, cur, mtt, mti, mtti, useless, casted[j]);
-		c += (useless == true);
-		if (res >= 4) c += 1000;
-	}
-	if (c != 0 && c != n + 1) return;
-
-	all_min_x = all_min_y = inf;
-	all_max_x = all_max_y = -inf;
-		
-	/* Stage 1: Render hard shadows */
-	static vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
-	int cs1a, cs2a;
-	cs1a = n; memcpy(cs1, scr_coords, n * sizeof(cs1[0]));
-	while (cs1a > 2) {
-		cs2a = 0;
-		int i = 0;
-		while (i < cs1a - 1) {
-			if (face(cs1[i], cs1[i+1], cs1[(i+2)%cs1a]) < +1e-6) {
-				//draw it
-				DensityDrawer dd(sbuffer, shadow_intensity, xr, S, ml);
-				TriangleRasterizer ras(xr, yr, cs1[i], cs1[i+1], cs1[(i+2)%cs1a]);
-				ras.draw(dd);
-				ras.update_limits(all_min_x, all_max_x, all_min_y, all_max_y);
-				//discard the second point
-				cs2[cs2a++] = cs1[i];
-				i += 2;
-			} else {
-				cs2[cs2a++] = cs1[i];
-				i++;
-			}
-		}
-		if (i == cs1a - 1) cs2[cs2a++] = cs1[i];
-
-		if (cs2a == cs1a) break;
-		cs1a = cs2a;
-		memcpy(cs1, cs2, cs1a * sizeof(cs1[0]));
-	}
-	//
-	/* stage 3: reblend */
-	
-	CLAMP(all_min_x, 0, xr-1);	
-	CLAMP(all_max_x, 0, xr-1);	
-	CLAMP(all_min_y, 0, yr-1);	
-	CLAMP(all_max_y, 0, yr-1);	
-	
-	if (all_min_x == all_max_x || all_min_y == all_max_y) return;
-	
-	for (int j = all_min_y; j <= all_max_y; j++) {
-		Uint16 *buff = &sbuffer[j * xr];
-		for (int i = all_min_x; i <= all_max_x; i++) {
-			Uint16 t = buff[i];
-			t = (t & 0xff) + (t >> 8);
-			if (t > shadow_intensity) t = shadow_intensity;
-			buff[i] = t; 
-		}
-	}
-	
-}
 
 
 struct Vertex {
@@ -664,7 +440,7 @@ static void reversed_check(Vector verts[], const PolyInfo &pi, const Vector & l)
 		total_angle += copysign(M_PI - acos((a*a+b*b-c*c)/(2*a*b)), face(casted[i-1], casted[i%n], casted[(i+1)%n]));
 	}
 	float mul = 1.0;
-	if (verts[pi.start][1] > l[1]) mul = -1.0;
+	//if (verts[pi.start][1] > l[1]) mul = -1.0;
 	if (mul*total_angle > -1e-6*mul) {
 		int i = pi.start;
 		int j = pi.start + pi.size - 1;
@@ -793,7 +569,7 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 		normal.make_length(light_radius);
 		for (int j = 0; j < 4; j++) {
 			Vector light = l;
-			if (j < 2) light += normal;
+			if ((j > 1) ^ solid.isfloor) light += normal;
 			else light -= normal;
 			Vector X = (j % 2 ? b : a);
 			if (floorness(X, light) != solid.isfloor) {
@@ -834,8 +610,8 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 		vec2f v3 = outer[j];
 		//
 		
-		wedgy.tris += Simplex(v2, si, v1, si, v0, so);
-		wedgy.tris += Simplex(v2, so, v3, si, v1, so);
+		wedgy.tris += Simplex(v2, so, v1, si, v0, si);
+		wedgy.tris += Simplex(v2, so, v3, so, v1, si);
 	}
 	
 	static vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
@@ -888,9 +664,6 @@ static void frustrum_clip(FrustrumClipper& clipper, Triangularized &t)
 			for (int k = 0; k < 3; k++) {
 				v[k] = Vector(s.v[k][0], t.isfloor ? daFloor: daCeiling, s.v[k][1]);
 			}
-	/*		if (i == 3 && j == 8) {
-				printf("boo!\n");
-		}*/
 			ClipRes cr;
 			clipper.clip(cr, v, 1<<i);
 			if (cr.n) {
@@ -946,21 +719,6 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 			buff[i] = t; 
 		}
 	}
-}
-
-static void expand_poly(Vector verts[], int n, Vector center, Vector l)
-{
-	thresh_light(verts, n, l);
-	for (int i = 0; i < n; i++)
-	{
-		Vector p = plane_cast(l, verts[i]);
-		double coeff = p.distto(verts[i]) / p.distto(l);
-		Vector v = verts[i] - center;
-		v.norm();
-		v.scale(coeff * light_radius);
-		verts[i] += v;
-	}
-	thresh_light(verts, n, l);
 }
 
 static int occlusions(const Sphere & a, const Sphere & b, const Vector & light)
@@ -1073,7 +831,7 @@ void shadows_close(void)
 }
 
 
-void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
+void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
 {
 	Vector ml(lx, ly, lz);
 	ceilmax = floormin = -1;
@@ -1083,7 +841,7 @@ void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 	prof_leave(PROF_ZERO_SBUFFER);
 	
 	shadows_precalc(xr, yr, mtt, mti, mtti);
-	
+		
 	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
 		Vector poly[SPHERE_SIDES*2+8];
 		
@@ -1162,56 +920,8 @@ void render_shadows_real(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, false);
 			prof_leave(PROF_POLY_DISPLAY);
 		}
-		/*
-		prof_enter(PROF_POLY_DISPLAY);
-		for (int i = 0; i < pir; i++) {
-			display_poly(mesh_poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
-		}
-		prof_leave(PROF_POLY_DISPLAY);
-		*/
 	}
+	
 
 	shadows_merge(xr, yr, target_framebuffer, sbuffer);
-}
-
-void render_shadows_fake(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
-{
-	Vector ml(lx, ly, lz);
-	ceilmax = floormin = -1;
-
-	prof_enter(PROF_ZERO_SBUFFER); // reset the S-buffer;
-	memset(sbuffer, 0, xr*yr*sizeof(Uint16));
-	prof_leave(PROF_ZERO_SBUFFER);
-	
-	shadows_precalc(xr, yr, mtt, mti, mtti);
-	
-	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
-		Vector poly[SPHERE_SIDES*2+8];
-		
-		prof_enter(PROF_POLY_GEN);
-		sp[i].calculate_fixed_convex(poly, ml, SPHERE_SIDES);
-		prof_leave(PROF_POLY_GEN);
-		PolyInfo pif[2];
-		
-		expand_poly(poly, SPHERE_SIDES, sp[i].pos, ml);
-		
-		prof_enter(PROF_POLY_REARRANGE);
-		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif);
-		prof_leave(PROF_POLY_REARRANGE);
-
-		prof_enter(PROF_POLY_DISPLAY);
-		for (int i = 0; i < pir; i++) {
-			//display_poly(poly + pif[i].start, pif[i].size, ml, xr, yr, cur, mtt, mti, mtti, sbuffer);
-			display_poly_fake_sphere(poly + pif[i].start, pif[i].size,
-					ml, xr, yr, cur, mtt, mti, mtti, sbuffer, &sp[i]);
-		}
-		prof_leave(PROF_POLY_DISPLAY);
-
-	}
-	shadows_merge(xr, yr, target_framebuffer, sbuffer);
-}
-
-void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
-{
-	render_shadows_real(target_framebuffer, sbuffer, xr, yr, mtt, mti, mtti);
 }

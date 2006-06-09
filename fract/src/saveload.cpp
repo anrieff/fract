@@ -37,8 +37,8 @@ extern int lz;
 extern Vector cur;
 extern int Physics;
 extern int CollDetect;
-extern char *floor_texture;
-extern char *default_font;
+extern char floor_texture[];
+extern char default_font[];
 extern AniSphere AS[];
 extern int anicnt;
 extern double alpha, beta;
@@ -305,7 +305,11 @@ static inline void get_str(char *s, char *so)
 	j = ++i;
 	while (s[j]!=0) j++;
 	j--;
-	if (s[j]=='\n') s[j]=0;
+	if (s[j]=='\n') s[j--]=0;
+	if (s[j] == '"' && s[i] == '"') {
+		++i;
+		s[j--] = 0;
+	}
 	strcpy(so, s+i);
 }
 
@@ -514,7 +518,7 @@ int load_context(const char *fn)
 				case 0x1386: sv_air = get_real(line); break;
 				case 0xe5a3: fov = get_real(line); break;
 			/* Textures: */
-				case 0x314d: /*get_str (line, floor_texture); */break;
+				case 0x314d: get_str (line, floor_texture); break;
 				case 0x9bff: /*get_str (line, default_font);*/ break;
 			/* Spheres: */
 				case 0x414c: spherecount = get_int (line); break;

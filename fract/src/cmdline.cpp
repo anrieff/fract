@@ -139,6 +139,7 @@ void display_usage(void)
 	printf("  --no-thread   - Use only one processor\n");
 	printf("  --shadows, --no-shadows - Enable/Disable shadows\n");
 	printf("  --save-video  - Save a sequence of .BMPs to a video/ subfolder\n");
+	printf("  --prof-stats  - Print profiling statistics (if they are enabled)\n");
 }
 
 void cmdline_close(void)

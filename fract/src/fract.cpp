@@ -475,9 +475,11 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	option_add("--developer");
-	option_add("--scene=data/shadowtest.fsv");
-	option_add("--no-overlay");
+	option_add("--cpus=1");
+	option_add("--prof-stats");
+//	option_add("--developer");
+	option_add("--scene=data/benchmark.fsv");
+	option_add("-w");
 	commandline_parse();
 	init_program();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {
@@ -496,7 +498,7 @@ int main(int argc, char *argv[])
 	       stopwatch.total_data(), (int) (1000 * stopwatch.total()),
 	       stopwatch.total_data() / stopwatch.total());
 	
-	if (developer) prof_statistics();
+	if (developer || option_exists("--prof-stats")) prof_statistics();
 	close_program();
 	return 0;
 }

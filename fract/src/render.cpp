@@ -47,7 +47,7 @@
 
 #include "cross_vars.h"
 
-char *floor_texture = "data/2.bmp";
+char floor_texture[64] = "data/2.bmp";
 
 //Uint32 savebuffer[20*30][400*300]; // 20 s at 30 fps @ 400x300
 
