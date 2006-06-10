@@ -35,6 +35,16 @@ extern ShadowCaster* occluders[];
 */
 extern int g_biasmethod;
 
+/*
+  This selects how many rays will be cast from spheres to determine
+  shadow coverage:
+  
+  0 - "low" quality - only one ray is cast
+  1 - "good" quality - seven rays
+  2 - "best" quality - thirteen rays
+*/
+extern int g_shadowquality;
+
 const int SPHERE_SIDES = 16;
 const int MAX_SIDES = 4096;
 const int shadow_intensity = 0xB2;

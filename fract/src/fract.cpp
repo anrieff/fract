@@ -346,9 +346,16 @@ void kbd_do(int *ShouldExit)
 					else speed/=10.0;
 			}
 
+			//FIXME
 			if (e.key.keysym.sym == SDLK_i) {
 				g_biasmethod = (g_biasmethod+1) % 3;
 			}
+			
+			if (e.key.keysym.sym == SDLK_q) {
+				g_speedup = !g_speedup;
+			}
+			
+			// /FIXME
 			
 			if (e.key.keysym.sym == SDLK_g) switch_gravity();
 			if (e.key.keysym.sym == SDLK_m) do_mipmap = !do_mipmap;
@@ -463,10 +470,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	//option_add("--prof-stats");
-	//option_add("--developer");
-	//option_add("--no-overlay");
-	option_add("--scene=data/benchmark.fsv");
+	option_add("--developer");
+	option_add("--scene=data/heart.fsv");
 	commandline_parse();
 	init_program();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {

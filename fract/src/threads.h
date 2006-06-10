@@ -201,4 +201,21 @@ void multithreaded_memset(void *data, unsigned fill_pattern, size_t size, int th
 */  
 int atomic_add(volatile int *addr, int val);
 
+/// Simple interlocked variable, with atomic increment and decrementing operators
+class InterlockedInt {
+	int data;
+public:
+	InterlockedInt() {}
+	InterlockedInt(int val) { set(val); }
+	inline void set(int x) { data = x; }
+	inline int get(void) { return data; }
+	inline int operator ++ () { return 1 + atomic_add(&data, 1); }
+	inline int operator ++ (int) { return atomic_add(&data, 1); }
+	inline int operator -- () { return -1 + atomic_add(&data, -1); }
+	inline int operator -- (int) { return atomic_add(&data, -1); }
+	
+	/// adds the given value to the variable and returns the value before the addition
+	inline int add(int value) { return atomic_add(&data, value); }
+};
+
 #endif // __THREADS_H__

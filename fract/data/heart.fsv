@@ -17,6 +17,9 @@ Light.x=256.00000
 Light.y=125.00000
 Light.z=256.00000
 
+# Shadowing quality:
+ShadowQuality=low
+
 # User position information:
 User.x=40.00000
 User.y=160.00000

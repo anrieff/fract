@@ -45,6 +45,12 @@ int cmp_TS(const void *x, const void *y)
 	return b->count - a->count;
 }
 
+bool g_speedup = true;
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * @class Mesh                                                *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 int Mesh::get_triangle_base() const
 {
 	return (this - mesh) * MAX_TRIANGLES_PER_OBJECT;
@@ -99,6 +105,7 @@ void Mesh::translate(const Vector & transp)
 	total_translation += transp;
 	vmin += transp;
 	vmax += transp;
+	recalc();
 }
 
 bool Mesh::bound(int compo, double minv, double maxv)
@@ -580,6 +587,33 @@ void Mesh::recalc(void)
 	int base = get_triangle_base();
 	for (int i = 0; i < triangle_count; i++)
 		add(trio[base + i]);
+	if (iprimitive)
+		iprimitive->recalc(this);
+	else {
+		const int isp_count = 2;
+		Inscribed * is[2];
+		is[0] = new InscribedSphere(this);
+		is[1] = new InscribedCube(this);
+		
+		int bi = 0;
+		double bestvol = is[0]->volume();
+		for (int i = 1; i < isp_count; i++) {
+			if (is[i]->volume() > bestvol) {
+				bestvol = is[i]->volume();
+				bi = i;
+			}
+		}
+#ifdef DEBUG
+		printf("Choosing representing silhouette amongst:\n");
+		for (int i = 0; i < isp_count; i++) {
+			printf("%s: volume = %.3lf\n", is[i]->get_name(), is[i]->volume());
+		}
+		printf("\nChosen best representee %s with volume %.3lf\n", is[bi]->get_name(), is[bi]->volume());
+#endif
+		for (int i = 0; i < isp_count; i++)
+			if (i != bi) delete is[i];
+		iprimitive = is[bi];
+	}
 }
 
 Uint32 Mesh::get_flags(void) const
@@ -612,9 +646,16 @@ void Mesh::rebuild_normal_map(void)
 	}
 }
 
+static int l_all_tests, l_all_success;
+
 bool Mesh::fullintersect(const Vector & start, const Vector &dir, int opt)
 {
 	if (!testintersect(start, dir)) return false;
+	if (g_speedup && iprimitive) {
+		l_all_tests++;
+		bool res = iprimitive->testintersect(start, dir);
+		if (res) { l_all_success++; return true; }
+	}
 
 	char ctx[128];
 	int i = lastind[opt];
@@ -639,6 +680,115 @@ bool Mesh::sintersect(const Vector & start, const Vector &dir, int opt)
 	return fullintersect(start, dir, opt);
 }
 
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * @class InscribedSphere                                     *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+InscribedSphere::InscribedSphere( Mesh *m ) { recalc(m); }
+double InscribedSphere::volume( void ) const { return 4.0 / 3.0 * M_PI * R * R * R; }
+
+bool InscribedSphere::testintersect( const Vector &start, const Vector & ray)
+{
+	Vector t;
+	double C, gB, det;
+	
+	t.make_vector(start, center);
+	gB = t*ray;
+	C = t.lengthSqr() - R * R;
+	det = gB*gB - C;
+	return (det >= 0.0f && gB <= 0.0f);
+}
+
+double InscribedSphere::planedist(Triangle & t)
+{
+	Vector va = t.vertex[1] - t.vertex[0];
+	Vector vb = t.vertex[2] - t.vertex[0];
+	Vector n = va ^ vb;
+	n.norm();
+	double X = -(t.vertex[0] * n);
+	return fabs( X + (center * n) );
+}
+
+void InscribedSphere::recalc(Mesh *m)
+{
+	center = m->center;
+	int base = m->get_triangle_base();
+	R = 1e99;
+	for (int i = 0; i < m->triangle_count; i++) {
+		double t = planedist(trio[base + i]);
+		if (t < R) R = t;
+	}
+	if (R < 0.01) R = 0.01;
+}
+
+const char * InscribedSphere::get_name(void) const
+{
+	return "inscribed sphere";
+}
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * @class InscribedCube                                       *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+InscribedCube::InscribedCube( Mesh *m ) { recalc(m); }
+double InscribedCube::volume( void ) const { return 8.0 * R * R * R; }
+
+bool InscribedCube::testintersect( const Vector &start, const Vector & ray)
+{
+	return bbox.testintersect(start, ray);
+}
+
+void InscribedCube::recalc(Mesh *m)
+{
+	center = m->center;
+	int base = m->get_triangle_base();
+	R = 1e99;
+	bool ever_crossed = false;
+	for (int i = 0; i < m->triangle_count; i++) {
+		Triangle T = trio[base + i];
+		
+		// swap two vertices to negate the orientation of the triangle
+		// since we are intersecting from inside of the object
+		Vector vt = T.vertex[0];
+		T.vertex[0] = T.vertex[1];
+		T.vertex[1] = vt;
+		T.recalc_normal();
+		T.recalc_zdepth(center);
+		//
+		for (int j = 0; j < 27; j++) {
+			if (j == 9 + 3 + 1) continue; // if v is the null vector
+			double co[3];
+			int jj = j;
+			for (int k = 0; k < 3; k++) {
+				co[k] = (jj % 3) - 1; jj /= 3;
+			}
+			Vector v(co);
+			Vector nv = v; nv.norm();
+			char *buf[128];
+			if (T.intersect(nv, center, buf)) {
+				double f = fabs(T.intersection_dist(buf) / v.length());
+				if (f < R) R = f;
+				ever_crossed = true;
+			}
+		}
+	}
+	// if the radius is too small or no ray has crossed the geometry, discard the
+	// inscribed cube by making it very small
+	if (R < 0.01 || !ever_crossed) R = 0.01;
+	bbox.recalc();
+	Vector vr(R,R,R);
+	bbox.add(center + vr);
+	bbox.add(center - vr);
+}
+
+const char * InscribedCube::get_name(void) const
+{
+	return "inscribed cube";
+}
+
+
+
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Old Vanilla C functions                                                  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
@@ -653,6 +803,9 @@ void mesh_frame_init(const Vector & camera, const Vector & light)
 
 void mesh_close(void)
 {
+#ifdef DEBUG
+	printf("l_all_tests = %d, l_all_success = %d\n", l_all_tests, l_all_success);
+#endif
 	for (int i = 0; i < mesh_count; i++) {
 		if (mesh[i].image)
 			delete mesh[i].image;
@@ -660,6 +813,9 @@ void mesh_close(void)
 			delete [] mesh[i].normal_map;
 		if (mesh[i].edges)
 			delete [] mesh[i].edges;
+		if (mesh[i].iprimitive)
+			delete mesh[i].iprimitive;
+		mesh[i].iprimitive = NULL;
 		mesh[i].num_edges = 0;
 		mesh[i].image = NULL;
 		mesh[i].normal_map = NULL;
@@ -669,6 +825,7 @@ void mesh_close(void)
 		memset(mesh[i].file_name, 0, sizeof(mesh[i].file_name));
 		mesh[i].total_scale = 0;
 		mesh[i].total_translation.zero();
+		
 	}
 	mesh_count = 0;
 }

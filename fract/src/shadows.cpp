@@ -28,6 +28,8 @@ int g_biasmethod = 1;
 ShadowCaster* occluders[2000];
 const int max_neighs = 7;
 
+int g_shadowquality = 1;
+
 
 static float rowstart[RES_MAXY][2], rowincrease[RES_MAXY][2];
 static int ceilmax, floormin; // ending row for ceiling, starting row for floor in the image

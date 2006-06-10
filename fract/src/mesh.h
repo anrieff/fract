@@ -35,6 +35,8 @@
 
 #define fmax(a,b) ((a)>(b)?(a):(b))
 
+extern bool g_speedup;
+
 enum {
 	TYPE_OR,
 	TYPE_SET
@@ -91,6 +93,7 @@ public:
 			return true;
 		}
 		for (int i = 0; i < 3; i++) {
+			if (fabs(dir.v[i]) < 1e-12) continue;
 			double rcpdir = 1.0 / dir.v[i];
 			double md = fmax((vmax.v[i] - start.v[i]) * rcpdir, (vmin.v[i] - start.v[i]) * rcpdir);
 			if (md < 0) continue;
@@ -111,6 +114,54 @@ public:
 };
 
 /**
+ * @class	Inscribed
+ * @brief	Represents a simple primitive, inscribed in a more complex one
+ * @author	Veselin Georgiev
+ * @date	2006-06-10
+*/
+struct Mesh;
+class Inscribed {
+public:
+	/// gets the volume of the primitive
+	virtual double volume(void) const = 0;
+	
+	/// Given a mesh, recalculate the position and volume of the primitive
+	virtual void recalc(Mesh *) = 0;
+	
+	/// Try intersecting the primitive with a ray (very fast)
+	/// @param start - the beginning of the ray
+	/// @param dir   - the direction of the ray (must be unitary)
+	virtual bool testintersect(const Vector &start, const Vector &dir) = 0;
+	
+	/// Get the name of the inscribing primitive
+	virtual const char* get_name(void) const = 0;
+};
+
+class InscribedSphere: public Inscribed {
+	double R;
+	Vector center;
+	double planedist(Triangle&);
+public:
+	double volume(void) const;
+	InscribedSphere(Mesh *);
+	void recalc(Mesh *);
+	bool testintersect(const Vector & start, const Vector &dir);
+	const char *get_name(void) const;
+};
+
+class InscribedCube: public Inscribed {
+	double R;
+	Vector center;
+	BBox bbox;
+public:
+	double volume(void) const;
+	InscribedCube(Mesh *);
+	void recalc(Mesh *);
+	bool testintersect(const Vector & start, const Vector &dir);
+	const char *get_name(void) const;
+};
+
+/**
  * @class Mesh.
  * @brief Represents a classic triangle mesh
  * @author Veselin Georgiev
@@ -123,6 +174,7 @@ struct Mesh : public BBox, public ShadowCaster {
 	Vector *normal_map;
 	RawImg *image;
 	Vector center;
+	Inscribed *iprimitive;
 	
 	struct EdgeInfo {
 		int ai, bi, nc;

@@ -26,6 +26,7 @@
 #include "sphere.h"
 #include "saveload.h"
 #include "shaders.h"
+#include "shadows.h"
 #include "triangle.h"
 
 /* ------------------------------------ export section ------------------------------------ */
@@ -56,6 +57,8 @@ double play_time;
 int rec_initialized = 0, rec_init_try = 0;
 FILE *rec_file;
 #endif
+
+const char * squalities[3] = { "low", "good", "best" };
 
 void write_comments(FILE *f)
 {
@@ -151,6 +154,8 @@ int save_context(const char *fn)
 	}
 	fprintf(f, "\n# Light source coordinates:\n");
 	write_triplet(f, "Light", lx, ly, lz);
+	fprintf(f, "\n# Shadowing quality:\n");
+	fprintf(f, "ShadowQuality=%s\n");
 	fprintf(f, "\n# User position information:\n");
 	write_triplet1(f, "User", cur);
 	fprintf(f, "alpha=%.6lf\n", alpha);
@@ -327,6 +332,21 @@ static void get_sphere_flags(char *s, int *f)
 			else
 				*f &= ~flag2str[i].flag;
 		}
+}
+
+static void get_shadow_quality(char *line, int *res)
+{
+	char *s = line;
+	while (s[0] && s[0] != '=') s++;
+	if (s[0]) {
+		s++;
+		for (int i = 0; i < 3; i++)
+			if (!strncmp(s, squalities[i], strlen(squalities[i]))) {
+				*res = i;
+				return;
+			}
+	}
+	*res = 1; // default choice
 }
 
 static void get_sphere_info(char *si)
@@ -507,6 +527,10 @@ int load_context(const char *fn)
 					strstr(line, "TimeBased") ? TIME_BASED : FRAME_BASED; break;
 			/* LIGHT */
 				case 0xadf1: get_int_triple (line, &lx, &ly, &lz); break;
+				
+			/* SHADOWING QUALITY */
+				case 0x00aa: get_shadow_quality(line, &g_shadowquality); break;
+				
 			/* CAMERA */
 				case 0x4b9e: get_vector(line, cur); break;
 				case 0xa6c5: alpha = get_real(line); break;
