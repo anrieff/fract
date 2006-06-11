@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;k:\wxWidgets-2.6.1\lib\vc_lib\mswd&quot;;&quot;k:\wxWidgets-2.6.1\contrib\include&quot;;&quot;k:\wxWidgets-2.6.1\include&quot;"
+				AdditionalIncludeDirectories="&quot;L:\wxWidgets\lib\vc_lib\mswd&quot;;&quot;L:\wxWidgets\contrib\include&quot;;&quot;L:\wxWidgets\include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -71,7 +71,7 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;k:\wxWidgets-2.6.1\lib\vc_lib\msw&quot;;&quot;k:\wxWidgets-2.6.1\contrib\include&quot;;&quot;k:\wxWidgets-2.6.1\include&quot;"
+				AdditionalIncludeDirectories="&quot;L:\wxWidgets\lib\vc_lib\msw&quot;;&quot;L:\wxWidgets\contrib\include&quot;;&quot;L:\wxWidgets\include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				RuntimeLibrary="4"
 				RuntimeTypeInfo="TRUE"
@@ -86,7 +86,7 @@
 				AdditionalOptions="comctl32.lib rpcrt4.lib wxbase26.lib wxmsw26_core.lib"
 				OutputFile="$(OutDir)/wxfractgui.exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;k:\wxWidgets-2.6.1\contrib\lib&quot;;&quot;k:\wxWidgets-2.6.1\lib\vc_lib\msw&quot;;&quot;k:\wxWidgets-2.6.1\lib\vc_lib&quot;"
+				AdditionalLibraryDirectories="&quot;L:\wxWidgets\contrib\lib&quot;;&quot;L:\wxWidgets\lib\vc_lib\msw&quot;;&quot;L:\wxWidgets\lib\vc_lib&quot;"
 				IgnoreDefaultLibraryNames="libcd.lib;libcid.lib;msvcrtd.lib;libc.lib"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
