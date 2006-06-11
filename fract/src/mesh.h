@@ -27,6 +27,7 @@
 #define __MESH_H__
 
 #include "MyLimits.h"
+#include "bbox.h"
 #include "bitmap.h"
 #include "common.h"
 #include "object.h"
@@ -40,77 +41,6 @@ extern bool g_speedup;
 enum {
 	TYPE_OR,
 	TYPE_SET
-};
-
-/**
- * @class BBox
- * @brief Simple bounding box class; used to perform faster intersection tests
- * @author Veselin Georgiev
- * @date 2005-12-14
- *
- * Usage: Derive a class from BBox. When updating, moving or scaling the
- *        geometry in your derived class, call BBox::recalc, then ::add()
- *        all the geometry's vertices.
- *        After done this, you can use the TestIntersect method
-*/
-class BBox {
-protected:
-	Vector vmin, vmax;
-public:
-	BBox()
-	{
-		recalc();
-	}
-	void recalc(void)
-	{
-		vmin = Vector(+1e9, +1e9, +1e9);
-		vmax = Vector(-1e9, -1e9, -1e9);
-	}
-	void add(const Vector & v)
-	{
-		for (int i = 0; i < 3; i++) {
-			vmin.v[i] = vmin.v[i] > v[i] ? v[i] : vmin.v[i];
-			vmax.v[i] = vmax.v[i] < v[i] ? v[i] : vmax.v[i];
-		}
-	}
-	void add(const Triangle & t)
-	{
-		for (int i = 0; i < 3; i++)
-			add(t.vertex[i]);
-	}
- 	inline bool inside(const Vector & v)
-	{
-		return
-			v.v[0] >= vmin.v[0] && v.v[0] <= vmax.v[0] &&
-			v.v[1] >= vmin.v[1] && v.v[1] <= vmax.v[1] &&
-			v.v[2] >= vmin.v[2] && v.v[2] <= vmax.v[2] ;
-	}
-
-	// does a ray, starting at `start' and heading to `dir' intersect the BBox?
-	inline bool testintersect(const Vector & start, const Vector & dir)
-	{
-		if (inside(start)) {
-			return true;
-		}
-		for (int i = 0; i < 3; i++) {
-			if (fabs(dir.v[i]) < 1e-12) continue;
-			double rcpdir = 1.0 / dir.v[i];
-			double md = fmax((vmax.v[i] - start.v[i]) * rcpdir, (vmin.v[i] - start.v[i]) * rcpdir);
-			if (md < 0) continue;
-			bool ok = true;
-			for (int j = 0; j < 3; j++) if (i != j) {
-				double c = start.v[j] + dir.v[j] * md;
-				if (c < vmin.v[j] || c > vmax.v[j]) {
-					ok = false;
-					break;
-				}
-			}
-			if (ok) {
-				return true;
-			}
-		}
-		return false;
-	}
 };
 
 /**

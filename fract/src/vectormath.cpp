@@ -23,6 +23,7 @@
 #include "triangle.h"
 #include "profile.h"
 #include "gfx.h"
+#include "mesh.h"
 #include "vector3.h"
 #include "vectormath.h"
 #include "render.h"

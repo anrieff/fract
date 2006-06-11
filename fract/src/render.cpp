@@ -32,6 +32,7 @@
 #include "fract.h"
 #include "gfx.h"
 #include "infinite_plane.h"
+#include "mesh.h"
 #include "object.h"
 #include "profile.h"
 #include "render.h"

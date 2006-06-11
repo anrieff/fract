@@ -87,8 +87,6 @@ struct Triangle : public Object {
 
 extern Triangle trio[MAX_TRIANGLES];
 
-#include "mesh.h"
-
 void create_triangle_array(void);
 void triangle_close(void);
 

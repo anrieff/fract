@@ -15,6 +15,7 @@
 #include "common.h"
 #include "cpuid.h"
 #include "gfx.h"
+#include "mesh.h"
 #include "profile.h"
 #include "progress.h"
 #include "render.h"
@@ -28,6 +29,7 @@
 #include "triangle.h"
 #include "vectormath.h"
 #include "voxel.h"
+
 #ifndef ACTUALLYDISPLAY
 #include <sys/time.h>
 #endif
