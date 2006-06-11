@@ -824,7 +824,8 @@ void FrustrumClipper::clip(ClipRes& cr, Vector trio[], int which)
 		cr.n = 0;
 		return;
 	}
-	defeval = ffs(which) - 1;
+	defeval = 0;
+	while (0 == (which & (1 << defeval))) defeval++;
 	
 	cr.n = 0;
 	bool vis[3];

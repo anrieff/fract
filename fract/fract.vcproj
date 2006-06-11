@@ -237,6 +237,9 @@
 				RelativePath=".\src\scene.cpp">
 			</File>
 			<File
+				RelativePath=".\src\sdtree.cpp">
+			</File>
+			<File
 				RelativePath=".\src\shaders.cpp">
 			</File>
 			<File
@@ -273,6 +276,9 @@
 			</File>
 			<File
 				RelativePath=".\src\asmconfig.h">
+			</File>
+			<File
+				RelativePath=".\src\bbox.h">
 			</File>
 			<File
 				RelativePath=".\src\bitmap.h">
@@ -348,6 +354,9 @@
 			</File>
 			<File
 				RelativePath=".\src\scene.h">
+			</File>
+			<File
+				RelativePath=".\src\sdtree.h">
 			</File>
 			<File
 				RelativePath=".\src\shaders.h">

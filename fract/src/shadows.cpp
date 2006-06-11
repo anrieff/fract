@@ -18,6 +18,10 @@
 #include <stdlib.h>
 #include "array.h"
 #include "vector2f.h"
+#ifdef _WIN32
+#include <malloc.h>
+#endif
+
 
 #define shadows_related
 #include "x86_asm.h"

@@ -3207,11 +3207,13 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 			"	movq	%4,	%%mm7\n"
 			"	movq	%5,	%%mm6\n"
 			
+			".balign	16\n"
 			"yyloop:\n"
 			"	mov	%%esi,	%%edi\n"
 			"	add	%3,	%%esi\n"
 			"	mov	%2,	%%eax\n"
 			
+			".balign	16\n"
 			"xxloop:\n"
 			"	movq	(%%edi),	%%mm0\n"
 			"	movq	%%mm0,	%%mm1\n"
@@ -7031,6 +7033,104 @@ void triangle_sp_merge(Uint16 *dst, Uint8 *src, int count)
 {
 	for (int i = 0; i < count; i++) {
 		dst[i] |= src[i];
+	}
+}
+
+void fast_line_fill(Uint16 *p, int size, Uint16 fill)
+{
+	SSE_ALIGN(Uint16 bigfill[4]) = {fill, fill, fill, fill};
+	int k = size / 4;
+	/*
+	__asm {
+	movq		mm7,		[bigfill]
+	
+	}
+	while (k--) {
+		__asm {
+
+					movq		mm0,		[p]
+					por		mm0,		mm7
+					movq		[p],		mm0
+			
+		}
+		p += 4;
+	}
+	__asm {
+		emms
+	}*/
+	__asm {
+		movq	mm7,	[bigfill]
+		mov		eax,	p
+		mov		ecx,	k
+
+		ALIGN	16
+ploop:
+		test	ecx,	ecx
+		jz	ende
+		dec	ecx
+		movq	mm0,	[eax]
+		por		mm0,	mm7
+		movq	[eax],	mm0
+
+		add	eax,	8
+		jmp	ploop
+ende:
+		emms
+	}
+	size %= 4;
+	p += k*4;
+	for (int i = 0; i < size; i++)
+		p[i] |= fill;
+}
+
+static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int xr, Uint16 sintensity)
+{
+	sintensity = 255 - sintensity;
+	SSE_ALIGN(Uint16 x_mor[4]) = { 0xff, 0xff, 0xff, 0xff} ;
+	SSE_ALIGN(Uint16 x_add[4]) = { sintensity, sintensity, sintensity, sintensity };
+	x2 = ((x2/4)+1)*4;
+	y2 = ((y2/4)+1)*4;
+	x1 &= ~3;
+	y1 &= ~3;
+	int xsize = (x2 - x1)/4;
+	int ysize = y2 - y1;
+	if (xsize <= 0 || ysize <= 0) return;
+	Uint16 *p = &sbuff[y1 * xr + x1];
+	xr *= 2;
+	//
+	__asm {
+// 0 - p, 1 - ysize, 2 - xsize, 3 - xr
+				mov		esi,		p
+				mov		edx,		ysize
+				movq		mm7,		[x_mor]
+				movq		mm6,		[x_add]
+			
+			ALIGN 16
+			yyloop:
+				mov		edi,		esi
+				add		esi,		xr
+				mov		eax,		xsize
+			
+			ALIGN 16
+			xxloop:
+				movq		mm0,		[edi]
+				movq		mm1,		mm0
+				pand		mm0,		mm7
+				psrlw		mm1,		8
+				paddusb		mm0,		mm1
+				paddusb		mm0,		mm6
+				psubusb		mm0,		mm6
+				movq		[edi],		mm0
+			
+				add		edi,		8
+				dec		eax
+				jnz		xxloop
+			
+				dec		edx
+				jnz		yyloop
+			
+				emms
+	
 	}
 }
 

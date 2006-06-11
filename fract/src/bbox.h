@@ -18,6 +18,10 @@
 #include "vector3.h"
 #include "triangle.h"
 
+#ifndef fmax
+#	define fmax(a,b) ((a)>(b)?(a):(b))
+#endif
+
 /**
  * @class BBox
  * @brief Simple bounding box class; used to perform faster intersection tests
