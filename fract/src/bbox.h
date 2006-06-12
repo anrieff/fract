@@ -33,10 +33,9 @@
  *        all the geometry's vertices.
  *        After done this, you can use the TestIntersect method
  */
-class BBox {
-protected:
+struct BBox {
 	Vector vmin, vmax;
-public:
+	
 	BBox()
 	{
 		recalc();
@@ -58,6 +57,19 @@ public:
 		for (int i = 0; i < 3; i++)
 			add(t.vertex[i]);
 	}
+	
+	void scale(double scalar, const Vector& center)
+	{
+		vmin = center + (vmin - center) * scalar;
+		vmax = center + (vmax - center) * scalar;
+	}
+	
+	void translate(const Vector & trans)
+	{
+		vmin += trans;
+		vmax += trans;
+	}
+	
 	inline bool inside(const Vector & v)
 	{
 		return
@@ -91,6 +103,32 @@ public:
 		}
 		return false;
 	}
+	
+	inline double intersection_dist(const Vector & start, const Vector & dir)
+	{
+		if (inside(start)) {
+			return 0.0;
+		}
+		double mindist = 1e99;
+		for (int i = 0; i < 3; i++) {
+			if (fabs(dir.v[i]) < 1e-12) continue;
+			double rcpdir = 1.0 / dir.v[i];
+			double md = fmax((vmax.v[i] - start.v[i]) * rcpdir, (vmin.v[i] - start.v[i]) * rcpdir);
+			if (md < 0) continue;
+			bool ok = true;
+			for (int j = 0; j < 3; j++) if (i != j) {
+				double c = start.v[j] + dir.v[j] * md;
+				if (c < vmin.v[j] || c > vmax.v[j]) {
+					ok = false;
+					break;
+				}
+			}
+			if (ok) {
+				if (md < mindist) mindist = md;
+			}
+		}
+		return mindist;
+	}
 
 	/// Does a segment intersect the BBox?
 	/// @param a - one endpoint of the segment
@@ -98,6 +136,17 @@ public:
 	bool segment_intersect(const Vector &a, const Vector &b)
 	{
 		return testintersect(b, a - b) && testintersect(a, b - a);
+	}
+	
+	bool triangle_intersect(const Triangle& t)
+	{
+		return (
+				inside(t.vertex[0]) ||
+				inside(t.vertex[1]) ||
+				inside(t.vertex[2]) ||
+				segment_intersect(t.vertex[0], t.vertex[1]) ||
+				segment_intersect(t.vertex[0], t.vertex[2]) ||
+				segment_intersect(t.vertex[1], t.vertex[2]));
 	}
 };
 

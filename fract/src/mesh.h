@@ -33,6 +33,7 @@
 #include "object.h"
 #include "triangle.h"
 #include "vector3.h"
+#include "sdtree.h"
 
 #define fmax(a,b) ((a)>(b)?(a):(b))
 
@@ -65,6 +66,12 @@ public:
 	
 	/// Get the name of the inscribing primitive
 	virtual const char* get_name(void) const = 0;
+	
+	/// Scale the primitive with that factor
+	virtual void scale(double factor) = 0;
+	
+	/// Translate the primitive with the given movement vector
+	virtual void translate(const Vector & movement) = 0;
 };
 
 class InscribedSphere: public Inscribed {
@@ -77,6 +84,8 @@ public:
 	void recalc(Mesh *);
 	bool testintersect(const Vector & start, const Vector &dir);
 	const char *get_name(void) const;
+	void scale(double factor);
+	void translate(const Vector &v);
 };
 
 class InscribedCube: public Inscribed {
@@ -89,6 +98,8 @@ public:
 	void recalc(Mesh *);
 	bool testintersect(const Vector & start, const Vector &dir);
 	const char *get_name(void) const;
+	void scale(double factor);
+	void translate(const Vector &v);
 };
 
 /**
@@ -105,6 +116,7 @@ struct Mesh : public BBox, public ShadowCaster {
 	RawImg *image;
 	Vector center;
 	Inscribed *iprimitive;
+	SDTree *sdtree;
 	
 	struct EdgeInfo {
 		int ai, bi, nc;

@@ -79,9 +79,12 @@ void Mesh::scale(double factor)
 			edges[i].b += center;
 		}
 	}
-	
+	BBox::scale(factor, center);
 	total_scale *= factor;
-	recalc();
+	if (iprimitive)
+		iprimitive->scale(factor);
+	if (sdtree)
+		sdtree->scale(factor, center);
 }
 
 void Mesh::translate(const Vector & transp)
@@ -103,9 +106,11 @@ void Mesh::translate(const Vector & transp)
 	}
 	
 	total_translation += transp;
-	vmin += transp;
-	vmax += transp;
-	recalc();
+	BBox::translate(transp);
+	if (iprimitive)
+		iprimitive->translate(transp);
+	if (sdtree)
+		sdtree->translate(transp);
 }
 
 bool Mesh::bound(int compo, double minv, double maxv)
@@ -542,8 +547,6 @@ bool Mesh::read_from_obj(const char *fn)
 	strcpy(file_name, fn);
 	total_scale = 1.0;
 	total_translation.zero();
-	recalc();
-
 	
 #ifdef DEBUG
 	printf("%s: Loaded, %d triangles\n", fn, triangle_count);
@@ -614,6 +617,14 @@ void Mesh::recalc(void)
 			if (i != bi) delete is[i];
 		iprimitive = is[bi];
 	}
+	if (sdtree)
+		sdtree->build_tree();
+	else {
+		if (triangle_count > 140) {
+			sdtree = new SDTree(trio + get_triangle_base(), triangle_count);
+			sdtree->build_tree();
+		}
+	}
 }
 
 Uint32 Mesh::get_flags(void) const
@@ -647,17 +658,28 @@ void Mesh::rebuild_normal_map(void)
 }
 
 static int l_all_tests, l_all_success;
+static int sd_all_tests, sd_all_success;
 
 bool Mesh::fullintersect(const Vector & start, const Vector &dir, int opt)
 {
+	char ctx[128];
 	if (!testintersect(start, dir)) return false;
+	
 	if (g_speedup && iprimitive) {
 		l_all_tests++;
 		bool res = iprimitive->testintersect(start, dir);
 		if (res) { l_all_success++; return true; }
 	}
+	
+	if (g_speedup && sdtree) {
+		sd_all_tests++;
+		bool res = sdtree->testintersect(start, dir, ctx, NULL);
+		if (res) { sd_all_success++;}
+		return res;
+	}
+	
 
-	char ctx[128];
+	
 	int i = lastind[opt];
 	int base = get_triangle_base();
 
@@ -727,6 +749,16 @@ const char * InscribedSphere::get_name(void) const
 	return "inscribed sphere";
 }
 
+void InscribedSphere::scale(double factor)
+{
+	R *= factor;
+}
+
+void InscribedSphere::translate(const Vector& trans)
+{
+	center += trans;
+}
+
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * @class InscribedCube                                       *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -787,7 +819,15 @@ const char * InscribedCube::get_name(void) const
 	return "inscribed cube";
 }
 
+void InscribedCube::scale(double factor)
+{
+	bbox.scale(factor, center);
+}
 
+void InscribedCube::translate(const Vector& trans)
+{
+	bbox.translate(trans);
+}
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Old Vanilla C functions                                                  *
@@ -805,6 +845,7 @@ void mesh_close(void)
 {
 #ifdef DEBUG
 	printf("l_all_tests = %d, l_all_success = %d\n", l_all_tests, l_all_success);
+	printf("sd_all_tests = %d, sd_all_success = %d\n", sd_all_tests, sd_all_success);
 #endif
 	for (int i = 0; i < mesh_count; i++) {
 		if (mesh[i].image)
@@ -816,6 +857,9 @@ void mesh_close(void)
 		if (mesh[i].iprimitive)
 			delete mesh[i].iprimitive;
 		mesh[i].iprimitive = NULL;
+		if (mesh[i].sdtree)
+			delete mesh[i].sdtree;
+		mesh[i].sdtree = NULL;
 		mesh[i].num_edges = 0;
 		mesh[i].image = NULL;
 		mesh[i].normal_map = NULL;

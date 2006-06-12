@@ -449,19 +449,30 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 		}
 		for (int j = 0; j < mesh_count; j++) {
 			if (j != group_to_avoid && mesh[j].testintersect(cur,v)) {
-				for (i = 0; i < mesh[j].triangle_count; i++) {
-					Triangle * t = trio + i + (j << TRI_ID_BITS);
-
-					if (!t->okplane(cur)) {
-						i += t->tri_offset;
-						continue;
-					}
-
-					if (t != last_object && t->intersect(v, cur, context)) {
+				if (g_speedup && mesh[j].sdtree) {
+					Triangle *t;
+					if (mesh[j].sdtree->testintersect(cur, v, context, &t)) {
 						dist = t->intersection_dist(context);
-						if (dist > 0.0f && dist < mind) {
+						if (dist < mind) {
 							mind = dist;
 							z = t;
+						}
+					}
+				} else {
+					for (i = 0; i < mesh[j].triangle_count; i++) {
+						Triangle * t = trio + i + (j << TRI_ID_BITS);
+	
+						if (!t->okplane(cur)) {
+							i += t->tri_offset;
+							continue;
+						}
+	
+						if (t != last_object && t->intersect(v, cur, context)) {
+							dist = t->intersection_dist(context);
+							if (dist > 0.0f && dist < mind) {
+								mind = dist;
+								z = t;
+							}
 						}
 					}
 				}

@@ -18,6 +18,11 @@
 #include "bbox.h"
 #include "vector3.h"
 #include "triangle.h"
+#include "array.h"
+
+#define DEFAULT_MAX_TREE_DEPTH		30
+#define DEFAULT_MAX_TRIS_PER_LEAF	15
+#define DEFAULT_SUBDIVISION_TESTS	32
 
 /**
  * @class  SDTreeNode
@@ -26,23 +31,28 @@
  * @author Veselin Georgiev
  * 
  * A node may be leaf or non-leaf. Leaf nodes contain indices to triangle
- * objects. Non-leaf contain pointer to subnodes, which contain possibly
- * smaller less triangles. At SDTree construction, all triangles are put
+ * objects. Non-leaf contain pointers to subnodes, which contain possibly
+ * smaller number of triangles. At SDTree construction, all triangles are put
  * in a root node and it is subdivided until the resulting nodes are 
  * sufficiently small (e.g. they contain no more than 15 triangles or so)
- * Those nodes are marked as leaf and subdividing stops.
+ * Those nodes are marked as leaf and subdividing ends.
 */
 class SDTreeNode {
+	friend class SDTree;
 	BBox bbox;
 	int primitive_count;
 	int *primitives;
 	SDTreeNode *left, *right;
+	
 public:
 	SDTreeNode();
 	bool isleaf() const;
 	
 	/// @see SDTree::testintersect
-	bool testintersect(const Vector& start, const Vector &dir, void *IntersectionContext);
+	int testintersect(Triangle *base, const Vector& start, const Vector &dir, void *);
+	
+	void translate(const Vector&);
+	void scale(double, const Vector&);
 	
 	~SDTreeNode();
 };
@@ -54,7 +64,7 @@ public:
  * @author Veselin Georgiev
  * 
  * SDTree is used for fast ray-mesh intersection tests, and is faster
- * than the brute force approach when the triangle count in the mesh 
+ * than the brute force approach, when the triangle count in the mesh 
  * becomes significantly large.
  * 
  * The class is used in the following manner:
@@ -69,7 +79,15 @@ class SDTree {
 	Triangle *base;
 	int triangle_count;
 	
-	void init_default();
+	int stat_nodes, stat_leafs, stat_maxdepth, stat_largest_leaf; // for debug
+	
+	void init_default(void);
+	void build(SDTreeNode *, const Array<int>&, int depth);
+	int testdivision(const Array<int>& in,
+			 BBox &l, BBox &r,
+			 double x,
+			 int dim,
+			 Array<int> *la = NULL, Array<int> *ra = NULL);
 public:
 	/// Default constructor
 	SDTree();
@@ -89,9 +107,16 @@ public:
 	 * @param dir			- The ray direction
 	 * @param IntersectionContext	- Data to store intersection info 
 	 *	(the result format is the same as in Triangle::intersect())
+	 * @param closest		- Returns a pointer to the nearest intersected triangle
 	 * @returns true if intersection exists, false otherwise
 	*/ 
-	bool testintersect(Vector &start, Vector &dir, void *IntersectionContext);
+	bool testintersect(const Vector &start, const Vector &dir, void *IntersectionContext, Triangle **closest);
+	
+	/// Scales the contained geometry (you would otherwise need to rebuild the tree)
+	void scale(double scalar, const Vector & center);
+	
+	/// Translates the contained geometry (you would otherwise need to rebuild the tree)
+	void translate(const Vector & trans);
 	
 	/// Destructor
 	~SDTree();
@@ -101,6 +126,7 @@ public:
 	/// Or you can just use the default values.
 	int max_tree_depth;	// default value : 60
 	int max_tris_per_leaf;	// default value : 15
+	int subdivision_tests;  // default value : 10
 };
 
 

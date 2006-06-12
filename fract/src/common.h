@@ -16,6 +16,8 @@
 
 #define imin(a,b) ((a)<(b)?(a):(b))
 #define imax(a,b) ((a)>(b)?(a):(b))
+#define inf 999666111
+
 
 int power_of_2(int x);
 float lightformulae_tiny(float x);

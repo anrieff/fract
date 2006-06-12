@@ -472,6 +472,7 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
+	//option_add("-w");
 	option_add("--developer");
 	option_add("--scene=data/heart.fsv");
 	commandline_parse();

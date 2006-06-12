@@ -14,7 +14,6 @@
 #include "vector2f.h"
 #include "vector3.h"
 
-#define inf 999666111
 #define vfabs(x) (((x)<0)?-(x):(x))
 #define FONT_XSIZE 10.66666666666
 #define FONT_YSIZE 18
