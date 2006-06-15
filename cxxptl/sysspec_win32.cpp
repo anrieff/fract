@@ -37,12 +37,12 @@ Mutex::~Mutex()
 
 void Mutex::enter(void)
 {
-	EnterCriticalSection(&csect);
+	EnterCriticalSection(&cs);
 }
 
 void Mutex::leave(void)
 {
-	LeaveCriticalSection(&csect);
+	LeaveCriticalSection(&cs);
 }
 
 /**
@@ -69,6 +69,8 @@ void Event::signal(void)
 	SetEvent(event);
 }
 
+bool Event::needs_signalling_once = true;
+
 // FUNCTIONS
 int system_get_processor_count(void)
 {
@@ -77,7 +79,7 @@ int system_get_processor_count(void)
 	return system_info.dwNumberOfProcessors;
 }
 
-int atomic_add(volatile int addr[], int val) 
+int atomic_add(volatile int *addr, int val) 
 {
 	/*	
 	__asm {
@@ -88,7 +90,7 @@ int atomic_add(volatile int addr[], int val)
 	}
 	return val;
 	*/
-	return InterlockedAdd(addr, val) - val;
+	return InterlockedExchangeAdd((volatile long*)addr, val);
 }
 
 DWORD WINAPI win32_thread_proc(void *data)

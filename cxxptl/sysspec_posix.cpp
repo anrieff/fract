@@ -78,6 +78,8 @@ void Event::signal(void)
 	pthread_cond_signal(&c);
 }
 
+bool Event::needs_signalling_once = false;
+
 // FUNCTIONS
 
 int atomic_add(volatile int *addr, int val) 

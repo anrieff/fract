@@ -173,6 +173,7 @@ public:
 	~Event(void);
 	void wait(void);
 	void signal(void);
+	static bool needs_signalling_once;
 };
 
 typedef HANDLE ThreadID;
@@ -197,6 +198,7 @@ public:
 	~Event(void);
 	void wait(void);
 	void signal(void);
+	static bool needs_signalling_once;
 };
 
 typedef pthread_t ThreadID;

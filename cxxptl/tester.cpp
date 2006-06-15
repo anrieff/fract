@@ -42,6 +42,7 @@ struct DoWork: public Parallel {
 int main(void)
 {
 	int n;
+	pool.preload_threads(8);
 	printf("This PC has %d processors\n", get_processor_count());
 	for (n = 1; n <= 8; n*=2) {
 		printf("Using %d processors for internal calculations.\n", n);

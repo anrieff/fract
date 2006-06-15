@@ -19,7 +19,6 @@
  ***************************************************************************/
 
 #include "cxxptl.h"
-#include <string.h>
 
 
 int system_get_processor_count(void);
@@ -101,7 +100,6 @@ ThreadPool::ThreadPool()
 {
 	active_count = 0;
 	counter = 0;
-	memset(info, 0, sizeof(info));
 }
 
 ThreadPool::~ThreadPool()
@@ -154,6 +152,12 @@ void ThreadPool::run(Parallel *para, int threads_count)
 	}
 }
 
+void ThreadPool::preload_threads(int count)
+{
+	if (active_count < count)
+		run(NULL, count);
+}
+
 
 /**
  thread function (my_thread_proc)
@@ -162,6 +166,7 @@ void my_thread_proc(ThreadInfoStruct *info)
 {
 	bool she = false;
 	do {
+
 		info->state = THREAD_SLEEPING;
 		info->myevent.wait();
 		switch (info->state) {
@@ -171,8 +176,11 @@ void my_thread_proc(ThreadInfoStruct *info)
 				if (info->execute_class) info->execute_class->entry(info->thread_index, info->thread_count);
 				int res = --(*(info->counter));
 				if (!res) {
-					do {
+					if (Event::needs_signalling_once)
 						info->thread_pool_event->signal();
+					do {
+						if (!Event::needs_signalling_once)
+							info->thread_pool_event->signal();
 						relent();
 					} while (*(info->waiting));
 				}
