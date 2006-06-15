@@ -34,6 +34,7 @@
  *  + Win32                           ... using Win32 API
  *
  * @version 0.1.0	- Initial writing
+ * @version 0.1.1	- Converted to simple Makefile project
  *
  * Last changed: 2006-06-15
 */
