@@ -35,8 +35,9 @@
  *
  * @version 0.1.0	- Initial writing
  * @version 0.1.1	- Converted to simple Makefile project
+ * @version 0.1.2	- Added documentation
  *
- * Last changed: 2006-06-15
+ * Last changed: 2006-06-16
 */
  
 //
@@ -154,6 +155,42 @@ public:
 	inline int add(int value) { return atomic_add(&data, value); }
 };
 
+/**
+ * @class Mutex
+ * @brief MUTual EXclusive device
+ * 
+ * Mutexes are used to protect shared data from race conditions. The only two
+ * operations supported are:
+ *
+ * enter() - acquires a lock. If some other threads currently owns the lock, 
+ *           the calling thread is suspended, until the lock is released;
+ * leave() - releases a previously acquired lock.
+ *
+ * In cxxptl, Mutexes are recursive, which means, that one thread my enter()
+ * multiple times without being locked.
+*/
+
+/**
+ * @class Event
+ * @brief A Simple blocking event
+ *
+ * Events are used in inter-thread communication. They are usually used to
+ * signal that some condition is met, e.g. computation is completed, etc.
+ *
+ * There are two operations:
+ *
+ * wait()ing on the condition. The thread is blocked until the condition is met;
+ * signal()ling the condition. If some thread currently waits, it is woken now.
+ *
+ * The class behaviour follows the Win32 API style Events. If some thread
+ * signal()s the condition, but no thread is currently waiting on the
+ * condition, later invocation of wait() returns immediately (thus, signals()s
+ * are, in a sense, "saved", and not "lost" as in pthread's API).
+*/ 
+
+/// function: relent() - voluntarily relinquishes the CPU to other threads.
+
+
 #ifdef _WIN32
 //	Win32
 #include <windows.h>
@@ -173,7 +210,6 @@ public:
 	~Event(void);
 	void wait(void);
 	void signal(void);
-	static bool needs_signalling_once;
 };
 
 typedef HANDLE ThreadID;
@@ -205,14 +241,35 @@ typedef pthread_t ThreadID;
 #define relent() sched_yield()
 #endif // _WIN32
 
+class ThreadPool;
 
+/**
+ * @class Parallel 
+ * @brief Abstract "worker" class for multithreaded algorithms.
+ *
+ * This class is used to speed up the execution of a program, by parallelizing
+ * some algorithms. If an algorithm is parallelizable (the whole task may be
+ * split to smaller subtasks, which don't depend on each other), place the
+ * algorithm in the entry() method of a derivate of the Parallel class and
+ * (using a ThreadPool) and call ThreadPool::run() method to run the entry()
+ * methods on the specified number of processors.
+ * 
+*/
 class Parallel {
-	
+	/// The ThreadPool which perform the call to entry(). Set by
+	/// ThreadPool::run().
+	ThreadPool *threadpool;
 public:
+	/**
+	 * Main thread working procedure
+	 * @param thread_index  - the number of the worker, 0..threads_count-1;
+	 * @param threads_count - the total count of workers.
+	*/ 
 	virtual void entry(int thread_index, int threads_count) = 0;
 	virtual ~Parallel() {}
 };
 
+/// Threads may be in a number of states, here are some:
 enum ThreadState {
 	THREAD_CREATING=100,
 	THREAD_SLEEPING,
@@ -221,7 +278,7 @@ enum ThreadState {
 	THREAD_DEAD
 };
 
-
+/// Internal struct for "boss"/"worker" synchronization:
 struct ThreadInfoStruct {
 	int thread_index, thread_count;
 	Event myevent, *thread_pool_event;
@@ -232,6 +289,36 @@ struct ThreadInfoStruct {
 	bool volatile * waiting;
 };
 
+/**
+ * @class ThreadPool
+ * @brief A "boss" class, owns threads and uses them to execute Parallel classes
+ *
+ * The ThreadPool class is intended to be used with @class Parallel derivatives.
+ * It also contains and controls a pool of threads, so that new threads are
+ * created only when needed (as per the run() method) and keeping them until
+ * they are needed again. Threads are never killed automatically; you must 
+ * either destroy the ThreadPool or call the killall_threads() method to do
+ * this.
+ *
+ * The simplest possible example of using the ThreadPool/Parallel pair is:
+ *
+ * 
+ * @code
+ * class MyProc : public Parallel {
+ * 	void entry(int thread_index, int threads_count) 
+ * 	{
+ * 		// do some computations
+ * 	}
+ * };
+ * ...
+ * 	ThreadPool thread_pool;
+ * 	MyProc my_proc;
+ * 	thread_pool.run(&my_proc, get_processor_count());
+ * ...
+ * @endcode
+ * In the example, get_processor_count() is used to determine the optimal
+ * number of threads to spawn.
+*/ 
 class ThreadPool {
 	ThreadInfoStruct info[MAX_CPU_COUNT];
 	int active_count;
@@ -244,14 +331,33 @@ public:
 	ThreadPool();
 	~ThreadPool();
 	
+	/// preload count threads, so that future invocations of run()
+	/// don't waste time in creating threads.
 	void preload_threads(int count);
 	
+	/**
+	 * @param what          - the algorithm to run;
+	 * @param threads_count - on how many threads to run the algorithm.
+	 *
+	 * run() returns when all threads finish their work.
+	 *
+	 * NOTE: when called with threads_count == 1, no threads are ever
+	 * created or used; the method just calls what->entry(0, 1) and returns.
+	*/ 
 	void run(Parallel *what, int threads_count);
 	
+	/** 
+	 * Stops all threads and frees the resources, allocated by them
+	 * NOTE: the destructor of ThreadPool does this, so you don't need to
+	 * do it explicitly.
+	*/ 
 	void killall_threads(void);
 };
 
+/// platform dependant procedure to create a new thread
 void new_thread(ThreadID* handle, ThreadInfoStruct *);
+
+/// The thread proc, that ThreadPool uses for the threads, spawned by it
 void my_thread_proc(ThreadInfoStruct *);
 
 
