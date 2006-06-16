@@ -58,6 +58,7 @@ Event::Event()
 {
 	pthread_mutex_init(&m, NULL);
 	pthread_cond_init(&c, NULL);
+	state = 0;
 }
 
 Event::~Event()
@@ -69,16 +70,22 @@ Event::~Event()
 void Event::wait(void)
 {
 	pthread_mutex_lock(&m);
+	if (state == 1) {
+		state = 0;
+		pthread_mutex_unlock(&m);
+		return;
+	}
 	pthread_cond_wait(&c, &m);
 	pthread_mutex_unlock(&m);
 }
 
 void Event::signal(void)
 {
+	pthread_mutex_lock(&m);
+	state = 1;
+	pthread_mutex_unlock(&m);
 	pthread_cond_signal(&c);
 }
-
-bool Event::needs_signalling_once = false;
 
 // FUNCTIONS
 

@@ -193,12 +193,12 @@ public:
 class Event {
 	pthread_mutex_t m;
 	pthread_cond_t c;
+	volatile int state;
 public:
 	Event(void);
 	~Event(void);
 	void wait(void);
 	void signal(void);
-	static bool needs_signalling_once;
 };
 
 typedef pthread_t ThreadID;

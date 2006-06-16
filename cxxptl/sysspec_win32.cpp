@@ -69,8 +69,6 @@ void Event::signal(void)
 	SetEvent(event);
 }
 
-bool Event::needs_signalling_once = true;
-
 // FUNCTIONS
 int system_get_processor_count(void)
 {

@@ -176,11 +176,8 @@ void my_thread_proc(ThreadInfoStruct *info)
 				if (info->execute_class) info->execute_class->entry(info->thread_index, info->thread_count);
 				int res = --(*(info->counter));
 				if (!res) {
-					if (Event::needs_signalling_once)
-						info->thread_pool_event->signal();
+					info->thread_pool_event->signal();
 					do {
-						if (!Event::needs_signalling_once)
-							info->thread_pool_event->signal();
 						relent();
 					} while (*(info->waiting));
 				}
