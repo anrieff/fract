@@ -36,14 +36,11 @@ struct trio_slot{
 	Vector normal;
 	int idx;
 	int count;
+	bool operator < (const trio_slot& r) const
+	{
+		return count > r.count;
+	}
 };
-
-int cmp_TS(const void *x, const void *y) 
-{
-	const trio_slot* a = (const trio_slot* )x;
-	const trio_slot* b = (const trio_slot* )y;
-	return b->count - a->count;
-}
 
 bool g_speedup = true;
 
@@ -464,7 +461,7 @@ bool Mesh::read_from_obj(const char *fn)
 				tc++;
 			}
 		}
-		qsort(TS, tc, sizeof(TS[0]), cmp_TS);
+		sort(TS, tc);
 		if (tc > 1) {
 			bad_faces ++;
 		}

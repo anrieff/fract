@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <algorithm>
 
 #define RENDER_CPP
 #include "MyGlobal.h"
@@ -433,7 +432,7 @@ void preframe_do(Uint32 *ptr, Vector lw)
 	prof_leave(PROF_PROJECT);
 
 	prof_enter(PROF_YSORT);
-	std::sort(obj_rows, obj_rows + OR_size);
+	sort(obj_rows, OR_size);
 	prof_leave(PROF_YSORT);
 
 	prof_enter(PROF_PASS);

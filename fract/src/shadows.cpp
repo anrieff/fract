@@ -254,16 +254,17 @@ struct Vertex {
 	Vector v;
 	Vertex() {}
 	Vertex(int _no, const Vector & _v):no(_no), v(_v) {}
+	
+	bool operator < (const Vertex &r) const
+	{
+		return no < r.no;
+	}
 };
 
 struct PolyInfo {
 	int start, size;
 };
 
-int compar_vertex(const void *a, const void *b)
-{
-	return static_cast<const Vertex*>(a)->no - static_cast<const Vertex*>(b)->no;
-}
 
 static int recu_es;
 static Mesh::EdgeInfo recu_edges[MAX_SIDES];
@@ -332,7 +333,7 @@ int connect_graph(Mesh::EdgeInfo e[], int m)
 			verts[n++] = Vertex(e[i].bi, e[i].b);
 		}
 	}
-	qsort(verts, n, sizeof(Vertex), compar_vertex);
+	sort(verts, n);
 	for (int i = 0; i < n; i++)
 		fwdmap[verts[i].no] = i;
 	memset(g, 0, sizeof(int) * (max_neighs + 1) * n);

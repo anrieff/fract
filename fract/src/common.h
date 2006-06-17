@@ -11,6 +11,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include <stdlib.h>
 #include <string.h>
 #include "MyGlobal.h"
 
@@ -97,5 +98,69 @@ static inline float sse_sqrt(float f)
 		#define fsqrt sqrt
 	#endif // ifdef fast_sqrt
 #endif // ifdef USE_LUT_SQRT
+
+
+#define SSSTORAGE_SIZE (1024*1024)
+extern char static_sort_storage[SSSTORAGE_SIZE];
+
 	
+template <typename T>
+void _mergesort_imp(T a[], int l, int r, T t[])
+{
+	/* Stage 1 : check for bottom */
+	if (r <= l) return;
+	if (r == l + 1) {
+		if (a[r] < a[l]) {
+			t[0] = a[l];
+			a[l] = a[r];
+			a[r] = t[0];
+		}
+		return;
+	}
+	
+	/* Stage 2 : recurse down */
+	int m = (l + r) / 2;
+	_mergesort_imp(a, l, m, t);
+	_mergesort_imp(a, m + 1, r, t);
+	
+	/* Stage 3 : merge */
+	int size = (r - l + 1);
+	int i = l, j = m + 1, k = 0;
+	while (i <= m && j <= r) {
+		if (a[j] < a[i])
+			t[k++] = a[j++];
+		else
+			t[k++] = a[i++];
+	}
+	if (i <= m) for (; i <= m; i++) t[k++] = a[i];
+	if (j <= r) for (; j <= r; j++) t[k++] = a[j];
+	for (k = 0; k < size; k++)
+		a[l + k] = t[k];
+}
+	
+// Generic sorting function
+template <typename T>
+void sort(T a[], int n)
+{
+	// if no sorting is needed
+	if (n < 2) return;
+	
+	// try using the static storage...
+	T* storage = (T*) static_sort_storage;
+	bool static_storage = true;
+	
+	if (sizeof(T) * n > SSSTORAGE_SIZE) {
+		// .. but if it is not enough, use a dynamic one
+		static_storage = false;
+		storage = (T*) malloc(sizeof(T)*n);
+	}
+	
+	// perform the actual sortng
+	_mergesort_imp(a, 0, n - 1, storage);
+	
+	// non static storage must be freed
+	if (!static_storage)
+		free(storage);
+}
+
 #endif // __COMMON_H__

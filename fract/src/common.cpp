@@ -12,9 +12,13 @@
 
 #include "MyGlobal.h"
 #include "MyTypes.h"
+#include "common.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+// static storage for the sort() function
+char static_sort_storage[SSSTORAGE_SIZE];
 
 // checks if x is an integral power of 2. If it is not, -1 is returned, else the log2 of x is returned
 int power_of_2(int x)
