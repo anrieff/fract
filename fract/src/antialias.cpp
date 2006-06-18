@@ -32,7 +32,7 @@ extern int defaultconfig;
 extern int RowMin[], RowMax[];
 
 Uint8 fb_copy[RES_MAXX * RES_MAXY];
-Uint16 fba_ids[RES_MAXX * RES_MAXY];
+Uint32 fba_temp[MAX_CPU_COUNT][2][RES_MAXX];
 
 /* ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 /*  Static FSAA Data - the FSAA Kernels used for adaptive AA in Fract:  **/
@@ -403,15 +403,23 @@ class MTAntiBufferInit : public Parallel {
 	Uint32 *fb;
 	int xr, yr;
 	Mutex cs;
+	int n;
+	int ranges[MAX_CPU_COUNT][2];
 public:
 	HashMap<fsaa_set_entry, unsigned> m;
 
-	MTAntiBufferInit(Uint32 *xfb, int xxr, int xyr)
+	MTAntiBufferInit(Uint32 *xfb, int xxr, int xyr, int cpus)
 	{
 		fb = xfb;
 		xr = xxr;
 		yr = xyr;
-		memset(fba_ids, 0xff, sizeof(fba_ids[0]) * xxr * xyr);
+		n = cpus;
+		for (int i = 0; i < n; i++) {
+			ranges[i][0] = 1 + (yr - 2) * i / n;
+			ranges[i][1] = 1 + (yr - 2) * (i + 1) / n;
+			memcpy(fba_temp[i][0], &fb[xr*(ranges[i][0]-1)], xr * sizeof(Uint32));
+			memcpy(fba_temp[i][1], &fb[xr*(ranges[i][1]  )], xr * sizeof(Uint32));
+		}
 	}
 	void entry(int thread_id, int threads_count);
 	
@@ -419,20 +427,31 @@ public:
 
 void MTAntiBufferInit::entry(int thread_idx, int threads_count)
 {
-	for (int j = 1 + thread_idx; j < yr - 1; j += threads_count) {
-		Uint32 *p = &fb[1 + (j-1)*xr];
-		Uint16 *o = &fba_ids[1 + j*xr];
-		for (int i = 1; i < xr - 1; i++,p++,o++) {
-			
-			fsaa_set_entry sentry(p, p + xr, p + (xr*2), xr);
+	// init
+	Uint32 *prev, *current, *next;
+	Uint32 store[2][RES_MAXX];
+	prev = fba_temp[thread_idx][0];
+	int sw = 0;
+	current = store[0];
+	
+	// perform detection
+	for (int j = ranges[thread_idx][0]; j < ranges[thread_idx][1]; j++) {
+		memcpy(current, &fb[j * xr], xr * sizeof(Uint32));
+		if (j != ranges[thread_idx][1] - 1)
+			next = &fb[(j+1)*xr];
+		else
+			next = fba_temp[thread_idx][1];
+		
+		for (int i = 1; i < xr - 1; i++) {
+			fsaa_set_entry sentry(prev + i, current + i, next + i, xr);
 			if (sentry.jagged()) {
 				sentry.sort();
 				cs.enter();
 				HashMap<fsaa_set_entry, unsigned>::iterator *it = m.find(sentry);
 				if (it) {
-					*o = it->second;
+					fb[i + j*xr] = 0x80000000 + it->second;
 				} else {
-					*o = m.size();
+					fb[i + j*xr] = 0x80000000 + m.size();
 					m.insert(sentry, m.size());
 				}
 				cs.leave();
@@ -440,12 +459,15 @@ void MTAntiBufferInit::entry(int thread_idx, int threads_count)
 				if (i > RowMax[j]) RowMax[j] = i;
 			}
 		}
+		sw = 1 - sw;
+		current = store[sw];
+		prev = store[1 - sw];
 	}
 };
 
 void antibuffer_init(Uint32 fb[], int xr, int yr) 
 {
-	MTAntiBufferInit proc(fb, xr, yr);
+	MTAntiBufferInit proc(fb, xr, yr, cpu_count);
 	thread_pool.run(&proc, cpu_count);
 	if (fsaa_info) {
 		delete [] fsaa_info;
@@ -458,10 +480,6 @@ void antibuffer_init(Uint32 fb[], int xr, int yr)
 		while (NULL != (i = proc.m.iter())) {
 			prepare_fsaa_info_entry(i->first, fsaa_info[i->second]);
 		}
-		int n = xr * yr;
-		for (int i = 0; i < n; i++)
-			if (fba_ids[i] != 0xffff)
-				fb[i] = 0x80000000 + ((Uint32)fba_ids[i]);
 	}
 	if (proc.m.size() > maxsize) maxsize = proc.m.size();
 }
