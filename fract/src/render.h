@@ -40,6 +40,7 @@
 #include "MyGlobal.h"
 #include "vector3.h"
 #include "object.h"
+#include "threads.h"
 
 /*
 ML_BUFFER_GRAN defines the subsampling accuracy of the MipLevel History Buffer.
@@ -75,6 +76,8 @@ extern ObjectArray allobjects;
 extern bool parallel;
 extern double stereo_separation;
 extern double stereo_depth;
+extern ThreadPool thread_pool;
+extern int cpu_count;
 
 #ifdef ACTUALLYDISPLAY
 void render_single_frame(SDL_Surface *p, SDL_Overlay *ov);

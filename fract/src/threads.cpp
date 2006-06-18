@@ -214,7 +214,7 @@ void new_thread(pthread_t *handle, ThreadInfoStruct *info)
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#include "cxxptl.h"
+#include "threads.h"
 
 /**
  @class Mutex

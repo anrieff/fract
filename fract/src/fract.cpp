@@ -474,7 +474,7 @@ int main(int argc, char *argv[])
 	initcmdline(argc, argv);
 	//option_add("-w");
 	option_add("--scene=data/benchmark.fsv");
-	option_add("--prof-stats");
+	//option_add("--prof-stats");
 	option_add("--cpus=2");
 	commandline_parse();
 	init_program();

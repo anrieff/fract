@@ -1088,37 +1088,6 @@ void render_single_frame_do(void)
 	//save tt's
 	t0 = tt;
 	
-	class MultiThreadedMainRender : public Parallel {
-		Vector local_t0, local_ti, local_tti;
-		Uint32 *framebuffer, *spherebuffer;
-		Uint16 *fbuffer;
-		int xr, yr;
-		public:
-			MultiThreadedMainRender(const Vector& tt, const Vector &ti, const Vector &tti, Uint16 *xfbuffer,
-				Uint32 *fb, int xr, int yr, Uint32 *sb) {
-				local_t0 = tt;
-				local_ti = ti;
-				local_tti = tti;
-				this->xr = xr;
-				this->yr = yr;
-				spherebuffer = sb;
-				framebuffer = fb;
-				fbuffer = xfbuffer;
-				render_spheres_init(fbuffer);
-			}
-			void entry(int thread_idx, int thread_count)
-			{
-				Vector t0;
-				t0 = local_t0;
-				render_background(framebuffer, xr, yr, t0, local_ti, local_tti, thread_idx);
-				t0 = local_t0;
-				//render_spheres
-				render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, thread_idx);
-			}
-	} multithreaded_main_render (tt, ti, tti, fbuffer, ptr, xr, yr, spherebuffer);
-	
-	
-
 	if (cpu_count==1) {
 		prof_enter(PROF_RENDER_FLOOR);
 		render_background(ptr, xr, yr, tt, ti, tti, 0);
@@ -1132,6 +1101,38 @@ void render_single_frame_do(void)
 		prof_leave(PROF_RENDER_SPHERES);
 
 	} else {
+		class MultiThreadedMainRender : public Parallel {
+			Vector local_t0, local_ti, local_tti;
+			Uint32 *framebuffer, *spherebuffer;
+			Uint16 *fbuffer;
+			int xr, yr;
+			public:
+				MultiThreadedMainRender(const Vector& tt, 
+						const Vector &ti, 
+						const Vector &tti, 
+						Uint16 *xfbuffer,
+						Uint32 *fb, int xr, int yr, Uint32 *sb) {
+					local_t0 = tt;
+					local_ti = ti;
+					local_tti = tti;
+					this->xr = xr;
+					this->yr = yr;
+					spherebuffer = sb;
+					framebuffer = fb;
+					fbuffer = xfbuffer;
+					render_spheres_init(fbuffer);
+				}
+				void entry(int thread_idx, int thread_count)
+				{
+					Vector t0;
+					t0 = local_t0;
+					render_background(framebuffer, xr, yr, t0, local_ti, local_tti, thread_idx);
+					t0 = local_t0;
+					//render_spheres
+					render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, thread_idx);
+				}
+		} multithreaded_main_render (tt, ti, tti, fbuffer, ptr, xr, yr, spherebuffer);
+
 		thread_pool.run(&multithreaded_main_render, cpu_count);
 	}
 	if (r_shadows){
