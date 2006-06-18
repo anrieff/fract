@@ -60,7 +60,7 @@ void SDTreeNode::translate(const Vector &v)
 		right->translate(v);
 }
 
-int SDTreeNode::testintersect(Triangle *base, const Vector& start, const Vector &dir, const Vector& invdir, void *ctx)
+int SDTreeNode::testintersect(Triangle *base, const Vector& start, const Vector &dir, void *ctx)
 {
 	if (primitives) {
 		int bi = -1;
@@ -88,20 +88,20 @@ int SDTreeNode::testintersect(Triangle *base, const Vector& start, const Vector 
 	} else {
 		SDTreeNode *nodes[2] = {left, right};
 		double dists[2] = {1e99, 1e99};
-		if (left->bbox.testintersect(start, dir, invdir))
-			dists[0] = left->bbox.intersection_dist(start, dir, invdir);
-		if (right->bbox.testintersect(start,dir, invdir))
-			dists[1] = right->bbox.intersection_dist(start, dir, invdir);
+		if (left->bbox.testintersect(start, dir))
+			dists[0] = left->bbox.intersection_dist(start, dir);
+		if (right->bbox.testintersect(start,dir))
+			dists[1] = right->bbox.intersection_dist(start, dir);
 		if (dists[0] > dists[1]) {
 			double t = dists[0]; dists[0] = dists[1]; dists[1] = t;
 			SDTreeNode *n = nodes[0]; nodes[0] = nodes[1]; nodes[1] = n;
 		}
 		if (dists[0] < 1e90) {
-			int r = nodes[0]->testintersect(base, start, dir, invdir, ctx);
+			int r = nodes[0]->testintersect(base, start, dir, ctx);
 			if (r != -1) return r;
 		}
 		if (dists[1] < 1e90) {
-			int r = nodes[1]->testintersect(base, start, dir, invdir, ctx);
+			int r = nodes[1]->testintersect(base, start, dir, ctx);
 			if (r != -1) return r;
 		}
 		return -1;
@@ -267,9 +267,7 @@ void SDTree::translate(const Vector& trans)
 bool SDTree::testintersect(const Vector &start, const Vector &dir, void *ctx, Triangle** t)
 {
 	if (root) {
-		Vector invdir = dir;
-		invdir.inverse();
-		int r = root->testintersect(base, start, dir, invdir, ctx);
+		int r = root->testintersect(base, start, dir, ctx);
 		if (r != -1)  {
 			if (t) *t = base + r;
 			return true;

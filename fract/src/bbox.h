@@ -103,34 +103,7 @@ struct BBox {
 		}
 		return false;
 	}
-	
-	// does a ray, starting at `start' and heading to `dir' intersect the BBox?
-	// this is the same as above, save for the invdir vector (it is 1/dir, component-wise)
-	inline bool testintersect(const Vector & start, const Vector & dir, const Vector & invdir)
-	{
-		if (inside(start)) {
-			return true;
-		}
-		for (int i = 0; i < 3; i++) {
-			if (fabs(dir.v[i]) < 1e-12) continue;
-			double rcpdir = invdir.v[i];
-			double md = fmax((vmax.v[i] - start.v[i]) * rcpdir, (vmin.v[i] - start.v[i]) * rcpdir);
-			if (md < 0) continue;
-			bool ok = true;
-			for (int j = 0; j < 3; j++) if (i != j) {
-				double c = start.v[j] + dir.v[j] * md;
-				if (c < vmin.v[j] || c > vmax.v[j]) {
-					ok = false;
-					break;
-				}
-			}
-			if (ok) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
+
 	inline double intersection_dist(const Vector & start, const Vector & dir)
 	{
 		if (inside(start)) {
@@ -156,33 +129,6 @@ struct BBox {
 		}
 		return mindist;
 	}
-
-	inline double intersection_dist(const Vector & start, const Vector & dir, const Vector & invdir)
-	{
-		if (inside(start)) {
-			return 0.0;
-		}
-		double mindist = 1e99;
-		for (int i = 0; i < 3; i++) {
-			if (fabs(dir.v[i]) < 1e-12) continue;
-			double rcpdir = invdir.v[i];
-			double md = fmax((vmax.v[i] - start.v[i]) * rcpdir, (vmin.v[i] - start.v[i]) * rcpdir);
-			if (md < 0) continue;
-			bool ok = true;
-			for (int j = 0; j < 3; j++) if (i != j) {
-				double c = start.v[j] + dir.v[j] * md;
-				if (c < vmin.v[j] || c > vmax.v[j]) {
-					ok = false;
-					break;
-				}
-			}
-			if (ok) {
-				if (md < mindist) mindist = md;
-			}
-		}
-		return mindist;
-	}
-
 	
 	/// Does a segment intersect the BBox?
 	/// @param a - one endpoint of the segment
