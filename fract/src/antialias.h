@@ -54,16 +54,24 @@ struct fsaa_set_entry {
 		a[2] = current[ 0];
 		a[3] = current[+1];
 		a[4] = next[0];
+		//
 	}
-	bool operator < (const fsaa_set_entry& r) const
+	inline Uint32 get_hash_code() const
 	{
+		Uint32 code = 0;
 		for (int i = 0; i < ED_KERNEL_SIZE; i++) {
-			if (a[i] < r.a[i]) return true;
-			if (a[i] > r.a[i]) return false;
+			code = ((code << 2) ^ ((code >> 1) * 37337) + 0x16253bac) ^ a[i];
 		}
-		return false;
+		return code;
+	}
+	inline bool operator == (const fsaa_set_entry& r) const
+	{
+		for (int i = 0; i < ED_KERNEL_SIZE; i++) 
+			if (a[i] != r.a[i]) return false;
+		return true;
 	}
 	bool jagged() const;
+	void sort();
 };
 
 struct fsaa_info_entry {

@@ -370,27 +370,36 @@ bool fsaa_set_entry::jagged() const
 	return true;
 }
 
-void fsaa_info_entry::sort(void)
+void fsaa_set_entry::sort()
 {
-	int d = size - 1;
-	bool f;
-	do {
-		f = false;
-		for (int i = 0; i < d; i++) {
-			if (ids[i] < ids[i + 1]) {
-				f = true;
-				int t = ids[i];
-				ids[i] = ids[i + 1];
-				ids[i + 1] = t;
+	// sort them, since the order doesn't matter
+	for (int i = 0; i < ED_KERNEL_SIZE - 1; i++) {
+		for (int j = i + 1; j < ED_KERNEL_SIZE; j++) {
+			if (a[i] > a[j]) {
+				Uint32 t = a[i];
+				a[i] = a[j];
+				a[j] = t;
 			}
 		}
-		d--;
-	} while (f);
+	}
+}
+
+void fsaa_info_entry::sort(void)
+{
+	for (int i = 0; i < size; i++) {
+		for (int j = i + 1; j < size; j++) {
+			if (ids[i] < ids[j]) {
+				int t = ids[i];
+				ids[i] = ids[j];
+				ids[j] = t;
+			}
+		}
+	}
 }
 
 void antibuffer_init(Uint32 fb[], int xr, int yr)
 {
-	map<fsaa_set_entry, unsigned> m;
+	HashMap<fsaa_set_entry, unsigned> m;
 	unsigned c = 0;
 	unsigned p = xr + 1;
 	Uint32 rows[2][RES_MAXX];
@@ -404,12 +413,13 @@ void antibuffer_init(Uint32 fb[], int xr, int yr)
 		for (int i = 1; i < xr - 1; i++, p++) {
 			fsaa_set_entry sentry(&prev[i], &current[i], &fb[p + xr], xr);
 			if (sentry.jagged()) {
-				map<fsaa_set_entry, unsigned>::iterator it = m.find(sentry);
-				if (it != m.end()) {
+				sentry.sort();
+				HashMap<fsaa_set_entry, unsigned>::iterator *it = m.find(sentry);
+				if (it) {
 					fb[p] = 0x80000000 + it->second;
 				} else {
 					fb[p] = 0x80000000 + c;
-					m.insert(make_pair(sentry, c));
+					m.insert(sentry, c);
 					c++;
 				}
 				if (i < RowMin[j]) RowMin[j] = i;
@@ -426,7 +436,9 @@ void antibuffer_init(Uint32 fb[], int xr, int yr)
 	}
 	if (c) {
 		fsaa_info = new fsaa_info_entry[c];
-		for (map<fsaa_set_entry, unsigned>::iterator i = m.begin(); i != m.end(); i++) {
+		m.iter_start();
+		HashMap<fsaa_set_entry, unsigned>::iterator *i;
+		while (NULL != (i = m.iter())) {
 			prepare_fsaa_info_entry(i->first, fsaa_info[i->second]);
 		}
 	}

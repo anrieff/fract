@@ -138,7 +138,10 @@ void _mergesort_imp(T a[], int l, int r, T t[])
 		a[l + k] = t[k];
 }
 	
-// Generic sorting function
+/// Generic sorting function
+/// @param a - the array of values to sort
+/// @param n - the number of elements in the array
+/// NOTE: sort() requires a operator &lt; to be defined
 template <typename T>
 void sort(T a[], int n)
 {
@@ -162,5 +165,138 @@ void sort(T a[], int n)
 	if (!static_storage)
 		free(storage);
 }
+
+/**
+ * @class  HashMap
+ * @brief  Template like STL's map, but using a hash table for storage
+ * @author Veselin Georgiev
+ * @date   2006-06-18
+ * 
+ * NOTE: requires operator == to be defined, also the function T::get_hash_code
+ *       must be present (takes no params and returns a Uint32)
+*/ 
+template <typename T, typename U>
+class HashMap {
+public:
+	/// this struct is returned on operations like find(), etc.
+	struct iterator {
+		T first;
+		U second;
+		iterator * next;
+		
+		iterator(const T& one, const U& two) : first(one), second(two), next(NULL) {}
+	};
+private:
+	int _count;
+	iterator** hash;
+	Uint32 hs;
+	Uint32 _xiter;
+	iterator *_yiter;
+	
+	void delete_chain(iterator *it)
+	{
+		iterator *p;
+		while (it) {
+			p = it->next;
+			delete it;
+			it = p;
+		}
+	}
+public:
+	/** Constructor
+	 * @param hash_size - 
+	 *	the size of the hash table to be created. The 
+	 *	value should obey the following rules:
+	 *
+	 * 	a) The size should be at least twice the maximum number of elements you
+	 *	   intend to store in the hash;
+	 * 	b) The size should be a prime number
+	*/ 
+	HashMap(Uint32 hash_size = 10459)
+	{
+		hs = hash_size;
+		hash = (iterator**) malloc(hs * sizeof(iterator*));
+		for (Uint32 i = 0; i < hs; i++)
+			hash[i] = NULL;
+		_count = 0;
+	}
+	~HashMap()
+	{
+		clear();
+		free(hash);
+	}
+	
+	/// number of insert() operations (number of object inside the hash)
+	int size() const
+	{
+		return _count;
+	}
+	
+	/// Clears the hash map
+	void clear()
+	{
+		for (Uint32 i = 0; i < hs; i++) if (hash[i]) {
+			delete_chain(hash[i]);
+			hash[i] = NULL;
+		}
+		_count = 0;
+	}
+	
+	/// Map the element `t' with the value `u'
+	void insert(const T& t, const U& u)
+	{
+		Uint32 code = t.get_hash_code() % hs;
+		iterator * p = new iterator(t, u);
+		p->next = hash[code];
+		hash[code] = p;
+		++_count;
+	}
+	
+	/// Try to find an element in the map
+	/// @returns NULL if the element is not in the map
+	iterator *find(const T& t)
+	{
+		Uint32 code = t.get_hash_code() % hs;
+		for (iterator *i = hash[code]; i; i = i->next) {
+			if (t == i->first) return i;
+		}
+		return NULL;
+	}
+	
+	/// Call this in order to iterate through all map's elements
+	void iter_start()
+	{
+		_xiter = -1;
+		_yiter = NULL;
+	}
+	
+	/// Returns the next element of the iteration, or NULL if there are no more
+	iterator * iter()
+	{
+		if (_yiter) {
+			iterator *retval = _yiter;
+			_yiter = _yiter->next;
+			return retval;
+		} else {
+			++_xiter;
+			while (_xiter < hs && NULL == hash[_xiter]) _xiter++;
+			if (_xiter >= hs) return NULL;
+			iterator * retval = hash[_xiter];
+			_yiter = retval->next;
+			return retval;
+		}
+	}
+	
+	/// Displays some "useless" stats
+	void stats()
+	{
+		int c1 = 0;
+		for (Uint32 i = 0; i < hs; i++) {
+			if (hash[i]) c1++;
+		}
+		printf("Total slots = %u\nSlots used  = %u\n# of elements = %u\n",
+		       hs, c1, _count);
+	}
+};
 
 #endif // __COMMON_H__

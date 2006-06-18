@@ -49,7 +49,7 @@ public:
 	bool isleaf() const;
 	
 	/// @see SDTree::testintersect
-	int testintersect(Triangle *base, const Vector& start, const Vector &dir, void *);
+	int testintersect(Triangle *base, const Vector& start, const Vector &dir, const Vector &invdir, void *);
 	
 	void translate(const Vector&);
 	void scale(double, const Vector&);

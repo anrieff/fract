@@ -62,6 +62,7 @@
  *	@note function: *this = start + ray * scale
  * @method add2      - assigns the sum of two vectors to *this
  * @method add3      - assigns the sum of three vectors to *this
+ * @method inverse   - component-wise 1/v[i]
 */
 /* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 
@@ -131,6 +132,7 @@ public:
 	inline const real& operator [] (const unsigned index) const;
 	inline real & operator [] (const unsigned index);
 	inline real distto(const Vector &) const;
+	inline void inverse(void);
 	inline void print() const;
 };
 
@@ -259,6 +261,13 @@ inline real & Vector::operator [] (const unsigned index)
 inline real Vector::distto(const Vector & r) const
 {
 	return sqrt(sqr(r.v[0]-v[0]) + sqr(r.v[1]-v[1]) + sqr(r.v[2]-v[2]));
+}
+
+inline void Vector::inverse(void)
+{
+	if (fabs(v[0]) >= 1e-12) v[0] = 1.0/v[0];
+	if (fabs(v[1]) >= 1e-12) v[1] = 1.0/v[1];
+	if (fabs(v[2]) >= 1e-12) v[2] = 1.0/v[2];
 }
 
 inline bool Vector::operator == (const Vector & r) const
