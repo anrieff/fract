@@ -32,7 +32,7 @@ extern int defaultconfig;
 extern int RowMin[], RowMax[];
 
 Uint8 fb_copy[RES_MAXX * RES_MAXY];
-Uint32 fba_ids[RES_MAXX * RES_MAXY];
+Uint16 fba_ids[RES_MAXX * RES_MAXY];
 
 /* ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 /*  Static FSAA Data - the FSAA Kernels used for adaptive AA in Fract:  **/
@@ -411,7 +411,7 @@ public:
 		fb = xfb;
 		xr = xxr;
 		yr = xyr;
-		memset(fba_ids, 0xff, 4 * xxr * xyr);
+		memset(fba_ids, 0xff, sizeof(fba_ids[0]) * xxr * xyr);
 	}
 	void entry(int thread_id, int threads_count);
 	
@@ -421,7 +421,7 @@ void MTAntiBufferInit::entry(int thread_idx, int threads_count)
 {
 	for (int j = 1 + thread_idx; j < yr - 1; j += threads_count) {
 		Uint32 *p = &fb[1 + (j-1)*xr];
-		Uint32 *o = &fba_ids[1 + j*xr];
+		Uint16 *o = &fba_ids[1 + j*xr];
 		for (int i = 1; i < xr - 1; i++,p++,o++) {
 			
 			fsaa_set_entry sentry(p, p + xr, p + (xr*2), xr);
@@ -430,9 +430,9 @@ void MTAntiBufferInit::entry(int thread_idx, int threads_count)
 				cs.enter();
 				HashMap<fsaa_set_entry, unsigned>::iterator *it = m.find(sentry);
 				if (it) {
-					*o = 0x80000000 + it->second;
+					*o = it->second;
 				} else {
-					*o = 0x80000000 + m.size();
+					*o = m.size();
 					m.insert(sentry, m.size());
 				}
 				cs.leave();
@@ -460,8 +460,8 @@ void antibuffer_init(Uint32 fb[], int xr, int yr)
 		}
 		int n = xr * yr;
 		for (int i = 0; i < n; i++)
-			if (fba_ids[i] != 0xffffffff)
-				fb[i] = fba_ids[i];
+			if (fba_ids[i] != 0xffff)
+				fb[i] = 0x80000000 + ((Uint32)fba_ids[i]);
 	}
 	if (proc.m.size() > maxsize) maxsize = proc.m.size();
 }
