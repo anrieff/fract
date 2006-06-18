@@ -402,11 +402,11 @@ void fsaa_info_entry::sort(void)
 class MTAntiBufferInit : public Parallel {
 	Uint32 *fb;
 	int xr, yr;
-	Mutex cs;
-	int n;
+	
 	int ranges[MAX_CPU_COUNT][2];
 public:
-	HashMap<fsaa_set_entry, unsigned> m;
+	HashMap<fsaa_set_entry, unsigned> *maps;
+	int n;
 
 	MTAntiBufferInit(Uint32 *xfb, int xxr, int xyr, int cpus)
 	{
@@ -420,6 +420,11 @@ public:
 			memcpy(fba_temp[i][0], &fb[xr*(ranges[i][0]-1)], xr * sizeof(Uint32));
 			memcpy(fba_temp[i][1], &fb[xr*(ranges[i][1]  )], xr * sizeof(Uint32));
 		}
+		maps = new HashMap<fsaa_set_entry, unsigned> [n];
+	}
+	~MTAntiBufferInit()
+	{
+		delete [] maps;
 	}
 	void entry(int thread_id, int threads_count);
 	
@@ -427,6 +432,7 @@ public:
 
 void MTAntiBufferInit::entry(int thread_idx, int threads_count)
 {
+	HashMap<fsaa_set_entry, unsigned>& m = maps[thread_idx];
 	// init
 	Uint32 *prev, *current, *next;
 	Uint32 store[2][RES_MAXX];
@@ -446,15 +452,14 @@ void MTAntiBufferInit::entry(int thread_idx, int threads_count)
 			fsaa_set_entry sentry(prev + i, current + i, next + i, xr);
 			if (sentry.jagged()) {
 				sentry.sort();
-				cs.enter();
 				HashMap<fsaa_set_entry, unsigned>::iterator *it = m.find(sentry);
 				if (it) {
 					fb[i + j*xr] = 0x80000000 + it->second;
 				} else {
-					fb[i + j*xr] = 0x80000000 + m.size();
-					m.insert(sentry, m.size());
+					Uint32 new_entry = m.size() * threads_count + thread_idx;
+					fb[i + j*xr] = 0x80000000 + new_entry;
+					m.insert(sentry, new_entry);
 				}
-				cs.leave();
 				if (i < RowMin[j]) RowMin[j] = i;
 				if (i > RowMax[j]) RowMax[j] = i;
 			}
@@ -473,15 +478,24 @@ void antibuffer_init(Uint32 fb[], int xr, int yr)
 		delete [] fsaa_info;
 		fsaa_info = NULL;
 	}
-	if (proc.m.size()) {
-		fsaa_info = new fsaa_info_entry[proc.m.size()];
-		proc.m.iter_start();
+	int c = 0;
+	for (int i = 0; i < proc.n; i++) {
+		int t = proc.maps[i].size() * proc.n;
+		if (t > c) c = t;
+	}
+	if (c) {
+		fsaa_info = new fsaa_info_entry[c];
 		HashMap<fsaa_set_entry, unsigned>::iterator *i;
-		while (NULL != (i = proc.m.iter())) {
-			prepare_fsaa_info_entry(i->first, fsaa_info[i->second]);
+		for (int j = 0; j < proc.n; j++) {
+			HashMap<fsaa_set_entry, unsigned> & m = proc.maps[j];
+			m.iter_start();
+			
+			while (NULL != (i = m.iter())) {
+				prepare_fsaa_info_entry(i->first, fsaa_info[i->second]);
+			}
 		}
 	}
-	if (proc.m.size() > maxsize) maxsize = proc.m.size();
+	if (c > maxsize) maxsize = c;
 }
 
 //
