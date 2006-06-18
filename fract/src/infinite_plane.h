@@ -16,6 +16,7 @@
 #include "scene.h"
 #include "sphere.h"
 #include "vector3.h"
+#include "threads.h"
 
 enum lectionTypes {
 	REFLECTION,
@@ -50,6 +51,6 @@ Uint32 bilinea_p5(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, unsigned F
 // resolution is xr by yr pixels; `tt' determines topleft corner of the
 // vector grid. `ti' is column vector increment, `tti' is row increment.
 // In multithreaded execution, `start_line' determines the thread's number
-void render_infinite_plane(Uint32 *frame_buffer, int xr, int yr, Vector& tt, Vector& ti, Vector& tti, int start_line);
+void render_infinite_plane(Uint32 *frame_buffer, int xr, int yr, Vector& tt, Vector& ti, Vector& tti, int, InterlockedInt&);
 
 #endif // __INFINITE_PLANE_H__

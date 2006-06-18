@@ -11,6 +11,7 @@
 #include "MyTypes.h"
 #include "vector3.h"
 #include "hierarchy.h"
+#include "threads.h"
 
 //#define NUM_VOXELS 2
 #define NUM_VOXELS 1
@@ -62,7 +63,7 @@ typedef struct {
 	Hierarchy hierarchy;
 }vox_t;
 
-void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index);
+void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index, InterlockedInt&);
 Uint32 voxel_raytrace(const Vector & cur, const Vector & v);
 
 extern int voxel_rendering_method, shadow_casting_method;

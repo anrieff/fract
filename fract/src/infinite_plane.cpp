@@ -216,8 +216,9 @@ SSE_ALIGN(static const unsigned short my_ffs[8]) =
 
 #endif
 
-void render_infinite_plane_sse(Uint32 *dptr, int xr, int yr, Vector tt, const Vector& ti, Vector tti, int start_line)
+void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, Vector tt, const Vector& ti, Vector tti, InterlockedInt& lock)
 {
+	Uint32 *dptr;
 	int i, j;
 	float fx[4], fy[4];
 	float fxi[4];
@@ -239,13 +240,14 @@ void render_infinite_plane_sse(Uint32 *dptr, int xr, int yr, Vector tt, const Ve
 	SSE_ALIGN(int gy[4]);
 	SSE_ALIGN(int gxx[8]);
 	//printf("thread #%d ran render_floor(); addr. of lightxy1 = 0x%X\n", start_line, (unsigned) lightxy1);	fflush(stdout);
+	
+	Vector tt_start = tt;
 
-	tt += tti * start_line;
-	tti.scale(cpu_count);
-	dptr += start_line * xr;
-	for (j=start_line;j<yr;j+=cpu_count) {
+	while ((j = lock++) < yr) {
+		tt = tt_start + tti * j;
+		dptr = &fb[j*xr];
 		Vector g1 = tt;
-		ut.make_vector(g1, tti*(1/(double) cpu_count));
+		ut.make_vector(g1, tti);
 		if ((ydist=vfabs(cur[1]-tt[1]))>DST_THRESHOLD) {
 				prof_enter(PROF_INIT_PER_ROW);
 			dp = (cur[1]>tt[1]?(cur[1]-daFloor):(daCeiling-cur[1]));
@@ -315,16 +317,15 @@ void render_infinite_plane_sse(Uint32 *dptr, int xr, int yr, Vector tt, const Ve
 #define emit_emms
 #include "x86_asm.h"
 #undef emit_emms
-		tt+=tti;
-		dptr += (cpu_count-1)*xr;
 	}
 }
 
 /*
  *  This is the Pre-SSE version of the floor renderer. Contains C code only :)
  */
-void render_infinite_plane_p5(Uint32 *dptr, int xr, int yr, Vector tt, const Vector& ti, Vector tti, int start_line)
+void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, Vector tt, const Vector& ti, Vector tti, InterlockedInt &lock)
 {
+	Uint32 *dptr;
 	int i, j;
 	double ydist, dp, scalefactor, cx, cy, cxi, cyi, hx, hy;
 	Vector ut;
@@ -334,14 +335,13 @@ void render_infinite_plane_p5(Uint32 *dptr, int xr, int yr, Vector tt, const Vec
 	int gxx[2];
 	int SavergX, SavergY, Lr=0, Lx=0, Ly=0;
 
-	Vector tt_add = tti;
-	tt_add.scale(start_line);
-	tt += tt_add;
-	tti.scale(cpu_count);
-	dptr += start_line * xr;
-	for (j=start_line;j<yr;j+=cpu_count) {
+	Vector tt_start = tt;
+	
+	while ((j = lock++) < yr) {
+		tt = tt_start + tti * j;
+		dptr = &fb[j*xr];
 		Vector g1 = tt;
-		ut.make_vector(g1, tti*(1/(double) cpu_count));
+		ut.make_vector(g1, tti);
 		if ((ydist=vfabs(cur[1]-tt[1]))>DST_THRESHOLD) {
 			prof_enter(PROF_INIT_PER_ROW);
 			dp = (cur[1]>tt[1]?(cur[1]-daFloor):(daCeiling-cur[1]));
@@ -410,20 +410,18 @@ void render_infinite_plane_p5(Uint32 *dptr, int xr, int yr, Vector tt, const Vec
 			prof_leave(PROF_WORK_PER_ROW);
 		} else { // fill the row with zeros:
 			memset(dptr, 0, 4*xr);
-			dptr+=xr;
 		}
-		tt += tti;
-		dptr += (cpu_count-1)*xr;
 	}
 }
 
 
-void render_infinite_plane(Uint32 *frame_buffer, int xr, int yr, Vector& tt, Vector& ti, Vector& tti, int start_line)
+void render_infinite_plane(Uint32 *frame_buffer, int xr, int yr, Vector& tt, Vector& ti, Vector& tti, 
+			   int start_line, InterlockedInt &lock)
 {
 	if (sse_enabled) {
-		render_infinite_plane_sse(frame_buffer, xr, yr, tt, ti, tti, start_line);
+		render_infinite_plane_sse(frame_buffer, xr, yr, tt, ti, tti, lock);
 	} else {
-		render_infinite_plane_p5(frame_buffer, xr, yr, tt, ti, tti, start_line);
+		render_infinite_plane_p5(frame_buffer, xr, yr, tt, ti, tti, lock);
 	}
 }
 

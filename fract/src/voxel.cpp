@@ -1054,7 +1054,7 @@ Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
 	return 0;
 }
 
-void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index)
+void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index, InterlockedInt&)
 {
 	voxel_light_recalc(thread_index);
 	if (voxel_rendering_method) {

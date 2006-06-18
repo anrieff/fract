@@ -504,9 +504,11 @@ void render_spheres_init(unsigned short *fbuffer)
 
 // NOTE: this uses a modified code from DrawIt_P5
 void render_spheres(Uint32 *fb, unsigned short *fbuffer,
-		Vector tt, const Vector& ti, Vector tti, int start_line)
+		Vector tt, const Vector& ti, Vector tti, InterlockedInt& lock)
 {
 	int i, j, xr, yr, dropped, backd, ii, x_start, x_end;
+	Uint32 *start_fb = fb;
+	Uint16 *start_fbuffer = fbuffer;
 	Vector t;
 	Vector v;
 	Vector lw(lx, ly, lz);
@@ -533,19 +535,26 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 	fi.yinc = tti*0.5;
 
 
+	/*
 	Vector tt_add = tti;
 	tt_add.scale(start_line);
 	tt += tt_add;
 	fb += start_line * xr;
 	fbuffer += start_line * xr;
 	tti.scale(cpu_count);
+	*/
 	
 	ml_x = (xr-1) / ML_BUFFER_GRAN+1;
+	Vector tt_start = tt;
 
-	for (j=start_line;j<yr;j+=cpu_count) {
+	while ((j = lock++) < yr) {
 #ifdef TEX_OPTIMIZE
 		mlbuff = ml_buffer + ((j/16) * ml_x);
 #endif
+		
+		tt = tt_start + tti * j;
+		fb = &start_fb[j * xr];
+		fbuffer = &start_fbuffer[j * xr];
 		if (cpu_count > 1) memset(fbuffer, 0, sizeof(short)*xr);
 		//
 		while (rp < OR_size && (obj_rows[rp].y < j || (obj_rows[rp].y == j && obj_rows[rp].type == OPENING))) {
@@ -571,8 +580,6 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 		//
 		if (RowMin[j] >= xr || RowMax[j] < 0) { // skip whole row
 			RowInfo[j] = 0;
-			fbuffer += xr;
-			fb += xr;
 		} else {
 			x_start = RowMin[j] < 0 ? 0 : RowMin[j];
 			x_end   = RowMax[j] >= xr ? (xr-1) : RowMax[j];
@@ -761,13 +768,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 				}
 				if (*fbuffer) RowInfo[j] = 1;
 			}
-			
-			fb += (xr-1-x_end);
-			fbuffer += (xr-1-x_end);
 		}
-		tt += tti;
-		fb += (cpu_count-1) * xr;
-		fbuffer += (cpu_count-1) * xr;
 	}
 }
 
@@ -1089,15 +1090,16 @@ void render_single_frame_do(void)
 	t0 = tt;
 	
 	if (cpu_count==1) {
+		InterlockedInt i1 = 0, i2 = 0;
 		prof_enter(PROF_RENDER_FLOOR);
-		render_background(ptr, xr, yr, tt, ti, tti, 0);
+		render_background(ptr, xr, yr, tt, ti, tti, 0, i1);
 		prof_leave(PROF_RENDER_FLOOR);
 
 		tt = t0;
 
 		prof_enter(PROF_RENDER_SPHERES);
 		render_spheres_init(fbuffer);
-		render_spheres(spherebuffer, fbuffer, tt, ti, tti, 0);
+		render_spheres(spherebuffer, fbuffer, tt, ti, tti, i2);
 		prof_leave(PROF_RENDER_SPHERES);
 
 	} else {
@@ -1106,12 +1108,14 @@ void render_single_frame_do(void)
 			Uint32 *framebuffer, *spherebuffer;
 			Uint16 *fbuffer;
 			int xr, yr;
+			InterlockedInt for_bg, for_raytracing;
 			public:
 				MultiThreadedMainRender(const Vector& tt, 
 						const Vector &ti, 
 						const Vector &tti, 
 						Uint16 *xfbuffer,
-						Uint32 *fb, int xr, int yr, Uint32 *sb) {
+						Uint32 *fb, int xr, int yr, Uint32 *sb) : for_bg(0), for_raytracing(0)
+				{
 					local_t0 = tt;
 					local_ti = ti;
 					local_tti = tti;
@@ -1126,10 +1130,10 @@ void render_single_frame_do(void)
 				{
 					Vector t0;
 					t0 = local_t0;
-					render_background(framebuffer, xr, yr, t0, local_ti, local_tti, thread_idx);
+					render_background(framebuffer, xr, yr, t0, local_ti, local_tti, thread_idx, for_bg);
 					t0 = local_t0;
 					//render_spheres
-					render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, thread_idx);
+					render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, for_raytracing);
 				}
 		} multithreaded_main_render (tt, ti, tti, fbuffer, ptr, xr, yr, spherebuffer);
 

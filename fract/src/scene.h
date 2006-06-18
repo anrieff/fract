@@ -19,6 +19,7 @@
 #include "vector3.h"
 #include "bitmap.h"
 #include "fract.h"
+#include "threads.h"
 // The various Render modes
 
 #define BACKGROUND_MODE_FLOOR		0
@@ -50,7 +51,7 @@ extern int system_pp_state;
  the common type of procedure that can render floor, heightfield or anything
  that can act as a 'background'. Spheres can be applied on top of it.
 */
-typedef void (*background_rendering_method)(Uint32*, int, int, Vector&, Vector&, Vector&, int);
+typedef void (*background_rendering_method)(Uint32*, int, int, Vector&, Vector&, Vector&, int, InterlockedInt&);
 
 extern background_rendering_method render_background;
 
