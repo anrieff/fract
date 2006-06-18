@@ -57,7 +57,6 @@ extern background_rendering_method render_background;
 void scene_check(void);
 int scene_init(void);
 void scene_close(void);
-void scene_threads_setup(void);
 void set_default_resolution(int, int);
 
 #ifdef ACTUALLYDISPLAY

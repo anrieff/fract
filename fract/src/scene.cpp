@@ -126,18 +126,6 @@ void scene_close(void)
 {
 }
 
-void scene_threads_setup(void)
-{
-	switch (BackgroundMode) {
-		case BACKGROUND_MODE_FLOOR:
-			render_threads_setup();
-			break;
-		case BACKGROUND_MODE_VOXEL:
-			voxel_threads_setup();
-			break;
-	}
-}
-
 #ifdef ACTUALLYDISPLAY
 void scene_render_single_frame(SDL_Surface *p, SDL_Overlay *ov)
 {
@@ -278,7 +266,6 @@ void Scene::init(void)
 		printf("Unable to start scene, bailing out\n");
 		exit(1);
 	}
-	if (cpu_count > 1) scene_threads_setup();
 	precalc();
 	
 #ifdef ACTUALLYDISPLAY
@@ -382,8 +369,6 @@ void Scene::close(void)
 			break;
 		case BACKGROUND_MODE_VOXEL:
 			voxel_close();
-			if (cpu_count > 1) 
-				threads_close();
 			break;
 	}
 	mesh_close();

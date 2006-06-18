@@ -68,7 +68,6 @@ Uint32 voxel_raytrace(const Vector & cur, const Vector & v);
 extern int voxel_rendering_method, shadow_casting_method;
 extern bool light_moving;
 
-void voxel_threads_setup(void);
 int voxel_init(void);
 void voxel_close(void);
 void voxel_shoot(void);

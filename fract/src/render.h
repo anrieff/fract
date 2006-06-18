@@ -96,9 +96,7 @@ void blur_reinit(void);
 Uint32 *get_frame_buffer(void);
 
 void set_cpus(int cpu_count);
-void render_threads_setup(void);
 void render_close(void);
-void threads_close(void);
 
 void fract_thread(void);
 

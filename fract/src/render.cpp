@@ -40,6 +40,7 @@
 #include "shaders.h"
 #include "shadows.h"
 #include "sphere.h"
+#include "threads.h"
 #include "triangle.h"
 #include "vector3.h"
 #include "vectormath.h"
@@ -69,6 +70,8 @@ double stereo_depth = 100;
 double stereo_separation = 6;
 Uint32 *stereo_buffer = NULL;
 
+ThreadPool thread_pool;
+
 #ifdef TEX_OPTIMIZE
 SSE_ALIGN(ML_Entry ml_buffer[(RES_MAXX/ML_BUFFER_GRAN)*(RES_MAXY/ML_BUFFER_GRAN)]);
 #endif
@@ -85,9 +88,6 @@ static int good, worse, realbad;
 extern bool wantdump;
 #endif
 extern int threads_first;
-class MultiThreaded;
-MultiThreaded *mt;
-#include "threads.h"
 
 #define genrender_asm
 #include "x86_asm.h"
@@ -1087,82 +1087,67 @@ void render_single_frame_do(void)
 
 	//save tt's
 	t0 = tt;
+	
+	class MultiThreadedMainRender : public Parallel {
+		Vector local_t0, local_ti, local_tti;
+		Uint32 *framebuffer, *spherebuffer;
+		Uint16 *fbuffer;
+		int xr, yr;
+		public:
+			MultiThreadedMainRender(const Vector& tt, const Vector &ti, const Vector &tti, Uint16 *xfbuffer,
+				Uint32 *fb, int xr, int yr, Uint32 *sb) {
+				local_t0 = tt;
+				local_ti = ti;
+				local_tti = tti;
+				this->xr = xr;
+				this->yr = yr;
+				spherebuffer = sb;
+				framebuffer = fb;
+				fbuffer = xfbuffer;
+				render_spheres_init(fbuffer);
+			}
+			void entry(int thread_idx, int thread_count)
+			{
+				Vector t0;
+				t0 = local_t0;
+				render_background(framebuffer, xr, yr, t0, local_ti, local_tti, thread_idx);
+				t0 = local_t0;
+				//render_spheres
+				render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, thread_idx);
+			}
+	} multithreaded_main_render (tt, ti, tti, fbuffer, ptr, xr, yr, spherebuffer);
+	
+	
 
 	if (cpu_count==1) {
-	prof_enter(PROF_RENDER_FLOOR);
-	render_background(ptr, xr, yr, tt, ti, tti, 0);
-	prof_leave(PROF_RENDER_FLOOR);
+		prof_enter(PROF_RENDER_FLOOR);
+		render_background(ptr, xr, yr, tt, ti, tti, 0);
+		prof_leave(PROF_RENDER_FLOOR);
 
-	tt = t0;
+		tt = t0;
 
-	prof_enter(PROF_RENDER_SPHERES);
+		prof_enter(PROF_RENDER_SPHERES);
 		render_spheres_init(fbuffer);
 		render_spheres(spherebuffer, fbuffer, tt, ti, tti, 0);
-	prof_leave(PROF_RENDER_SPHERES);
+		prof_leave(PROF_RENDER_SPHERES);
 
 	} else {
-		mt->thread_main(t0, ti, tti, xr, yr, ptr);
+		thread_pool.run(&multithreaded_main_render, cpu_count);
 	}
 	if (r_shadows){
-	prof_enter(PROF_RENDER_SHADOWS);	render_shadows(ptr, sbuffer, xr, yr, t0, ti, tti);	prof_leave(PROF_RENDER_SHADOWS);
+		prof_enter(PROF_RENDER_SHADOWS);
+		render_shadows(ptr, sbuffer, xr, yr, t0, ti, tti);
+		prof_leave(PROF_RENDER_SHADOWS);
 	}
-	prof_enter(PROF_MERGE_BUFFERS);		merge_buffers(ptr, spherebuffer, fbuffer);		prof_leave(PROF_MERGE_BUFFERS);
+	prof_enter(PROF_MERGE_BUFFERS);
+	merge_buffers(ptr, spherebuffer, fbuffer);
+	prof_leave(PROF_MERGE_BUFFERS);
+	
 #ifdef ACTUALLYDISPLAY
 	prof_enter(PROF_POSTFRAME_DO);		postframe_do(p, ov);			prof_leave(PROF_POSTFRAME_DO);
 #else
 	prof_enter(PROF_POSTFRAME_DO);		postframe_do();				prof_leave(PROF_POSTFRAME_DO);
 #endif
-}
-
-/****************************************************************
- * This is the threaded variant of the rendering process        *
- * A pointer to this function is passed when initializing the   *
- * MultiThreaded class                                          *
- ****************************************************************/
-void fract_thread(void)
-{
-//	int trd_n = data;
-	int trd_n = trd_counter++; // <- WARNING: THIS SHOULD BE DANGEROUS IF IT'S NOT ATOMIC!!!!!
-	int xr, yr;
-	Vector t0, tt, ti, tti;
-	Uint32 *ptr;
-	if (trd_n < 0 || trd_n > cpu_count) {
-		printf("Thread is unexpectedly corrupted, disable multithreading for sanity!\n");
-		exit(1) ;
-	}
-	// all threads become blocked after creation in the line below.
-#ifdef ACTUALLYDISPLAY
-	SDL_SemWait(start_sem); // initial wait
-#else
-	sem_wait(&start_sem);
-#endif
-	// they are unblocked when first frame is ready to be rendered
-	while (cmd_thread != THREAD_QUIT_CMD) {
-		// do stuff...
-		tt = thread_tt;
-		ti = thread_ti;
-		tti = thread_tti;
-		t0 = thread_tt;
-
-		xr = thread_xres;
-		yr = thread_yres;
-		ptr = thread_ptr;
-
-		// do the actual work:
-		render_background(ptr, xr, yr, tt, ti, tti, trd_n);
-		render_spheres(spherebuffer, fbuffer, t0, ti, tti, trd_n);
-
-#ifdef ACTUALLYDISPLAY
-		SDL_SemPost(main_sem);
-#else
-		sem_post(&main_sem);
-#endif
-#ifdef ACTUALLYDISPLAY
-		SDL_SemWait(r_sem[trd_n]);
-#else
-		sem_wait(r_sem + trd_n);
-#endif
-	}
 }
 
 
@@ -1209,16 +1194,6 @@ void set_cpus(int new_count)
 	cpu_count = new_count;
 }
 
-void render_threads_setup(void)
-{
-	mt = new MultiThreaded(cpu_count, fract_thread);
-}
-
-void threads_close(void)
-{
-	if (mt) delete mt;
-}
-
 void render_close(void)
 {
 	tex.close();
@@ -1228,7 +1203,6 @@ void render_close(void)
 		T[++i].close();
 		sz/=2;
 	}
-	threads_close();
 	if (stereo_buffer) {
 		free(stereo_buffer);
 		stereo_buffer = 0;

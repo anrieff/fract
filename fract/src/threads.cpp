@@ -1,6 +1,7 @@
+#ifdef __APPLE__
 /***************************************************************************
- *   Copyright (C) 2005 by Veselin Georgiev                                *
- *   vesko@workhorse                                                       *
+ *   Copyright (C) 2006 by Veselin Georgiev                                *
+ *   anrieff@mxgail.com (change to gmail)                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,175 +18,331 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "MyGlobal.h"
-#include "cpuid.h"
-#include "scene.h"
-#include "threads.h"
 
+#include <unistd.h>
+#include <mach/clock_types.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
 
-MultiThreaded *temp;
-volatile int trd_counter;
-#ifdef ACTUALLYDISPLAY
-SDL_Thread* r_threads[MAX_CPU_COUNT];
-SDL_sem* r_sem[MAX_CPU_COUNT];
-SDL_sem *main_sem, *start_sem;
-#else
-pthread_t r_threads[MAX_CPU_COUNT];
-sem_t r_sem[MAX_CPU_COUNT];
-sem_t main_sem, start_sem;
-#endif
-volatile int cmd_thread;
-Vector thread_tt, thread_ti, thread_tti;
-Uint32 *thread_ptr;
-int thread_xres, thread_yres;
-int threads_first;
-
-
-
-
-void MultiThreaded:: thread_main(Vector& t0, Vector& ti, Vector& tti, int xr, int yr, Uint32 *ptr)
+int system_get_processor_count(void)
 {
-	int i;
-	thread_tt = t0;
-	thread_ti = ti;
-	thread_tti = tti;
-	thread_xres = xr;
-	thread_yres = yr;
-	thread_ptr = ptr;
-	if (BackgroundMode == BACKGROUND_MODE_FLOOR)
-		render_spheres_init(fbuffer); // clear the buffer before any thread has begun touching it ...
-
-	// run the threads
-	for (i=0;i<cpu_count;i++) {
-
-		if (threads_first) {
-#ifdef ACTUALLYDISPLAY
-			SDL_SemPost(start_sem);
-#else
-			sem_post(&start_sem);
-#endif
-		}else {
-#ifdef ACTUALLYDISPLAY
-			SDL_SemPost(r_sem[i]);
-#else
-			sem_post(r_sem+i);
-#endif
-		}
-	}
-
-	/* right now the threads are running like idiots :)
-	*/
-	threads_first = 0;
-	for (i=0;i<cpu_count;i++) {
-#ifdef ACTUALLYDISPLAY
-		SDL_SemWait(main_sem);
-#else
-		sem_wait(&main_sem);
-#endif
-	}
-	// Once all threads are ready they all become blocked in the end of their while(...) { ...} cycle
+	kern_return_t kr;
+	host_basic_info_data_t basic_info;
+	host_info_t info = (host_info_t)&basic_info;
+	host_flavor_t flavor = HOST_BASIC_INFO;
+	mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
+	kr = host_info(mach_host_self(), flavor, info, &count);
+	if (kr != KERN_SUCCESS) return 1;
+	return basic_info.avail_cpus;
 }
 
-#ifdef ACTUALLYDISPLAY
-#ifdef __GNUC__
-static int __attribute__((noinline)) fract_thread_dummy(void *data)
-#else
-static int fract_thread_dummy(void *data)
+ 
 #endif
-#else
-static void* __attribute__((noinline)) fract_thread_dummy(void *data)
-#endif
+#if defined __linux__ || defined unix
+/***************************************************************************
+ *   Copyright (C) 2006 by Veselin Georgiev                                *
+ *   anrieff@mxgail.com (change to gmail)                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
+#include <sys/sysinfo.h>
+#include <unistd.h>
+ 
+int system_get_processor_count(void)
 {
-//	register int thread_id_ = *((int*)data);
-#if defined __GNUC__ && defined USE_ASSEMBLY
-	__asm __volatile ("andl $-16,%%esp" ::: "%esp");
+	return sysconf(_SC_NPROCESSORS_ONLN);
+}
+
 #endif
-	temp->thread_proc();
+#if defined __linux__ || defined unix || defined __APPLE__
+/***************************************************************************
+ *   Copyright (C) 2006 by Veselin Georgiev                                *
+ *   anrieff@mxgail.com (change to gmail)                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
+#include "threads.h"
+#include <pthread.h>
+
+/**
+ @class Mutex
+ **/
+ 
+Mutex::Mutex()
+{
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+	pthread_mutex_init(&m, &attr);
+	pthread_mutexattr_destroy(&attr);
+}
+
+Mutex::~Mutex()
+{
+	pthread_mutex_destroy(&m);
+}
+ 
+void Mutex::enter(void)
+{
+	pthread_mutex_lock(&m);
+}
+
+void Mutex::leave(void)
+{
+	pthread_mutex_unlock(&m);
+}
+ 
+/**
+ @class Event
+ **/
+
+Event::Event()
+{
+	pthread_mutex_init(&m, NULL);
+	pthread_cond_init(&c, NULL);
+	state = 0;
+}
+
+Event::~Event()
+{
+	pthread_cond_destroy(&c);
+	pthread_mutex_destroy(&m);
+}
+
+void Event::wait(void)
+{
+	pthread_mutex_lock(&m);
+	if (state == 1) {
+		state = 0;
+		pthread_mutex_unlock(&m);
+		return;
+	}
+	pthread_cond_wait(&c, &m);
+	pthread_mutex_unlock(&m);
+}
+
+void Event::signal(void)
+{
+	pthread_mutex_lock(&m);
+	state = 1;
+	pthread_mutex_unlock(&m);
+	pthread_cond_signal(&c);
+}
+
+// FUNCTIONS
+
+int atomic_add(volatile int *addr, int val) 
+{
+	__asm__ __volatile__(
+			"lock; xadd	%0,	%1\n"
+	:"=r"(val), "=m"(*addr)
+	:"0"(val), "m"(*addr)
+			    );
+	return val;
+}
+//
+void* posix_thread_proc(void *data)
+{
+	ThreadInfoStruct *info = static_cast<ThreadInfoStruct*>(data);
+	my_thread_proc(info);
+	return NULL;
+}
+
+void new_thread(pthread_t *handle, ThreadInfoStruct *info)
+{
+	pthread_create(handle, NULL, posix_thread_proc, info);
+	pthread_detach(*handle);
+}
+
+ 
+#endif
+
+#ifdef _WIN32
+/***************************************************************************
+ *   Copyright (C) 2006 by Veselin Georgiev                                *
+ *   anrieff@mxgail.com (change to gmail)                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
+#include "cxxptl.h"
+
+/**
+ @class Mutex
+ **/
+  
+Mutex::Mutex()
+{
+	InitializeCriticalSection(&cs);
+}
+ 
+Mutex::~Mutex()
+{
+	DeleteCriticalSection(&cs);
+}
+
+void Mutex::enter(void)
+{
+	EnterCriticalSection(&cs);
+}
+
+void Mutex::leave(void)
+{
+	LeaveCriticalSection(&cs);
+}
+
+/**
+ @class Event
+ **/
+
+Event::Event()
+{
+	event = CreateEvent(NULL, FALSE, FALSE, NULL);
+}
+
+Event::~Event()
+{
+	CloseHandle(event);
+}
+
+void Event::wait(void)
+{
+	WaitForSingleObject(event, INFINITE);
+}
+
+void Event::signal(void)
+{
+	SetEvent(event);
+}
+
+// FUNCTIONS
+int system_get_processor_count(void)
+{
+	SYSTEM_INFO system_info;
+	GetSystemInfo(&system_info);
+	return system_info.dwNumberOfProcessors;
+}
+
+int atomic_add(volatile int *addr, int val) 
+{
+	/*	
+	__asm {
+		mov		edx,	addr
+		mov		eax,	val
+		lock xadd	[edx],	eax
+		mov		val,		eax
+	}
+	return val;
+	*/
+	return InterlockedExchangeAdd((volatile long*)addr, val);
+}
+
+DWORD WINAPI win32_thread_proc(void *data)
+{
+	ThreadInfoStruct *info = static_cast<ThreadInfoStruct*>(data);
+	my_thread_proc(info);
 	return 0;
 }
 
-MultiThreaded:: MultiThreaded(int cpukount, void (*run_proc)(void))
+void new_thread(HANDLE *handle, ThreadInfoStruct *info)
 {
-	int i, res;
-	int tstorage[MAX_CPU_COUNT];
-	temp = this;
-	thread_proc = run_proc;
-	cpu_count = cpukount;
-	trd_counter = 0;
-	threads_first = 1;
-	for (i=0;i<cpu_count;i++) {
-#ifdef ACTUALLYDISPLAY
-		r_sem[i] = SDL_CreateSemaphore(0); // create n LOCKED semaphores
-		res = (r_sem[i] == NULL);
-#else
-		res = sem_init(r_sem + i, 0, 0); // create n LOCKED semaphores
+	DWORD useless;
+	*handle = CreateThread(NULL, 0, win32_thread_proc, info, 0, &useless);
+	CloseHandle(*handle);
+}
+ 
 #endif
-		if (res) printf("error creating %d-th semaphore\n", i);
-	}
-#ifdef ACTUALLYDISPLAY
-	main_sem = SDL_CreateSemaphore(0); // create a semaphore for the main thread
-	res = (main_sem == NULL);
-#else
-	res = sem_init(&main_sem, 0, 0);  // create a semaphore for the main thread
-#endif
-	if (res) printf("Unable to create the main semaphore\n");
-#ifdef ACTUALLYDISPLAY
-	start_sem = SDL_CreateSemaphore(0);  // create a semaphore for the rendering union
-	res = (start_sem == NULL);
-#else
-	res = sem_init(&start_sem, 0, 0);    // create a semaphore for the rendering union
-#endif
-	if (res) printf("Unable to create the start semaphore\n");
+/***************************************************************************
+ *   Copyright (C) 2006 by Veselin Georgiev                                *
+ *   anrieff@mxgail.com (change to gmail)                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
 
-	for (i=0;i<cpu_count;i++) {
-		tstorage[i] = i;
-#ifdef ACTUALLYDISPLAY
-		r_threads[i] = SDL_CreateThread(fract_thread_dummy, &tstorage[i]); // create and run n threads
-		res = (r_threads[i] == NULL);
-#else
-		res = pthread_create(r_threads + i, NULL, fract_thread_dummy, &tstorage[i]);
-#endif
-		if (res) printf("Error creating %d-th thread\n", i);
+#include "threads.h"
+
+
+int system_get_processor_count(void);
+int get_processor_count(void)
+{
+	static bool inited = false;
+	static int _thecount=1;
+	if (!inited) {
+		_thecount = system_get_processor_count();
+		inited = true;
 	}
-	cmd_thread = THREAD_RUN_CMD;
+	return _thecount;
 }
 
 
-MultiThreaded:: ~MultiThreaded(void)
+void multithreaded_memset(void *data, unsigned fill_pattern, long size, int thread_index, int threads_count)
 {
-	int i;
-	cmd_thread = THREAD_QUIT_CMD; // tell 'em to quit
-#ifdef ACTUALLYDISPLAY
-	SDL_Delay(35);
-#endif
-	for (i=0;i<cpu_count;i++) // unleash the power :)
-#ifdef ACTUALLYDISPLAY
-		SDL_SemPost(r_sem[i]);
-#else
-		sem_post(r_sem + i );
-#endif
-	for (i=0;i<cpu_count;i++) {
-#ifdef ACTUALLYDISPLAY
-		SDL_WaitThread(r_threads[i], NULL); // wait for completion (=free resources)
-#else
-		pthread_join(r_threads[i], NULL);
-#endif
-	}
-
-#ifdef ACTUALLYDISPLAY
-	for (i=0;i<cpu_count;i++)
-		SDL_DestroySemaphore(r_sem[i]); // destroy thread semaphores
-	SDL_DestroySemaphore(main_sem); // destroy main semaphore
-	SDL_DestroySemaphore(start_sem);
-#else
-	for (i=0;i<cpu_count;i++)
-		sem_destroy(r_sem+i);
-	sem_destroy(&main_sem);
-	sem_destroy(&start_sem);
-
-#endif
+	unsigned * p = (unsigned *)data;
+	long ending = thread_index < threads_count - 1 ? (thread_index+1) * (size / threads_count) : size;
+	for (long i = thread_index * (size / threads_count); i < ending; i ++)
+		p[i] = fill_pattern;
+	// for optimal performance check what code does you compiler generate. This loop should be compiled to a
+	// single "rep stosd" instruction
 }
-
+ 
+/** 
+ @class Barrier
+ **/
+  
 static volatile int lockers[MAX_BARRIERS][MAX_CPU_COUNT];
 
 Barrier::Barrier()
@@ -214,16 +371,117 @@ void Barrier::checkout()
 	}
 }
 
-void multithreaded_memset(void *data, unsigned fill_pattern, size_t size, int thread_index, int threads_count)
+/**
+ @class ThreadPool
+ **/
+ 
+void ThreadPool::one_more_thread(void)
 {
-	unsigned * p = (unsigned *)data;
-	size_t ending = thread_index < threads_count - 1 ? (thread_index+1) * (size / threads_count) : size;
-	for (size_t i = thread_index * (size / threads_count); i < ending; i ++)
-		p[i] = fill_pattern;
-	// for optimal performance check what code does you compiler generate. This loop should be compiled to a
-	// single "rep stosd" instruction
+	ThreadInfoStruct& ti = info[active_count];
+	ti.thread_index = active_count;
+	ti.state = THREAD_CREATING;
+	ti.counter = &counter;
+	ti.thread_pool_event = &thread_pool_event;
+	ti.execute_class = NULL;
+	ti.waiting = &waiting;
+	new_thread(&ti.thread, &ti);
+	
+	++active_count;
+	for (int i = active_count-1; i >= 0; i--)
+		info[i].thread_count = active_count;
 }
 
-#define threads1
-#include "x86_asm.h"
-#undef threads1
+ThreadPool::ThreadPool()
+{
+	active_count = 0;
+	counter = 0;
+}
+
+ThreadPool::~ThreadPool()
+{
+	killall_threads();
+}
+
+void ThreadPool::killall_threads(void)
+{
+	for (; active_count> 0; active_count --) {
+		ThreadInfoStruct& i = info[active_count-1];
+		while (i.state != THREAD_SLEEPING) relent();
+		i.state = THREAD_EXITING;
+		i.myevent.signal();
+		while (i.state != THREAD_DEAD) relent();
+	}
+}
+
+void ThreadPool::run(Parallel *para, int threads_count)
+{
+	if (threads_count == 1) {
+		para->entry(0, 1);
+		return;
+	}
+	while (active_count < threads_count) 
+		one_more_thread();
+	int n = threads_count;
+	
+	waiting = true;
+	counter = n;
+	for (int i = 0; i < n; i++) {
+		info[i].thread_index = i;
+		info[i].thread_count = n;
+		info[i].execute_class = para;
+		while (info[i].state != THREAD_SLEEPING) {
+			relent();
+		}
+		info[i].state = THREAD_RUNNING;
+		info[i].myevent.signal();
+	}
+	thread_pool_event.wait();
+	waiting = false;
+	
+	// round robin all threads until they come to rest
+	while (1) {
+		bool good = true;
+		for (int i = 0; i < n; i++) if (info[i].state != THREAD_SLEEPING) good = false;
+		if (good) break;
+		relent();
+	}
+}
+
+void ThreadPool::preload_threads(int count)
+{
+	if (active_count < count)
+		run(NULL, count);
+}
+
+
+/**
+ thread function (my_thread_proc)
+ **/
+void my_thread_proc(ThreadInfoStruct *info)
+{
+	bool she = false;
+	do {
+
+		info->state = THREAD_SLEEPING;
+		info->myevent.wait();
+		switch (info->state) {
+			case THREAD_EXITING: she = true; break;
+			case THREAD_RUNNING:
+			{
+				if (info->execute_class) info->execute_class->entry(info->thread_index, info->thread_count);
+				int res = --(*(info->counter));
+				if (!res) {
+					info->thread_pool_event->signal();
+					do {
+						relent();
+					} while (*(info->waiting));
+				}
+				break;
+			}
+			default: break;
+		}
+	} while (!she);
+	info->state = THREAD_DEAD;
+}
+
+

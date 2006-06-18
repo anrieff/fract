@@ -16,6 +16,7 @@
 #include <errno.h>
 #include "MyGlobal.h"
 #include "antialias.h"
+#include "barriers.h"
 #include "bitmap.h"
 #include "common.h"
 #include "fract.h"
@@ -49,8 +50,8 @@ extern double alpha, beta;
 extern double fov;
 extern int sse_enabled, bilfilter;
 extern int vframe, lx, ly, lz;
-extern MultiThreaded *mt;
 extern bool WantToQuit;
+extern int cpu_count;
 
 #ifdef ACTUALLYDISPLAY
 extern SDL_Surface *screen;
@@ -1075,12 +1076,6 @@ void voxel_frame_init(void)
 		shadow_casting_method %= 2;
 		must_recalc_light = true;
 	}
-}
-
-void voxel_threads_setup(void)
-{
-	//mt = new MultiThreaded(cpu_count, voxel_threaded);
-	mt = new MultiThreaded(cpu_count, fract_thread);
 }
 
 void voxel_close(void)
