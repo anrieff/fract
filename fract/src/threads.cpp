@@ -90,6 +90,7 @@ int system_get_processor_count(void)
  ***************************************************************************/
 
 #include "threads.h"
+#include "asmconfig.h"
 #include <pthread.h>
 
 /**
@@ -172,6 +173,13 @@ int atomic_add(volatile int *addr, int val)
 void* posix_thread_proc(void *data)
 {
 	ThreadInfoStruct *info = static_cast<ThreadInfoStruct*>(data);
+	// fix broken pthreads implementations, where this proc's frame
+	// is not 16 byte aligned...
+	//
+#if defined __GNUC__ && defined USE_ASSEMBLY
+	__asm __volatile("andl	$-16,	%%esp" ::: "%esp");
+#endif
+	//
 	my_thread_proc(info);
 	return NULL;
 }
