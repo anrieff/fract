@@ -3792,22 +3792,21 @@ int CPUZ=0, CPUEXT=0, ECS=0;
 #endif
 
 #ifdef rgbhacks2
-int is_intel(void) // for benchmarking only:
+static void get_vendor_string(char *name) // for benchmarking only:
 {
-	int result;
 
 	__asm __volatile(
+		"mov	%0,	%%esi\n"
 		"push	%%ebx\n"
 		"xorl	%%eax, 	%%eax\n"
 		"cpuid\n"
-		"movl	%%ebx,  %%eax\n"
+		"mov	%%ebx,	(%%esi)\n"
+		"mov	%%edx,	4(%%esi)\n"
+		"mov	%%ecx,	8(%%esi)\n"
 		"pop	%%ebx\n"
-		"movl	%%eax,	%0\n"
-	:"=m"(result)
-	:
-	:"eax", "ecx", "edx"
+	::"m"(name)
+	:"eax", "ecx", "edx", "esi"
 	);
-	return (result == INTEL_EBX);
 }
 #endif
 
@@ -7726,18 +7725,23 @@ int CPUZ=0, CPUEXT=0, ECS=0;
 
 #endif
 #ifdef rgbhacks2
-int is_intel(void) // for benchmarking only:
+static void get_vendor_string(char *name) // for benchmarking only:
 {
-	int result;
-
 	__asm {
-
-			xor		eax,		eax
-			cpuid
-			mov		result,		ebx
-
+		push	esi
+		push	ebx
+		
+		mov	esi,	name
+		xor	eax,	eax
+		cpuid
+		
+		mov	[esi],		ebx
+		mov	[esi+4],	edx
+		mov	[esi+8],	ecx
+		
+		pop	ebx
+		pop	esi
 	}
-	return (result == INTEL_EBX);
 }
 #endif // rgbhacks2
 
@@ -7836,7 +7840,7 @@ void ConvertRGB2YUV_SSE(Uint32 *dest, Uint32 *src, size_t count) {}
 //void GetCPUCaps(CPUCaps *a) {a->hasmmx=a->hasmmx2=a->hassse=a->largemem=0;}
 #endif
 #ifdef rgbhacks2
-int is_intel(void) {return 0;}
+static void get_vendor_string(char *name);
 #endif
 #ifdef threads1 
 int atomic_add(volatile int *addr, int val) 

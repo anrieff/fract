@@ -27,6 +27,7 @@
 #include "MyTypes.h"
 #include "antialias.h"
 #include "common.h"
+#include "cpu.h"
 #include "gfx.h"
 #include "vectormath.h"
 
@@ -42,7 +43,6 @@ double lastgX=-9999999.0, lastgY=-9999999.0, lastr;
 // default resolution:
 int Xres=640, Yres=480;
 int Xres2, Yres2;
-extern int sse_enabled;
 extern int camera_moved;
 extern int RowMin[], RowMax[];
 extern RawImg font0;
@@ -718,7 +718,7 @@ void gfx_init(void)
 		PreSC[j][i][1] = cos(((double)i/(double)j)*2*M_PI);
 		}
  gfx_update_2nds();
- if (sse_enabled)
+ if (cpu.sse)
  	blend = blend_sse;
 }
 

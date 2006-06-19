@@ -23,7 +23,6 @@ void init_fract_array(void);
 
 
 extern double daFloor, daCeiling;
-extern int sse_enabled, mmx_enabled, mmx2_enabled;
 extern double alpha, beta;
 extern bool WantToQuit;
 extern int defaultconfig;

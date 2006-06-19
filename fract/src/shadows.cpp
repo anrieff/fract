@@ -11,6 +11,7 @@
 #include "shadows.h"
 #include "MyGlobal.h"
 #include "cross_vars.h"
+#include "cpu.h"
 #include "profile.h"
 #include "gfx.h"
 #include "vectormath.h"
@@ -66,7 +67,7 @@ static void shadows_precalc(int xr, int yr, Vector & mtt, Vector& mti, Vector& m
 static void shadows_merge(int xr, int yr, Uint32 *target_framebuffer, Uint16 *sbuffer)
 {
 	prof_enter(PROF_MERGE);
-	if (mmx2_enabled)
+	if (cpu.mmx2)
 		shadows_merge_mmx2(target_framebuffer, sbuffer, xr*yr);
 	else {
 		xr*=yr;
@@ -238,7 +239,7 @@ struct SolidDrawer : public AbstractDrawer
 	inline bool draw_line(int x, int y, int size)
 	{
 		Uint16 *p = &buff[y * xr + x];
-		if (size >= 16 && mmx_enabled) {
+		if (size >= 16 && cpu.mmx) {
 			fast_line_fill(p, size, fill);
 		} else {
 			for (int i = 0; i < size; i++)
@@ -743,7 +744,7 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 	CLAMP(all_max_x, 0, xr-1);	
 	CLAMP(all_min_y, 0, yr-1);	
 	CLAMP(all_max_y, 0, yr-1);
-	if (mmx_enabled) {
+	if (cpu.mmx) {
 		fast_reblend_mmx(all_min_x, all_min_y, all_max_x, all_max_y, sbuffer, xr, shadow_intensity);
 	} else {
 		for (int j = all_min_y; j <= all_max_y; j++) {

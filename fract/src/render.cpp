@@ -28,6 +28,7 @@
 #include "blur.h"
 #include "cmdline.h"
 #include "common.h"
+#include "cpu.h"
 #include "fract.h"
 #include "gfx.h"
 #include "infinite_plane.h"
@@ -63,7 +64,6 @@ ObjectArray allobjects;
 int obj_count;
 int UseThreads = -1;
 int r_shadows  = 1;
-int cpu_count = 1;
 bool parallel = false;
 int stereo_mode = STEREO_MODE_NONE;
 double stereo_depth = 100;
@@ -491,7 +491,7 @@ void render_spheres_init(unsigned short *fbuffer)
 {
 	int xr = xsize_render(xres()), yr = ysize_render(yres());
 	prof_enter(PROF_MEMSETS);
-	if (cpu_count == 1) memset(fbuffer, 0, xr*yr*sizeof(unsigned short));
+	if (cpu.count == 1) memset(fbuffer, 0, xr*yr*sizeof(unsigned short));
 	memset(RowInfo, 0, sizeof(RowInfo));
 #ifdef TEX_OPTIMIZE
 	memset(ml_buffer, 0, sizeof(ML_Entry)*(xr*yr/(ML_BUFFER_GRAN*ML_BUFFER_GRAN)));
@@ -539,7 +539,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 	Vector tt_start = tt;
 
 	while ((j = lock++) < yr) {
-	//for (j = thread_idx; j < yr; j += cpu_count) {
+	//for (j = thread_idx; j < yr; j += cpu.count) {
 #ifdef TEX_OPTIMIZE
 		mlbuff = ml_buffer + ((j/16) * ml_x);
 #endif
@@ -547,7 +547,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 		tt = tt_start + tti * j;
 		fb = &start_fb[j * xr];
 		fbuffer = &start_fbuffer[j * xr];
-		if (cpu_count > 1) memset(fbuffer, 0, sizeof(short)*xr);
+		if (cpu.count > 1) memset(fbuffer, 0, sizeof(short)*xr);
 		//
 		while (rp < OR_size && (obj_rows[rp].y < j || (obj_rows[rp].y == j && obj_rows[rp].type == OPENING))) {
 			if (obj_rows[rp].type == OPENING) {
@@ -782,7 +782,7 @@ void merge_buffers(Uint32 *dest, Uint32 *src, unsigned short *fbuffer)
 	int y, xr, yr;
 	xr = xsize_render(xres()); yr = ysize_render(yres());
 	for (y = 0; y < yr; y++, src+=xr, dest+=xr, fbuffer+=xr) if (RowInfo[y]) {
-		if (mmx2_enabled)
+		if (cpu.mmx2)
 			merge_rows(dest, src, fbuffer, xr);
 			else
 			merge_rows_p5(dest, src, fbuffer, xr);
@@ -831,7 +831,7 @@ void render_single_frame_do(void)
 	//save tt's
 	t0 = tt;
 	
-	if (cpu_count==1) {
+	if (cpu.count==1) {
 		InterlockedInt i1 = 0, i2 = 0;
 		prof_enter(PROF_RENDER_FLOOR);
 		render_background(ptr, xr, yr, tt, ti, tti, 0, i1);
@@ -879,7 +879,7 @@ void render_single_frame_do(void)
 				}
 		} multithreaded_main_render (tt, ti, tti, fbuffer, ptr, xr, yr, spherebuffer);
 
-		thread_pool.run(&multithreaded_main_render, cpu_count);
+		thread_pool.run(&multithreaded_main_render, cpu.count);
 	}
 	if (r_shadows){
 		prof_enter(PROF_RENDER_SHADOWS);
@@ -927,19 +927,6 @@ void render_single_frame(void)
 	render_single_frame_do();
 }
 #endif
-
-
-void set_cpus(int new_count)
-{
-	if (new_count < 1) {
-		printf("Invalid processor count: %d\n", new_count);
-		new_count = 1;
-	} else if (new_count > MAX_CPU_COUNT) {
-		printf("Sorry. Maximum allowable CPU count is %d\n", MAX_CPU_COUNT);
-		new_count = MAX_CPU_COUNT;
-	}
-	cpu_count = new_count;
-}
 
 void render_close(void)
 {

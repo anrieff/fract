@@ -46,7 +46,6 @@ extern int vframe, bilfilter;
 
 extern Uint32 clk;
 extern double daFloor, daCeiling;
-extern int sse_enabled, mmx2_enabled, mmx_enabled;
 extern double gX, gY;
 extern double alpha, beta;
 extern Vector w[3], cur;

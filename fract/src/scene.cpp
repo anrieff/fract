@@ -22,7 +22,7 @@
 #include "triangle.h"
 #include "mesh.h"
 #include "cmdline.h"
-#include "cpuid.h"
+#include "cpu.h"
 #include "fract.h"
 #include "cross_vars.h"
 #include "gfx.h"
@@ -41,7 +41,6 @@
 extern Vector cur;
 extern int RenderMode;
 extern int developer, design;
-extern int cpu_count;
 extern int threads_first;
 
 int SceneType = FRAME_BASED;
@@ -156,21 +155,15 @@ void Scene::precalc(void)
 
 	// the integrated multiplycolor + lightformulae assembly code requires SSE & MMX2
 	// I don't know of a processor which supports SSE, but does NOT MMX2; nevermind I make MMX2 required here, just in case...
-	if (!option_exists("--no-sse"))
-		sse_enabled = SysInfo.supports("sse") && SysInfo.supports("mmx2");
 	
 	// the assembly bilinear filtering routine requires MMX and MMX extended instruction sets.
-	if (!option_exists("--no-mmx2"))
-		mmx2_enabled = SysInfo.supports("mmx2");
 	
 	// the fast bluring routine requires only MMX
-	if (!option_exists("--no-mmx"))
-		mmx_enabled = SysInfo.supports("mmx");
 	
 	// if we don't have SSE, we will precalculate the distance values. 
 	// This will get us close to the calculation performance of using SSE,
 	// but the integrated version will still be faster because of its integration.
-	if ( !sse_enabled ) {
+	if ( !cpu.sse ) {
 		if ((sqrtsqrt = (int *) malloc(MAX_DIST*sizeof(int))) == NULL) {
 			printf("Cannot get memory for precalculated sqrtsqrt array!\n");
 			exit(1);
@@ -487,7 +480,7 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 			exit_code != RUN_CKSUM_FAILED) return;
 	int she = 0;
 #ifdef SHOW_CPU_SPEED
-	int cpuspd = get_cpu_speed();
+	int cpuspd = cpu.speed();
 	saved_cpuspd = cpuspd;
 #endif
 #ifdef MAKE_CHECKSUM
@@ -528,8 +521,8 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	printxy(screen, framebuffer, font0,166, y, 0xff3f00, 0.95, "%5d", cpuspd);
 	y += 20;
 #endif
-	if (cpu_count > 1) {
-		printxy(screen, framebuffer, font0, 45,y, 0xeef9ff, 0.75, "Used %d-threaded rendering.", cpu_count);
+	if (cpu.count > 1) {
+		printxy(screen, framebuffer, font0, 45,y, 0xeef9ff, 0.75, "Used %d-threaded rendering.", cpu.count);
 		y += 20;
 	}
 #ifdef MAKE_CHECKSUM

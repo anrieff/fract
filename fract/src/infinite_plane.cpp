@@ -18,6 +18,7 @@
 #include "infinite_plane.h"
 #include "bitmap.h"
 #include "common.h"
+#include "cpu.h"
 #include "fract.h"
 #include "gfx.h"
 #include "profile.h"
@@ -36,7 +37,6 @@
 double Area_const = 1.61;
 int do_mipmap  = 1;
 FilteringInfo def_finfo;
-extern int cpu_count;
 
 
 /* integrated lighting and Multiplication routine.
@@ -49,7 +49,7 @@ extern int cpu_count;
  */
 Uint32 integrated( Uint32 texturecolor, int x, int y, int lx, int ly, int ysqrd_raytrace)
 {
- if ( sse_enabled )  return igrated(texturecolor, x, y, lx, ly, ysqrd_raytrace);
+ if ( cpu.sse )  return igrated(texturecolor, x, y, lx, ly, ysqrd_raytrace);
  		else return multiplycolor(texturecolor, lform(x, y, lx, ly, ysqrd_raytrace));
 }
 
@@ -83,7 +83,7 @@ Uint32 texture_handle_bilinear(double x, double y, int level, int ysqrd_raytrace
  x2y2 = adata[(off+1)&mask];
  x=ldexp(x, -level); y=ldexp(y, -level);
  x-=floor(x); y-=floor(y);
- if (sse_enabled) {
+ if (cpu.sse) {
  	return igrated(bilinea4(x1y1, x2y1, x1y2, x2y2, (int) (65535.0*x), (int) (65535.0*y)), xi, yi, lx, lz, ysqrd_raytrace);
 	} else {
 	return  multiplycolor(
@@ -116,7 +116,7 @@ Uint32 bilinea_p5(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, unsigned F
 	int r0, g0, b0, r1, g1, b1;
 	Uint32 rez=0;
 
-	if (mmx_enabled) {
+	if (cpu.mmx) {
 	/* do we have MMX? If we do, we may use the crappy MMX bilinear filter, which, due to lack of
 	the pshufw instruction is kinda slow...
 	*/
@@ -244,7 +244,7 @@ void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, Vector tt, const Vect
 	Vector tt_start = tt;
 
 	while ((j = lock++) < yr) {
-	//for (j = thread_idx; j < yr; j += cpu_count) {
+	//for (j = thread_idx; j < yr; j += cpu.count) {
 		tt = tt_start + tti * j;
 		dptr = &fb[j*xr];
 		Vector g1 = tt;
@@ -419,7 +419,7 @@ void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, Vector tt, const Vecto
 void render_infinite_plane(Uint32 *frame_buffer, int xr, int yr, Vector& tt, Vector& ti, Vector& tti, 
 			   int start_line, InterlockedInt &lock)
 {
-	if (sse_enabled) {
+	if (cpu.sse) {
 		render_infinite_plane_sse(frame_buffer, xr, yr, tt, ti, tti, start_line, lock);
 	} else {
 		render_infinite_plane_p5(frame_buffer, xr, yr, tt, ti, tti, start_line, lock);

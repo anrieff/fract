@@ -16,7 +16,7 @@
 #include "MyGlobal.h"
 #include "aes.h"
 #include "cmdline.h"
-#include "cpuid.h"
+#include "cpu.h"
 #include "gfx.h"
 #include "profile.h"
 #include "resultoutput.h"
@@ -202,10 +202,10 @@ void generate_result_file(FPSWatch & watch)
 	sprintf(a.version, "%s/%s [%s]", Fract_Version, Mod_Instruction_Set, __DATE__);
 	strcpy(a.OS, get_OS());
 	get_compiler_version(a.compiler);
-	a.cpu_count = SysInfo.cpu_count();
+	a.cpu_count = cpu.count;
 	strcpy(a.cpu_type, cputype);
 	if (saved_cpuspd == -1) {
-		saved_cpuspd = get_cpu_speed();
+		saved_cpuspd = cpu.speed();
 	}
 	a.cpu_mhz = saved_cpuspd;
 	a.res_x = xres();

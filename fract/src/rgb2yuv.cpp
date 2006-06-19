@@ -20,12 +20,11 @@
 #include "asmconfig.h"
 #include "bitmap.h"
 #include "cmdline.h"
-#include "cpuid.h"
+#include "cpu.h"
 #include "fract.h"
 #include "rgb2yuv.h"
 
 
-SystemInfo SysInfo;
 int bestmethod=0;
 
 Uint32 checksums[2][2][4] = {
@@ -173,9 +172,9 @@ void init_yuv_convert(int benchmark)
 	if (option_exists("--use-x86asm")) bestmethod = USE_X86_ASM;
 	if (option_exists("--use-x86-fpu")) bestmethod = USE_X86_FPU;
 #endif
-	if (option_exists("--use-mmx") && SysInfo.supports("mmx")) bestmethod = USE_MMX;
-	if (option_exists("--use-sse") && SysInfo.supports("mmx2") && SysInfo.supports("sse")) bestmethod = USE_SSE;
-	if (option_exists("--use-mmx2") && SysInfo.supports("mmx2")) bestmethod = USE_MMX2;
+	if (option_exists("--use-mmx") && cpu.mmx) bestmethod = USE_MMX;
+	if (option_exists("--use-sse") && cpu.mmx2 && cpu.sse) bestmethod = USE_SSE;
+	if (option_exists("--use-mmx2") && cpu.mmx2) bestmethod = USE_MMX2;
 	if (bestmethod!=-1) return;
  	}
 
@@ -188,10 +187,9 @@ void init_yuv_convert(int benchmark)
 	memcpy(fakeRGBBuffer, bm.get_data(), bm.get_size()*4);
  	}
  // if we have enough memory, then create the big lookup array.
- if (SysInfo.largemem()) {
+if (cpu.memory_size / 1024 >= MEMORY_REQUIREMENT) {
  	if ((bigarray=(Uint32 *) malloc(0x4000000))==NULL) {
 		printf("Cannot allocate memory for fast lookup table! Won't use this method!\n");
-		SysInfo.set_largemem(false);
 		} else
 		{
 		printf("precalculating bigarray...");
@@ -213,10 +211,10 @@ Uint32 get_correct_cksum(void)
 	os=0;
 #endif
 	iss = 0;
-	if (SysInfo.supports("mmx")) iss++;
-	if (SysInfo.supports("mmx2")) iss++;
-	if (SysInfo.supports("sse")) iss++;
-	csc = checksums[SysInfo.is_intel()][os][iss];
+	if (cpu.mmx) iss++;
+	if (cpu.mmx2) iss++;
+	if (cpu.sse) iss++;
+	csc = checksums[cpu.is_intel()][os][iss];
 	return csc;
 }
 
@@ -254,14 +252,14 @@ void yuv_benchmark(int benchmark)
 	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86_ASM, USE_X86_ASM, "_X86_ASM", &maxfps, timetorun);
 	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86_FPU, USE_X86_FPU, "_X86_FPU", &maxfps, timetorun);
 #endif	
- if (SysInfo.supports("mmx"))
+ if (cpu.mmx)
  	benchmark_function((__convert_fn_t) ConvertRGB2YUV_MMX, USE_MMX, "_MMX", &maxfps, timetorun);
- if (SysInfo.supports("mmx2"))
+ if (cpu.mmx2)
  	benchmark_function((__convert_fn_t) ConvertRGB2YUV_MMX2, USE_MMX2, "_MMX2", &maxfps, timetorun);
- if (SysInfo.supports("mmx2") && SysInfo.supports("sse")) {
+ if (cpu.mmx2 && cpu.sse) {
  	benchmark_function((__convert_fn_t) ConvertRGB2YUV_SSE, USE_SSE, "_SSE", &maxfps, timetorun);
 	}
- if (SysInfo.largemem())
+if (cpu.memory_size / 1024 >= MEMORY_REQUIREMENT)
  	benchmark_function((__convert_fn_t) ConvertRGB2YUV_MEM, USE_BIGMEM, "_MEM", &maxfps, timetorun);
- if (option_exists("--use-mem") && SysInfo.largemem()) bestmethod = USE_BIGMEM;
+ if (option_exists("--use-mem") && cpu.memory_size / 1024 >= MEMORY_REQUIREMENT) bestmethod = USE_BIGMEM;
 }

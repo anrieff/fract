@@ -13,7 +13,7 @@
 #include "blur.h"
 #include "cmdline.h"
 #include "common.h"
-#include "cpuid.h"
+#include "cpu.h"
 #include "gfx.h"
 #include "mesh.h"
 #include "profile.h"
@@ -67,7 +67,6 @@ bool show_aa =  false;
 
 Uint32 clk;
 double daFloor = 0.0, daCeiling = 200.0;
-int sse_enabled=0, mmx2_enabled=0, mmx_enabled=0;
 double gX, gY;
 double alpha = -0.95, beta = -0.15;
 Vector w[3], cur(30, 45, 50);
@@ -108,7 +107,6 @@ extern double play_time;
 extern int cd_frames;
 extern double Area_const;
 extern int do_mipmap;
-extern int cpu_count;
 int kbd_control = 1;
 int file_control = 0;
 int use_shader = 0;
@@ -402,6 +400,7 @@ void kbd_do(int *ShouldExit)
 
 void commandline_parse(void)
 {
+	cpu.init();
 	if (option_exists("--help") || option_exists("-h")) {
 		display_usage();
 		exit(0);
@@ -433,11 +432,9 @@ void commandline_parse(void)
 	}
 	if (option_exists("--shadows")) {r_shadows = 1; }
 	if (option_exists("--no-shadows")) {r_shadows = 0; defaultconfig = 0;}
-	cpu_count = SysInfo.cpu_count();
 	if (option_exists("--nothread")||option_exists("--nothreads")||
 	option_exists("--no-thread")||option_exists("--no-threads")) {
-		cpu_count = 1;
-		SysInfo.set_cpu_count(1);
+		cpu.count = 1;
 	}
 	if (option_exists("--cpus")) set_cpus(option_value_int("--cpus"));
 	if (option_exists("--design") || option_exists("--architect")) {
@@ -477,7 +474,7 @@ int main(int argc, char *argv[])
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
 	option_add("-w");
-	option_add("--scene=data/benchmark.fsv");
+	//option_add("--scene=data/benchmark.fsv");
 	option_add("--developer");
 	commandline_parse();
 	init_program();

@@ -77,7 +77,6 @@ extern bool parallel;
 extern double stereo_separation;
 extern double stereo_depth;
 extern ThreadPool thread_pool;
-extern int cpu_count;
 
 #ifdef ACTUALLYDISPLAY
 void render_single_frame(SDL_Surface *p, SDL_Overlay *ov);
@@ -98,7 +97,6 @@ void check_params(void);
 void blur_reinit(void);
 Uint32 *get_frame_buffer(void);
 
-void set_cpus(int cpu_count);
 void render_close(void);
 
 void fract_thread(void);

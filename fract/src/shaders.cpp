@@ -20,13 +20,13 @@
 #include "shaders.h"
 #include "asmconfig.h"
 #include "common.h"
+#include "cpu.h"
 #include "MyLimits.h"
 #include "gfx.h"
 #include "render.h"
 #include "profile.h"
 
 
-extern int mmx_enabled, sse_enabled, mmx2_enabled;
 extern int user_pp_state;
 int pp_state = 0;
 float shader_param = 0.0f;
@@ -355,7 +355,7 @@ void fft_2D_complex(complex c[MAX_FFT_SIZE][MAX_FFT_SIZE], int dir, int fft_size
    log_fft_size = power_of_2(fft_size);
    if (log_fft_size==-1) return;
 
-   usse = (sse_enabled && fft_size>=4);
+   usse = (cpu.sse && fft_size>=4);
    //usse=0;
    loopsize = fft_size / (usse?4:1);
 
@@ -492,7 +492,7 @@ int shader_FFT_Filter(Uint32 *src, Uint32 *dst, int resx, int resy)
 		//k+=2;k%=3;
 		//printf("%d\n", k);
 		fft_2D_complex(in[k], 1, fft_size);
-		if (sse_enabled) apply_fft_filter_sse(in[k][0], fft_filter, fft_size);
+		if (cpu.sse) apply_fft_filter_sse(in[k][0], fft_filter, fft_size);
 			else	 apply_fft_filter_x86(in[k][0], fft_filter, fft_size);
 		fft_2D_complex(in[k], -1, fft_size);
 		//k++;
@@ -634,7 +634,7 @@ void shader_convolution(Uint32 *src, Uint32 *dest, int resx, int resy, ConvolveM
 				if s is zero, don't correct RGB values. If it is a power of two, use shifts instead of divides
 			*/
 	//printf("%d %d\n", s, power_of_2(s));
-	if (mmx_enabled && (s==0||power_of_2(s)>=0)) {
+	if (cpu.mmx && (s==0||power_of_2(s)>=0)) {
 		convolve_mmx_w_shifts(src, dest, resx, resy, M, power_of_2(s)); // see effectsasm for details
 		return;
 	}
@@ -671,7 +671,7 @@ void shader_convolution(Uint32 *src, Uint32 *dest, int resx, int resy, ConvolveM
 		}
 
 	} else {
-	//if (mmx_enabled) { convolve_mmx_w_div(src, dest, resx, resy, M, s); return; }
+	//if (cpu.mmx) { convolve_mmx_w_div(src, dest, resx, resy, M, s); return; }
 	for (y=M->n/2;y<resy-M->n/2;y++)
 		for (x=M->n/2;x<resx-M->n/2;x++) {
 			r=g=b=0;
@@ -757,7 +757,7 @@ void shader_inversion(Uint32 *src, Uint32 *dest, int resx, int resy, double radi
 void shader_spill(Uint8 *src, Uint8 * dest, int resx, int resy, float coeff)
 {
 	coeff = 1 - coeff;
-	if (mmx_enabled) {
+	if (cpu.mmx) {
 		shader_spill_mmx(src, dest, resx, resy, coeff);
 		return;
 	}
@@ -787,7 +787,7 @@ void shader_spill(Uint8 *src, Uint8 * dest, int resx, int resy, float coeff)
 
 void shader_fbmerge(Uint32 *dest, Uint8 * src, int resx, int resy, float intensity, Uint32 glow_color)
 {
-	if (mmx2_enabled) {
+	if (cpu.mmx2) {
 		shader_fbmerge_mmx2(dest, src, resx, resy, intensity, glow_color);
 		return;
 	}
@@ -865,7 +865,7 @@ void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy)
 	} else {
 		mydest = dest;
 	}
-	if (sse_enabled) {
+	if (cpu.sse) {
 		shader_sobel_sse(src, mydest, resx, resy, h_kernel, v_kernel);
 		if (src == dest) memcpy(dest, shader_tmp, resx*resy*4);
 		return;

@@ -18,6 +18,7 @@ using namespace std;
 #include "MyTypes.h"
 #include "antialias.h"
 #include "cmdline.h"
+#include "cpu.h"
 #include "gfx.h"
 #include "fract.h"
 #include "threads.h"
@@ -26,8 +27,6 @@ using namespace std;
 int fsaa_mode;
 char fsaa_name[64] = "none";
 double last_fsaa_change=-90;
-extern int mmx_enabled;
-extern int sse_enabled;
 extern int defaultconfig;
 extern int RowMin[], RowMax[];
 
@@ -198,7 +197,7 @@ static void antialias_4x_p5(Uint32 *fb)
 
 static void antialias_4x(Uint32 *fb)
 {
-	if ( sse_enabled ) {
+	if ( cpu.sse ) {
 		if (fsaa_mode == FSAA_MODE_4X_LO_Q)
 			antialias_4x_mmx2_lo_fi(fb);
 			else
@@ -474,7 +473,7 @@ bool g_scpuabi = false;
 
 void antibuffer_init(Uint32 fb[], int xr, int yr) 
 {
-	int cpus = g_scpuabi ? 1 : cpu_count;
+	int cpus = g_scpuabi ? 1 : cpu.count;
 	MTAntiBufferInit proc(fb, xr, yr, cpus);
 	thread_pool.run(&proc, cpus);
 	if (fsaa_info) {

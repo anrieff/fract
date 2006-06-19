@@ -17,13 +17,13 @@
 #include "MyGlobal.h"
 #include "MyTypes.h"
 #include "blur.h"
+#include "cpu.h"
 #include "gfx.h"
 
 int apply_blur = 0, blur_method = BLUR_DISCRETE;
 
 #ifdef BLUR
 // *************** External variables *****************************
-extern int mmx_enabled;
 extern Uint32 framebuffer[RES_MAXX*RES_MAXY];
 
 // **************** GLOBAL VARIABLES ******************************
@@ -70,7 +70,7 @@ int blur_current;
 void blur_forward(Uint32 *dest, Uint32 *src, int count)
 {
 	int i;
-	if (mmx_enabled) {
+	if (cpu.mmx) {
 		//printf("Blur_Forward: not implemented\n");
 		blur_forward_mmx(dest, src, count);
 	} else {
@@ -83,7 +83,7 @@ void blur_forward(Uint32 *dest, Uint32 *src, int count)
 void blur_backward(Uint32 *dest, Uint32 *src, int count)
 {
 	int i;
-	if (mmx_enabled) {
+	if (cpu.mmx) {
 		blur_backward_mmx(dest, src, count);
 	} else {
 		for (i=0;i<count; i++)
@@ -97,7 +97,7 @@ void blur_backward(Uint32 *dest, Uint32 *src, int count)
 void buffer_minus(Uint32 *dest, Uint32 *src, int count)
 {
 	int i;
-	if (mmx_enabled) {
+	if (cpu.mmx) {
 		buffer_minus_mmx(dest, src, count);
 	} else {
 		for (i=0;i<count;i++) dest[i] -= src[i];
@@ -108,7 +108,7 @@ void buffer_minus(Uint32 *dest, Uint32 *src, int count)
 void buffer_plus(Uint32 *dest, Uint32 *src, int count)
 {
 	int i;
-	if (mmx_enabled) {
+	if (cpu.mmx) {
 		buffer_plus_mmx(dest, src, count);
 	} else {
 		for (i=0;i<count;i++) dest[i] += src[i];

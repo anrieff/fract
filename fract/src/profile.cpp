@@ -74,7 +74,7 @@ void prof_statistics(void)
 
 
 // gets the CPU speed using RDTSC.
-int get_cpu_speed(void)
+int prof_get_cpu_speed(void)
 {
 	long long start, end;
 	Uint32 clk0, clk;

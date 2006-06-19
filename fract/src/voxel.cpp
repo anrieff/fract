@@ -19,6 +19,7 @@
 #include "barriers.h"
 #include "bitmap.h"
 #include "common.h"
+#include "cpu.h"
 #include "fract.h"
 #include "gfx.h"
 #include "infinite_plane.h"
@@ -48,10 +49,9 @@ info_t vxInput[NUM_VOXELS] = {
 extern Vector cur;
 extern double alpha, beta;
 extern double fov;
-extern int sse_enabled, bilfilter;
+extern int bilfilter;
 extern int vframe, lx, ly, lz;
 extern bool WantToQuit;
-extern int cpu_count;
 
 #ifdef ACTUALLYDISPLAY
 extern SDL_Surface *screen;
@@ -287,7 +287,7 @@ void voxel_light_recalc1(int thread_idx)
 			dir /= LIGHT_PRECALC_ACCURACY;
 			float exi = sd % 2 == 0 ? dir : 0  ;
 			float eyi = sd % 2 == 0 ? 0   : dir;
-			for (int i = 0; i < rollsize; i++, ex+=exi,ey+=eyi) if (i % cpu_count== thread_idx) {
+			for (int i = 0; i < rollsize; i++, ex+=exi,ey+=eyi) if (i % cpu.count== thread_idx) {
 				float x = lx, y = lz;
 				float dst = sqrt(sqr(ex-lx) + sqr(ey-lz));
 				float rcp_dst = 1.0f / dst;
@@ -459,8 +459,8 @@ void voxel_light_recalc2(int thread_idx)
 	for (k = 0; k < NUM_VOXELS; k++) {
 		size = vox[k].size;
 		Barrier b;
-		b.checkin(VOXEL_LIGHT_INNER2, thread_idx, cpu_count);
-		multithreaded_memset(vox[k].texture, 0xffffffff, size*size, thread_idx, cpu_count);
+		b.checkin(VOXEL_LIGHT_INNER2, thread_idx, cpu.count);
+		multithreaded_memset(vox[k].texture, 0xffffffff, size*size, thread_idx, cpu.count);
 		/* explanation:
 			If a texel has 0xff in its MSB (alpha channel) it is still
 			not determined whether it is in shadow or not.
@@ -492,14 +492,14 @@ void voxel_light_recalc2(int thread_idx)
 
 			}*/
 		for (int z = 0,all=0; z < size; z += SHADOW_CAST_ACCURACY)
-			for (int x = 0; x < size; x += SHADOW_CAST_ACCURACY,all++) if (all % cpu_count == thread_idx) {
+			for (int x = 0; x < size; x += SHADOW_CAST_ACCURACY,all++) if (all % cpu.count == thread_idx) {
 
 				vox[k].texture[x + z * size] = point_is_in_shadow(vox + k, x, z) ? 0x01000000 : 0x02000000;
 
 		}
 		b.checkout();
 		for (int z = 0, all=0; z < size; z += SHADOW_CAST_ACCURACY)
-			for (int x = 0; x < size; x += SHADOW_CAST_ACCURACY,all++) if (all % cpu_count == thread_idx) {
+			for (int x = 0; x < size; x += SHADOW_CAST_ACCURACY,all++) if (all % cpu.count == thread_idx) {
 				subdivshadow(vox + k, x, z, SHADOW_CAST_ACCURACY);
 			}
 	}
@@ -538,7 +538,7 @@ void voxel_light_recalc(int thread_idx)
 {
 	if (!must_recalc_light) return;
 	Barrier lightOuter;
-	lightOuter.checkin(VOXEL_LIGHT_OUTER, thread_idx, cpu_count);
+	lightOuter.checkin(VOXEL_LIGHT_OUTER, thread_idx, cpu.count);
 	if (shadow_casting_method) {
 		voxel_light_recalc2(thread_idx);
 	} else {
@@ -594,11 +594,11 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 
 
 	prof_enter(PROF_BUFFER_CLEAR);
-	if (1 == cpu_count) {
+	if (1 == cpu.count) {
 		memset(fb, 0, xr*yr*4);
 	} else {
 		// crap; we need to zero the memory in parallel; COLUMNWISE!
-		for (i = thread_index; i < xr; i+=cpu_count)
+		for (i = thread_index; i < xr; i+=cpu.count)
 			for (j=0;j<yr;j++)
 				fb[j*xr+i] = 0;
 	}
@@ -623,7 +623,7 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		fx += thread_index * fxi;
 		fz += thread_index * fzi;
 
-		for (i=thread_index;i<xr;i+=cpu_count) {
+		for (i=thread_index;i<xr;i+=cpu.count) {
 			c_column = fb + i;
 			x = dbl2int16(cur[0]); z = dbl2int16(cur[2]);
 			xi = dbl2int16((fx - cur[0]) / render_dist);
@@ -716,7 +716,7 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 					prof_leave(PROF_ADDRESS_GENERATE);
 					if ((isfloor && newy >= opty)||((!isfloor) && newy <= opty)) continue;
 					prof_enter(PROF_INTERPOL_INIT);
-					if (sse_enabled) {
+					if (cpu.sse) {
 						color = bilinea4(tex[index], tex[index+txadd], tex[index2], tex[index2+txadd],
 							x & 0xffff, z & 0xffff);
 					} else {
@@ -777,7 +777,7 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 					prof_leave(PROF_INTERPOLATE);
 				}
 			}
-			fx += cpu_count*fxi; fz += cpu_count*fzi;
+			fx += cpu.count*fxi; fz += cpu.count*fzi;
 		}
 	}
 	/*if (!thread_index) {
@@ -984,14 +984,14 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	/***/
 #endif
 	Barrier bar;
-	bar.checkin(VOXEL_BARRIER1, thread_index, cpu_count);
+	bar.checkin(VOXEL_BARRIER1, thread_index, cpu.count);
 	//memset(fb, 0, xr*yr*4);
 	//for (int i = 0; i < xr*yr; i++)
 	//	zbuffer[i] = -1.0f;
-	multithreaded_memset(fb, 0, xr*yr, thread_index, cpu_count);
+	multithreaded_memset(fb, 0, xr*yr, thread_index, cpu.count);
 	float minus_one = -1.0f;
 	unsigned pattern = *(unsigned *) &minus_one;
-	multithreaded_memset(zbuffer, pattern, xr*yr, thread_index, cpu_count);
+	multithreaded_memset(zbuffer, pattern, xr*yr, thread_index, cpu.count);
 	Vector xStride = ti * 8.0f,
 	       yStride = tti* 8.0f;
 	Vector walky(tt);
@@ -999,12 +999,12 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	// precalculate the big grid
 	for (int k = 0; k < NUM_VOXELS; k++) {
 		Barrier precalculation;
-		precalculation.checkin(VOXEL_BARRIER2, thread_index, cpu_count);
+		precalculation.checkin(VOXEL_BARRIER2, thread_index, cpu.count);
 		int all_rays = 0;
 		for (int j = 0; j < yr; j+=8) {
 			Vector t(walky);
 			for (int i = 0; i < xr; i+=8, all_rays++) {
-				if (all_rays % cpu_count == thread_index) {
+				if (all_rays % cpu.count == thread_index) {
 					shootcolr = shootcolrs[(i/8)%4];
 					castray(t, fb[j*xr+i], zbuffer[j*xr+i], k);
 				}
@@ -1020,7 +1020,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		for (int j = 0; j < yr; j+=8) {
 			Vector t(walky);
 			for (int i = 0; i < xr; i+=8, all_rays++) {
-				if (all_rays % cpu_count == thread_index) 
+				if (all_rays % cpu.count == thread_index) 
 					subdivide(fb + j*xr + i, t, i, j, 8, k);
 				t += xStride;
 			}
