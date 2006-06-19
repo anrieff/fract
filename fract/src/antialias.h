@@ -87,6 +87,7 @@ extern char fsaa_name[];
 extern double last_fsaa_change;
 extern Uint8 fb_copy[];
 extern fsaa_info_entry *fsaa_info;
+extern bool g_scpuabi;
 
 
 void set_fsaa_mode(int newMode);

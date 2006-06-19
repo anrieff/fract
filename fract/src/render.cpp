@@ -442,6 +442,7 @@ void preframe_do(Uint32 *ptr, Vector lw)
 	prof_enter(PROF_MESHINIT);
 	mesh_frame_init(cur, lw);
 	prof_leave(PROF_MESHINIT);
+	
 	if (is_adaptive_fsaa()) {
 		prof_enter(PROF_ANTIBUF_INIT);
 		antibuffer_init(ptr, xsize_render(xres()), ysize_render(yres()));
@@ -504,7 +505,7 @@ void render_spheres_init(unsigned short *fbuffer)
 
 // NOTE: this uses a modified code from DrawIt_P5
 void render_spheres(Uint32 *fb, unsigned short *fbuffer,
-		Vector tt, const Vector& ti, Vector tti, InterlockedInt& lock)
+		Vector tt, const Vector& ti, Vector tti, int thread_idx, InterlockedInt& lock)
 {
 	int i, j, xr, yr, dropped, backd, ii, x_start, x_end;
 	Uint32 *start_fb = fb;
@@ -534,20 +535,11 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 	fi.xinc = ti*0.5;
 	fi.yinc = tti*0.5;
 
-
-	/*
-	Vector tt_add = tti;
-	tt_add.scale(start_line);
-	tt += tt_add;
-	fb += start_line * xr;
-	fbuffer += start_line * xr;
-	tti.scale(cpu_count);
-	*/
-	
 	ml_x = (xr-1) / ML_BUFFER_GRAN+1;
 	Vector tt_start = tt;
 
 	while ((j = lock++) < yr) {
+	//for (j = thread_idx; j < yr; j += cpu_count) {
 #ifdef TEX_OPTIMIZE
 		mlbuff = ml_buffer + ((j/16) * ml_x);
 #endif
@@ -772,256 +764,6 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 	}
 }
 
-static float rowstart[RES_MAXY][2], rowincrease[RES_MAXY][2];
-static int   queue[SHADOW_QUEUE_SIZE][2];
-const int xi[4] = {+1, -1,  0,  0};
-const int yi[4] = { 0,  0, +1, -1};
-static int   transp_multi[MAX_SPHERES]; // storage for each sphere's shadow intensity
-static float thresh_D[MAX_SPHERES]; // Discriminant threshold for each sphere. If D > thresh, full intensity shadow is applied
-static float rthresh_D[MAX_SPHERES];
-int ceilmax, floormin; // ending row for ceiling, starting row for floor in the image
-static Uint8 tri_shadow[RES_MAXX*RES_MAXY];
-
-void sort3points(int a[3][2])
-{
-#define cmpswp(a,b) if(a[1]>b[1]) {int t[2]; t[0]=a[0];t[1]=a[1];a[0]=b[0];a[1]=b[1];b[0]=t[0];b[1]=t[1];}
-	cmpswp(a[0], a[1]);
-	cmpswp(a[1], a[2]);
-	cmpswp(a[0], a[1]);
-}
-
-void triangle_shadowize(int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
-{
-	Vector ml(lx, ly, lz);
-	memset(tri_shadow, 0, xr * yr);
-	for (int l = 0; l < mesh_count; l++) {
-		int triangle_base = mesh[l].get_triangle_base();
-		for (int k = 0; k < mesh[l].triangle_count; k++) {
-			Triangle &t = trio[triangle_base + k];
-			bool visible = true;
-			bool prevplane = false;
-			int p[3][2];
-			for (int i = 0; i < 3; i++) {
-				int u, v;
-				bool plane;
-				if (!project_point_shadow(t.vertex[i], ml, &u, &v, xr, yr, cur, mtt, mti, mtti, plane)) {
-					visible = false;
-					break;
-				}
-				if (i) {
-					if (plane != prevplane) { visible = false; break; }
-				} else {
-					prevplane = plane;
-				}
-				p[i][0] = u; p[i][1] = v;
-			}
-			if (!visible) continue;
-			//
-			sort3points(p);
-			for (int y = p[0][1]; y <= p[2][1]; y++) {
-				int x1 = RES_MAXX, x2 = -1;
-				for (int i1 = 0; i1 < 2; i1++) {
-					for (int i2 = i1 + 1; i2 < 3; i2++) {
-						if (p[i1][1] <= y && y <= p[i2][1]) {
-							int x = p[i1][0] + 
-									(p[i2][0]-p[i1][0])*(y - p[i1][1]) / 
-									(imax(1, p[i2][1] - p[i1][1]));
-							if (x < x1) x1 = x;
-							if (x > x2) x2 = x;
-						}
-					}
-				}
-				if (x1 <= x2) {
-					memset(&tri_shadow[y * xr + x1], 0x7f, x2-x1+1);
-				}
-			}
-		}
-	}
-}
-
-void shadow_fill(unsigned short *sbuffer, int xr, int yr, int cx, int cy, int su)
-{
-	int i, j, k, nx, ny, u, v, oof;
-	unsigned short current_sp, n_pixel, old_pixel;
-	float a, b, c, xp, yp, zp, D;
-
-	current_sp = (1 + (su%S_SPNUM_MODULUS)) << S_SPNUM_OFFSET;
-	xp = lx - sp[su].pos[0];
-	yp = ly - sp[su].pos[1];
-	zp = lz - sp[su].pos[2];
-	i = 0;
-	j = 2;
-	queue[0][0] = cx; queue[0][1] = cy;
-	queue[1][0] = queue[1][1] = QSENTINEL;
-	while (j-i != 1) {
-		if (queue[i][0] != QSENTINEL) {
-			// check whether it is shadow point.
-			u = queue[i][0]; v = queue[i][1];
-			a = rowstart[v][0] + rowincrease[v][0]*u - lx;
-			b = (v>=floormin?daFloor:daCeiling) - ly;
-			c = rowstart[v][1] + rowincrease[v][1]*u - lz;
-			D = sqr(xp*a+yp*b+zp*c) - (a*a+b*b+c*c)*(xp*xp + yp*yp + zp*zp - sqr(sp[su].d));
-			if (D >= 0.0f) {
-				D /= (a*a+b*b+c*c);
-				if (D > thresh_D[su])
-					n_pixel = transp_multi[su];
-					else
-					n_pixel = (int) (transp_multi[su]*D*rthresh_D[su]);
-				oof = u + xr*v;
-				if (sbuffer[oof] & S_MIXED_MASK) {
-					old_pixel = S_MAX_BLACK - (sbuffer[oof] & S_COLOR_MASK);
-					sbuffer[oof] = S_MIXED_MASK | current_sp |
-						(S_MAX_BLACK - ((old_pixel*(S_MAX_BLACK-n_pixel))>>S_COLOR_BITS));
-				} else {
-					sbuffer[oof] = n_pixel | current_sp;
-				}
-				for (k=0;k<4;k++) {
-					nx = u + xi[k];
-					ny = v + yi[k];
-					oof = ny*xr + nx;
-					if (((unsigned) nx)<(unsigned)xr &&
-					    ((unsigned) ny)<(unsigned)yr &&
-					    (!sbuffer[oof] || (!(sbuffer[oof]&S_MIXED_MASK)&&
-					    ((sbuffer[oof]&S_SPNUM_MASK)!=current_sp)/*&&
-					    (sbuffer[ny*xr+nx]&S_COLOR_MASK)!=S_MAX_BLACK*/))
-					    ) {
-						if (sbuffer[oof]) // prevent from multiple inclusion
-							sbuffer[oof] |= S_MIXED_MASK;
-							else
-							sbuffer[oof] = current_sp;
-
-						queue[j][0] = nx;
-						queue[j++][1] = ny;
-						j&=qmod;
-						if (j==i) {
-							return;
-						}
-				    	}
-				}
-			}
-		} else {
-			queue[j++][0] = QSENTINEL;
-			j &= qmod;
-		}
-		i = (i+1) & qmod;
-	}
-}
-
-static inline int check_sphere_shadow(int x, int y)
-{
-	int i;
-	float xp, yp, zp, a, b, c;
-	for (i=0; i < spherecount; i++) {
-		xp = lx - sp[i].pos[0];
-		yp = ly - sp[i].pos[1];
-		zp = lz - sp[i].pos[2];
-		a = rowstart[y][0] + rowincrease[y][0]*x - lx;
-		b = (y>=floormin?daFloor:daCeiling) - ly;
-		c = rowstart[y][1] + rowincrease[y][1]*x - lz;
-
-		if (xp*a+yp*b+zp*c < 0.0f &&
-			sqr(xp*a+yp*b+zp*c) - (a*a+b*b+c*c)*(xp*xp + yp*yp + zp*zp - sqr(sp[i].d))>0.0f) return i;
-	}
-	return -1;
-}
-
-void check_generic(unsigned short *sbuffer, int xr, int yr, int x, int y)
-{
-	int su;
-	if (x < 0 || x >= xr || y < 0 || y >= yr) return;
-	if (y > ceilmax && y < floormin) return;
-	if (!sbuffer[x + y*xr]) {
-		su = check_sphere_shadow(x, y);
-		if (su >= 0)
-			shadow_fill(sbuffer, xr, yr, x, y, su);
-	}
-}
-
-void render_shadows_old(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
-{
-	int i, j, su, u, v, ckx, cky;
-	double planeDist, y, m;
-	Vector ml(lx, ly, lz);
-
-
-	ceilmax = floormin = -1;
-	prof_enter(PROF_ZERO_SBUFFER); // reset the S-buffer;
-	memset(sbuffer, 0, xr*yr*sizeof(unsigned short));
-	prof_leave(PROF_ZERO_SBUFFER);
-
-	prof_enter(PROF_SHADOW_PRECALC);
-	for (j = 0; j < yr; j++) {
-		y = mtt[1] + j*mtti[1] - cur[1];
-		/*if (fabs(y) < DST_THRESHOLD) {
-			if (ceilmax==-1) ceilmax = j - 1;
-			continue;
-		}*/
-		if (y > 0.0 && fabs(y) > DST_THRESHOLD) ceilmax = j;
-		if (floormin == -1 && y < 0.0) floormin = j;
-		planeDist = (y<0.0)?(cur[1] - daFloor):(daCeiling - cur[1]);
-		m = planeDist / fabs(y);
-		for (i=0;i<2;i++) {
-			rowstart   [j][i] = cur[i*2] + (mtt[i*2]+mtti[i*2]*j-cur[i*2])*m;
-			rowincrease[j][i] = mti[i*2] * m;
-		}
-	}
-	if (floormin == -1) floormin = yr;
-	for (i = 0; i < spherecount; i++) {
-		if (sp[i].flags & SEETHROUGH)
-			transp_multi[i] = (int) ((S_DEFAULT_OPACITY+(1.0-S_DEFAULT_OPACITY)*(1.0-sp[i].opacity)) * S_MAX_BLACK);
-			else
-			transp_multi[i] = S_MAX_BLACK;
-		thresh_D[i] = S_EDGE * sp[i].d * sp[i].d;
-		rthresh_D[i] = 1.0f/thresh_D[i];
-	}
-	prof_leave(PROF_SHADOW_PRECALC);
-
-	prof_enter(PROF_SHADOWIZE);
-	for (su=0;su<spherecount;su++) {
-		bool useless;
-		if (project_point_shadow(sp[su].pos, ml, &u, &v, xr, yr, cur, mtt, mti, mtti, useless)) {
-			//if ((sbuffer[u + xr*v]&0x0f00) != 0) continue;
-			shadow_fill(sbuffer, xr, yr, u, v, su);
-		}
-	}
-	prof_leave(PROF_SHADOWIZE);
-
-	prof_enter(PROF_CANDIDATESEARCH);
-	//check for spheres not rendered due to center being outside the screen:
-	// check first row:
-	for (ckx = 0; ckx < xr; ckx+=CANDIDATE_INTERVAL) {
-		check_generic(sbuffer, xr, yr, ckx, 0);
-		check_generic(sbuffer, xr, yr, ckx, yr-1);
-		check_generic(sbuffer, xr, yr, ckx, ceilmax);
-		check_generic(sbuffer, xr, yr, ckx, floormin);
-	}
-	for (cky = 0; cky < yr; cky+=CANDIDATE_INTERVAL) {
-		check_generic(sbuffer, xr, yr, 0, cky);
-		check_generic(sbuffer, xr, yr, xr-1, cky);
-	}
-	prof_leave(PROF_CANDIDATESEARCH);
-	
-	prof_enter(PROF_TRIANGLEFILL);
-	triangle_shadowize(xr, yr, mtt, mti, mtti);
-	prof_leave(PROF_TRIANGLEFILL);
-	
-	//prof_enter(PROF_TRIANGLEMERGE);
-	//triangle_sp_merge(sbuffer, tri_shadow, xr*yr);
-	//prof_leave(PROF_TRIANGLEMERGE);
-
-	prof_enter(PROF_MERGE);
-	//if (mmx2_enabled)
-	//	shadows_merge_mmx2(target_framebuffer, sbuffer, xr*yr);
-		//else {
-			xr*=yr;
-			for (i=0;i<xr;i++)
-				target_framebuffer[i] =
-					(((target_framebuffer[i] & 0xff    ) * (255-(255&sbuffer[i])) >> 8)           ) +
-					(((target_framebuffer[i] & 0xff00  ) * (255-(255&sbuffer[i])) >> 8) & 0xff00  ) +
-					(((target_framebuffer[i] & 0xff0000) * (255-(255&sbuffer[i])) >> 8) & 0xff0000);
-		//}
-	prof_leave(PROF_MERGE);
-}
 
 void merge_rows_p5(Uint32 *flr, Uint32 *sph, unsigned short *multi, int count)
 {
@@ -1099,7 +841,7 @@ void render_single_frame_do(void)
 
 		prof_enter(PROF_RENDER_SPHERES);
 		render_spheres_init(fbuffer);
-		render_spheres(spherebuffer, fbuffer, tt, ti, tti, i2);
+		render_spheres(spherebuffer, fbuffer, tt, ti, tti, 0, i2);
 		prof_leave(PROF_RENDER_SPHERES);
 
 	} else {
@@ -1133,7 +875,7 @@ void render_single_frame_do(void)
 					render_background(framebuffer, xr, yr, t0, local_ti, local_tti, thread_idx, for_bg);
 					t0 = local_t0;
 					//render_spheres
-					render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, for_raytracing);
+					render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, thread_idx, for_raytracing);
 				}
 		} multithreaded_main_render (tt, ti, tti, fbuffer, ptr, xr, yr, spherebuffer);
 

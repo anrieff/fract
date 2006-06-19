@@ -470,10 +470,13 @@ void MTAntiBufferInit::entry(int thread_idx, int threads_count)
 	}
 };
 
+bool g_scpuabi = false;
+
 void antibuffer_init(Uint32 fb[], int xr, int yr) 
 {
-	MTAntiBufferInit proc(fb, xr, yr, cpu_count);
-	thread_pool.run(&proc, cpu_count);
+	int cpus = g_scpuabi ? 1 : cpu_count;
+	MTAntiBufferInit proc(fb, xr, yr, cpus);
+	thread_pool.run(&proc, cpus);
 	if (fsaa_info) {
 		delete [] fsaa_info;
 		fsaa_info = NULL;

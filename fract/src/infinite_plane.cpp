@@ -216,7 +216,7 @@ SSE_ALIGN(static const unsigned short my_ffs[8]) =
 
 #endif
 
-void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, Vector tt, const Vector& ti, Vector tti, InterlockedInt& lock)
+void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, Vector tt, const Vector& ti, Vector tti, int thread_idx, InterlockedInt& lock)
 {
 	Uint32 *dptr;
 	int i, j;
@@ -244,6 +244,7 @@ void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, Vector tt, const Vect
 	Vector tt_start = tt;
 
 	while ((j = lock++) < yr) {
+	//for (j = thread_idx; j < yr; j += cpu_count) {
 		tt = tt_start + tti * j;
 		dptr = &fb[j*xr];
 		Vector g1 = tt;
@@ -323,7 +324,7 @@ void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, Vector tt, const Vect
 /*
  *  This is the Pre-SSE version of the floor renderer. Contains C code only :)
  */
-void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, Vector tt, const Vector& ti, Vector tti, InterlockedInt &lock)
+void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, Vector tt, const Vector& ti, Vector tti, int thread_idx, InterlockedInt &lock)
 {
 	Uint32 *dptr;
 	int i, j;
@@ -419,9 +420,9 @@ void render_infinite_plane(Uint32 *frame_buffer, int xr, int yr, Vector& tt, Vec
 			   int start_line, InterlockedInt &lock)
 {
 	if (sse_enabled) {
-		render_infinite_plane_sse(frame_buffer, xr, yr, tt, ti, tti, lock);
+		render_infinite_plane_sse(frame_buffer, xr, yr, tt, ti, tti, start_line, lock);
 	} else {
-		render_infinite_plane_p5(frame_buffer, xr, yr, tt, ti, tti, lock);
+		render_infinite_plane_p5(frame_buffer, xr, yr, tt, ti, tti, start_line, lock);
 	}
 }
 
