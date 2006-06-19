@@ -496,6 +496,5 @@ int main(int argc, char *argv[])
 	
 	if (developer || option_exists("--prof-stats")) prof_statistics();
 	close_program();
-	print_cpu_info();
 	return 0;
 }
