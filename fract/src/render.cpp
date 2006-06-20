@@ -843,20 +843,27 @@ void render_single_frame_do(void)
 		render_spheres_init(fbuffer);
 		render_spheres(spherebuffer, fbuffer, tt, ti, tti, 0, i2);
 		prof_leave(PROF_RENDER_SPHERES);
+		
+		if (r_shadows){
+			prof_enter(PROF_RENDER_SHADOWS);
+			render_shadows_init(ptr, sbuffer, xr, yr, t0, ti, tti);
+			render_shadows(ptr, sbuffer, xr, yr, t0, ti, tti, 0);
+			prof_leave(PROF_RENDER_SHADOWS);
+		}
 
 	} else {
 		class MultiThreadedMainRender : public Parallel {
 			Vector local_t0, local_ti, local_tti;
 			Uint32 *framebuffer, *spherebuffer;
-			Uint16 *fbuffer;
+			Uint16 *fbuffer, *sbuffer;
 			int xr, yr;
-			InterlockedInt for_bg, for_raytracing;
+			InterlockedInt for_bg, for_rt;
 			public:
 				MultiThreadedMainRender(const Vector& tt, 
 						const Vector &ti, 
 						const Vector &tti, 
-						Uint16 *xfbuffer,
-						Uint32 *fb, int xr, int yr, Uint32 *sb) : for_bg(0), for_raytracing(0)
+						Uint16 *xfbuffer, Uint16 *xsbuffer,
+						Uint32 *fb, int xr, int yr, Uint32 *sb) : for_bg(0), for_rt(0)
 				{
 					local_t0 = tt;
 					local_ti = ti;
@@ -866,7 +873,10 @@ void render_single_frame_do(void)
 					spherebuffer = sb;
 					framebuffer = fb;
 					fbuffer = xfbuffer;
+					sbuffer = xsbuffer;
 					render_spheres_init(fbuffer);
+					if (r_shadows)
+						render_shadows_init(framebuffer, sbuffer, xr, yr, local_t0, ti, tti);
 				}
 				void entry(int thread_idx, int thread_count)
 				{
@@ -875,16 +885,15 @@ void render_single_frame_do(void)
 					render_background(framebuffer, xr, yr, t0, local_ti, local_tti, thread_idx, for_bg);
 					t0 = local_t0;
 					//render_spheres
-					render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, thread_idx, for_raytracing);
+					render_spheres(spherebuffer, fbuffer, t0, local_ti, local_tti, thread_idx, for_rt);
+					if (r_shadows) {
+						render_shadows(framebuffer, sbuffer, xr, yr, local_t0, local_ti, local_tti,
+							thread_idx);
+					}
 				}
-		} multithreaded_main_render (tt, ti, tti, fbuffer, ptr, xr, yr, spherebuffer);
+		} multithreaded_main_render (tt, ti, tti, fbuffer, sbuffer, ptr, xr, yr, spherebuffer);
 
 		thread_pool.run(&multithreaded_main_render, cpu.count);
-	}
-	if (r_shadows){
-		prof_enter(PROF_RENDER_SHADOWS);
-		render_shadows(ptr, sbuffer, xr, yr, t0, ti, tti);
-		prof_leave(PROF_RENDER_SHADOWS);
 	}
 	prof_enter(PROF_MERGE_BUFFERS);
 	merge_buffers(ptr, spherebuffer, fbuffer);

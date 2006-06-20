@@ -869,9 +869,8 @@ void shadows_close(void)
 }
 
 
-void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector& mtt, Vector& mti, Vector& mtti)
+void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector mtt, Vector mti, Vector mtti)
 {
-	Vector ml(lx, ly, lz);
 	ceilmax = floormin = -1;
 
 	prof_enter(PROF_ZERO_SBUFFER); // reset the S-buffer;
@@ -879,6 +878,12 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 	prof_leave(PROF_ZERO_SBUFFER);
 	
 	shadows_precalc(xr, yr, mtt, mti, mtti);
+}
+
+void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
+		    Vector mtt, Vector mti, Vector mtti, int thread_idx)
+{
+	Vector ml(lx, ly, lz);
 		
 	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
 		Vector poly[SPHERE_SIDES*2+8];
