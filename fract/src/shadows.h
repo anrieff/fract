@@ -63,6 +63,9 @@ const int shadow_intensity = 0xB2;
 #define SHADOW_SAMPLES 16
 #endif
 
+// This merges the shadow buffer with the real framebuffer
+void shadows_merge(int xr, int yr, Uint32 *target_framebuffer, Uint16 *sbuffer);
+
 /// called before render_shadows to do some set-up work
 void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector mtt, Vector mti, Vector mtti);
 

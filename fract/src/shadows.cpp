@@ -10,6 +10,7 @@
 
 #include "shadows.h"
 #include "MyGlobal.h"
+#include "barriers.h"
 #include "cross_vars.h"
 #include "cpu.h"
 #include "profile.h"
@@ -64,7 +65,7 @@ static void shadows_precalc(int xr, int yr, Vector & mtt, Vector& mti, Vector& m
 }
 
 
-static void shadows_merge(int xr, int yr, Uint32 *target_framebuffer, Uint16 *sbuffer)
+void shadows_merge(int xr, int yr, Uint32 *target_framebuffer, Uint16 *sbuffer)
 {
 	prof_enter(PROF_MERGE);
 	if (cpu.mmx2)
@@ -175,7 +176,7 @@ struct Simplex {
 
 struct Triangularized {
 	Array<Simplex> tris;
-	bool isfloor;
+	bool isfloor, solid;
 	void _kopy(const Triangularized &r)
 	{
 		tris = r.tris;
@@ -197,7 +198,11 @@ struct Triangularized {
 	
 };
 
-static void raster_wedge(float aa[], float bb[], float cc[], int w1, int w2, int w3, int xr, int yr, Uint16 *sbuffer)
+Array <Triangularized> shadow_objects;
+Mutex shadow_objects_cs;
+
+static void raster_wedge(float aa[], float bb[], float cc[], int w1, int w2, int w3, int xr, int yr, Uint16 *sbuffer, 
+			int thread_idx, int thread_count)
 {
 	vec2f a(aa), b(bb), c(cc);
 	WedgeDrawer wd;
@@ -205,7 +210,7 @@ static void raster_wedge(float aa[], float bb[], float cc[], int w1, int w2, int
 	wd.xr = xr;
 	wd.w1 = w1; wd.w2 = w2; wd.w3 = w3; wd.sbuffer = sbuffer;
 
-	TriangleRasterizer rasterizer(xr, yr, a, b, c);
+	TriangleRasterizer rasterizer(xr, yr, a, b, c, thread_idx, thread_count);
 	rasterizer.draw(wd);
 
 	rasterizer.update_limits(all_min_x, all_max_x, all_min_y, all_max_y);
@@ -298,7 +303,7 @@ static int temp_path[MAX_SIDES];
 static int final_path[MAX_SIDES];
 static int path_length;
 
-void record_path(int node, int dest, int g[][max_neighs + 1], bool ps[], int lev) 
+static void record_path(int node, int dest, int g[][max_neighs + 1], bool ps[], int lev) 
 {
 	temp_path[lev] = node;
 	ps[node] = true;
@@ -315,7 +320,7 @@ void record_path(int node, int dest, int g[][max_neighs + 1], bool ps[], int lev
 	}
 }
 
-int connect_graph(Mesh::EdgeInfo e[], int m)
+static int connect_graph(Mesh::EdgeInfo e[], int m)
 {
 	static bool visited[MAX_SIDES];
 	static Vertex verts[MAX_SIDES];
@@ -566,6 +571,8 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 {
 	solid.tris.clear();
 	wedgy.tris.clear();
+	solid.solid = true;
+	wedgy.solid = false;
 	Array<vec2f> inner;
 	Array<vec2f> outer;
 	vec2f *temp = new vec2f[n * 4];
@@ -713,7 +720,7 @@ static void poly_bias(Vector verts[], int n, const Vector& light, const Vector& 
 	}
 }
 
-static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector mtt, Vector mti, Vector mtti, Uint16 *sbuffer, bool solid)
+static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector mtt, Vector mti, Vector mtti, Uint16 *sbuffer, int thread_idx = 0, int thread_count = 1)
 {
 	all_min_x = all_min_y = inf;
 	all_max_x = all_max_y = -inf;
@@ -725,17 +732,17 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 			Vector d = Vector(s.v[j][0], t.isfloor ? daFloor : daCeiling, s.v[j][1]);
 			project_point(&v[j][0], &v[j][1], d, cur, w, xr, yr);
 		}
-		if (solid) {
+		if (t.solid) {
 			int intensity = shadow_intensity << 8;
 			SolidDrawer sd(sbuffer, intensity, xr);
-			TriangleRasterizer ras(xr, yr, v[0], v[1], v[2]);
+			TriangleRasterizer ras(xr, yr, v[0], v[1], v[2], thread_idx, thread_count);
 			ras.draw(sd);
 			ras.update_limits(all_min_x, all_max_x, all_min_y, all_max_y);
 		} else {
 			raster_wedge(
 					v[0].v, v[1].v, v[2].v, 
 					(int) s.coeff[0], (int) s.coeff[1], (int) s.coeff[2], 
-					xr, yr, sbuffer);
+					xr, yr, sbuffer, thread_idx, thread_count);
 		}
 	}
 	/* stage 3: reblend */
@@ -745,9 +752,10 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 	CLAMP(all_min_y, 0, yr-1);	
 	CLAMP(all_max_y, 0, yr-1);
 	if (cpu.mmx) {
-		fast_reblend_mmx(all_min_x, all_min_y, all_max_x, all_max_y, sbuffer, xr, shadow_intensity);
+		fast_reblend_mmx(all_min_x, all_min_y, all_max_x, all_max_y, sbuffer, xr, shadow_intensity,
+				thread_idx, thread_count);
 	} else {
-		for (int j = all_min_y; j <= all_max_y; j++) {
+		for (int j = all_min_y; j <= all_max_y; j++) if (thread_idx == j % thread_count) {
 			Uint16 *buff = &sbuffer[j * xr];
 			for (int i = all_min_x; i <= all_max_x; i++) {
 				Uint16 t = buff[i];
@@ -878,6 +886,8 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 	prof_leave(PROF_ZERO_SBUFFER);
 	
 	shadows_precalc(xr, yr, mtt, mti, mtti);
+	
+	shadow_objects.clear();
 }
 
 void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
@@ -885,7 +895,7 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 {
 	Vector ml(lx, ly, lz);
 		
-	for (int i = 0; i < spherecount; i++) if (sp[i].flags & CASTS_SHADOW) {
+	for (int i = 0; i < spherecount; i++) if ((sp[i].flags & CASTS_SHADOW)/* && thread_idx == i % cpu.count*/) {
 		Vector poly[SPHERE_SIDES*2+8];
 		
 		prof_enter(PROF_POLY_GEN);
@@ -912,15 +922,23 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			frustrum_clip(frustrum, wedgy);
 			prof_leave(PROF_FRUSTRUM_CLIP);
 			
-			prof_enter(PROF_POLY_DISPLAY);
-			poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, true);
-			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, false);
-			prof_leave(PROF_POLY_DISPLAY);
+			//if (cpu.count == 1) {
+				prof_enter(PROF_POLY_DISPLAY);
+				poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+				poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+				prof_leave(PROF_POLY_DISPLAY);
+			/*} else {
+				shadow_objects_cs.enter();
+				shadow_objects += solid;
+				shadow_objects += wedgy;
+				shadow_objects_cs.leave();
+			}
+			*/
 		}
 	}
 	
 
-	for (int i = 0; i < mesh_count; i++) if (mesh[i].get_flags() & CASTS_SHADOW) {
+	for (int i = 0; i < mesh_count; i++) if ((mesh[i].get_flags() & CASTS_SHADOW) && thread_idx == 0) {
 		recu_es = 0;
 		prof_enter(PROF_CONNECT_GRAPH);
 		for (int j = 0; j < mesh[i].num_edges; j++)
@@ -962,13 +980,25 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			frustrum_clip(frustrum, wedgy);
 			prof_leave(PROF_FRUSTRUM_CLIP);
 			
-			prof_enter(PROF_POLY_DISPLAY);
-			poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, true);
-			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, false);
-			prof_leave(PROF_POLY_DISPLAY);
+			//if (cpu.count == 1) {
+				prof_enter(PROF_POLY_DISPLAY);
+				poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, 1);
+				poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, 1);
+				prof_leave(PROF_POLY_DISPLAY);
+			/*} else {
+				shadow_objects_cs.enter();
+				shadow_objects += solid;
+				shadow_objects += wedgy;
+				shadow_objects_cs.leave();
+			}
+			*/
 		}
 	}
 	
-
-	shadows_merge(xr, yr, target_framebuffer, sbuffer);
+	/*
+	if (cpu.count != 1) {
+		for (int i = 0; i < shadow_objects.size(); i++)
+			poly_display2(shadow_objects[i], xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx);
+	}
+	*/
 }

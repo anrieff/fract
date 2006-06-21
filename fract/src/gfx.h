@@ -127,6 +127,7 @@ class TriangleRasterizer {
 	int xr, yr;
 	int ymin, ymax;
 	int xmin, xmax;
+	int cpui, cpuc;
 	vec2f p[3];
 
 	static inline void swap2f(vec2f & a, vec2f & b) {
@@ -140,9 +141,13 @@ public:
 	*** @param xres - the screen resolution (columns)
 	*** @param yres - the screen resolution (rows)
 	*** @param a, b, c - the verts of the triangle
+	*** @param cpu_index - The 0-based index of the calling thread
+	*** @param cpu_count - How many threads total
 	**/
-	TriangleRasterizer(int xres, int yres, const vec2f& a, const vec2f& b, const vec2f& c)
+	TriangleRasterizer(int xres, int yres, const vec2f& a, const vec2f& b, const vec2f& c, int cpu_index, int cpu_count)
 	{
+		cpui = cpu_index;
+		cpuc = cpu_count;
 		ymin = inf; ymax = -inf;
 		xr = xres; yr = yres;
 		p[0] = a;
@@ -175,7 +180,7 @@ public:
 		float m12 = (p[2][0]-p[1][0])/(p[2][1]-p[1][1]);
 		
 		int x0, x1;
-		for (int y = ymin; y <= ymax; y++) {
+		for (int y = ymin; y <= ymax; y++) if (cpui == y % cpuc) {
 			x0 = (int) (p[0][0] + (y - p[0][1])*m02);
 			if ( y < p[1][1] )
 				x1 = (int) (p[0][0] + (y - p[0][1])*m01);

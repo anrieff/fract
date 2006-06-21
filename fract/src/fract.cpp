@@ -474,6 +474,8 @@ int main(int argc, char *argv[])
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
 	option_add("--scene=data/benchmark.fsv");
+	option_add("--cpus=2");
+	option_add("-w");
 	commandline_parse();
 	init_program();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {

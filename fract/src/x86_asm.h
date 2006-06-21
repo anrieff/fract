@@ -3186,24 +3186,25 @@ void fast_line_fill(Uint16 *p, int size, Uint16 fill)
 		p[i] |= fill;
 }
 
-static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int xr, Uint16 sintensity)
+static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int xr, Uint16 sintensity, int cpui, int cpuc)
 {
 	sintensity = 255 - sintensity;
 	SSE_ALIGN(Uint16 x_mor[4]) = { 0xff, 0xff, 0xff, 0xff} ;
 	SSE_ALIGN(Uint16 x_add[4]) = { sintensity, sintensity, sintensity, sintensity };
 	x2 = ((x2/4)+1)*4;
-	y2 = ((y2/4)+1)*4;
 	x1 &= ~3;
-	y1 &= ~3;
 	int xsize = (x2 - x1)/4;
 	int ysize = y2 - y1;
 	if (xsize <= 0 || ysize <= 0) return;
 	Uint16 *p = &sbuff[y1 * xr + x1];
 	xr *= 2;
+	
+	cpui = ((y1 % cpuc) + cpuc - cpui) % cpuc + 1;
 	//
 	__asm __volatile (// 0 - p, 1 - ysize, 2 - xsize, 3 - xr
 			"	mov	%0,	%%esi\n"
 			"	mov	%1,	%%edx\n"
+			"	mov	%7,	%%ecx\n"
 			"	movq	%4,	%%mm7\n"
 			"	movq	%5,	%%mm6\n"
 			
@@ -3211,6 +3212,10 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 			"yyloop:\n"
 			"	mov	%%esi,	%%edi\n"
 			"	add	%3,	%%esi\n"
+			
+			"	dec	%%ecx\n"
+			"	jnz	skip_row\n"
+			"	mov	%6,	%%ecx\n"
 			"	mov	%2,	%%eax\n"
 			
 			".balign	16\n"
@@ -3228,11 +3233,13 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 			"	dec	%%eax\n"
 			"	jnz	xxloop\n"
 			
+			".balign	16\n"
+			"skip_row:\n"
 			"	dec	%%edx\n"
 			"	jnz	yyloop\n"
 			
 			"	emms\n"
-	::"m"(p), "m"(ysize), "m"(xsize), "m"(xr), "m"(*x_mor), "m"(*x_add)
+	::"m"(p), "m"(ysize), "m"(xsize), "m"(xr), "m"(*x_mor), "m"(*x_add), "m"(cpuc), "m"(cpui)
 	:"memory", "eax", "edx", "esi", "edi");
 }
 

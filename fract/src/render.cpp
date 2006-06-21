@@ -895,6 +895,13 @@ void render_single_frame_do(void)
 
 		thread_pool.run(&multithreaded_main_render, cpu.count);
 	}
+	
+	if (r_shadows) {
+		prof_enter(PROF_MERGE);
+		shadows_merge(xr, yr, ptr, sbuffer);
+		prof_leave(PROF_MERGE);
+	}
+
 	prof_enter(PROF_MERGE_BUFFERS);
 	merge_buffers(ptr, spherebuffer, fbuffer);
 	prof_leave(PROF_MERGE_BUFFERS);
