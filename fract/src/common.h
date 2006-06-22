@@ -299,4 +299,39 @@ public:
 	}
 };
 
+/**
+ * @class Allocator
+ * @brief Class that keeps track of local thread storage
+ * @date 2006-06-22
+ * @author Veselin Georgiev
+ * 
+ * Allocator is intended to be used with local thread storage classes. When a thread
+ * needs large storage (too large to fit on stack), you can use this class's operator[]
+ * to access your data, given your thread index.
+ * 
+ * As a side-effect, the local thread storage info is preserved across thread runs, but
+ * do not rely on that.
+ * 
+ * The data is automatically allocated and deallocated
+*/ 
+template <class T>
+class Allocator {
+	T *xdata[64];
+public:
+	Allocator()
+	{
+		memset(xdata, 0, sizeof(xdata));
+	}
+	~Allocator()
+	{
+		for (int i = 0; i < 64; i++)
+			if (xdata[i]) { delete xdata[i]; xdata[i] = 0; }
+	}
+	T* operator [] (int index) 
+	{
+		if (!xdata[index]) xdata[index] = new T;
+		return xdata[index];
+	}
+};
+
 #endif // __COMMON_H__

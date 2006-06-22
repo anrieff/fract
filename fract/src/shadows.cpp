@@ -13,6 +13,7 @@
 #include "barriers.h"
 #include "cross_vars.h"
 #include "cpu.h"
+#include "common.h"
 #include "profile.h"
 #include "gfx.h"
 #include "vectormath.h"
@@ -899,12 +900,13 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 	shadow_objects.clear();
 }
 
+static Allocator<PolyContext> allocator;
 
 void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
 		    Vector mtt, Vector mti, Vector mtti, int thread_idx)
 {
 	Vector ml(lx, ly, lz);
-	PolyContext *po = new PolyContext;
+	PolyContext *po = allocator[thread_idx];
 		
 	for (int i = 0; i < spherecount; i++) if ((sp[i].flags & CASTS_SHADOW)/* && thread_idx == i % cpu.count*/) {
 		Vector poly[SPHERE_SIDES*2+8];
@@ -1012,5 +1014,4 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			poly_display2(shadow_objects[i], xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx);
 	}
 	*/
-	delete po;
 }
