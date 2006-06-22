@@ -899,13 +899,12 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 	shadow_objects.clear();
 }
 
-static PolyContext stat_po;
 
 void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
 		    Vector mtt, Vector mti, Vector mtti, int thread_idx)
 {
 	Vector ml(lx, ly, lz);
-	PolyContext *po = &stat_po;
+	PolyContext *po = new PolyContext;
 		
 	for (int i = 0; i < spherecount; i++) if ((sp[i].flags & CASTS_SHADOW)/* && thread_idx == i % cpu.count*/) {
 		Vector poly[SPHERE_SIDES*2+8];
@@ -950,7 +949,7 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 	}
 	
 
-	for (int i = 0; i < mesh_count; i++) if ((mesh[i].get_flags() & CASTS_SHADOW) && thread_idx == 0) {
+	for (int i = 0; i < mesh_count; i++) if ((mesh[i].get_flags() & CASTS_SHADOW)) {
 		po->recu_es = 0;
 		prof_enter(PROF_CONNECT_GRAPH);
 		for (int j = 0; j < mesh[i].num_edges; j++)
@@ -994,8 +993,8 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			
 			//if (cpu.count == 1) {
 				prof_enter(PROF_POLY_DISPLAY);
-				poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, 1);
-				poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, 1);
+				poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+				poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
 				prof_leave(PROF_POLY_DISPLAY);
 			/*} else {
 				shadow_objects_cs.enter();
@@ -1013,5 +1012,5 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			poly_display2(shadow_objects[i], xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx);
 	}
 	*/
-	//delete po;
+	delete po;
 }
