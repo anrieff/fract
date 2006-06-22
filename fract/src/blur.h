@@ -29,6 +29,9 @@ void cycle_blur_mode(void);
 void set_blur_method(int newmethod);
 void blur_reinit(void);
 
+void blur_init(void);
+void blur_close(void);
+
 extern int apply_blur;
 #endif // BLUR
 

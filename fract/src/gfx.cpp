@@ -655,15 +655,15 @@ void mapsphere(Uint32 *fb, int Ox, int Oy, int color, int sides, Vector pt[], Ve
 
 // the pre-filler part: this fills the circular area of the screen where the selected sphere will map with the given color
 // returns 0 if the sphere does not visualise at all
-int project_it(Object *a, Vector pt[], int *ns, Uint32 *fb, Vector& cur, Vector w[3], int xres, int yres, int color, int & min_y, int & max_y)
+int project_it(Object *a, int *ns, Uint32 *fb, Vector& cur, Vector w[3], int xres, int yres, int color, int & min_y, int & max_y)
 {
+	Vector pt[MAX_SPHERE_SIDES];
 	if (!a->is_visible(cur, w)) {
 		min_y = -20;
 		max_y = -10;
 		return 0;
 	}
-	if (camera_moved)
- 		*ns = a->calculate_convex(pt, cur);
+	*ns = a->calculate_convex(pt, cur);
 	a->map2screen(fb, color, *ns, pt, cur, w, min_y, max_y);
 	return 1;
 }

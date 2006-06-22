@@ -299,6 +299,11 @@ public:
 	}
 };
 
+
+enum AllocatorType {
+	ALLOCATOR_MALLOC_FREE,
+	ALLOCATOR_NEW_DELETE
+};
 /**
  * @class Allocator
  * @brief Class that keeps track of local thread storage
@@ -313,23 +318,41 @@ public:
  * do not rely on that.
  * 
  * The data is automatically allocated and deallocated
+ * 
+ * The constructor acceptsh an optional parameter which determines how allocation and
+ * deallocation will be performed; malloc()/free() in the case of ALLOCATOR_MALLOC_FREE,
+ * new/delete in the case of ALLOCATOR_NEW_DELETE.
 */ 
 template <class T>
 class Allocator {
 	T *xdata[64];
+	AllocatorType type;
 public:
-	Allocator()
+	Allocator(AllocatorType mytype = ALLOCATOR_NEW_DELETE)
 	{
 		memset(xdata, 0, sizeof(xdata));
+		type = mytype;
 	}
 	~Allocator()
 	{
-		for (int i = 0; i < 64; i++)
-			if (xdata[i]) { delete xdata[i]; xdata[i] = 0; }
+		for (int i = 0; i < 64; i++) {
+			if (xdata[i]) { 
+				if (type == ALLOCATOR_MALLOC_FREE)
+					sse_free(xdata[i]);
+				else
+					delete xdata[i];
+				xdata[i] = 0; 
+			}
+		}
 	}
 	T* operator [] (int index) 
 	{
-		if (!xdata[index]) xdata[index] = new T;
+		if (!xdata[index]) {
+			if (type == ALLOCATOR_MALLOC_FREE)
+				xdata[index] = (T*) sse_malloc(sizeof(T));
+			else
+				xdata[index] = new T;
+		}
 		return xdata[index];
 	}
 };

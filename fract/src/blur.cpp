@@ -27,9 +27,9 @@ int apply_blur = 0, blur_method = BLUR_DISCRETE;
 extern Uint32 framebuffer[RES_MAXX*RES_MAXY];
 
 // **************** GLOBAL VARIABLES ******************************
-SSE_ALIGN(Uint32 blurbuffers[8][RES_MAXX*RES_MAXY]);
-SSE_ALIGN(Uint32 accumulation_buffer[RES_MAXX*RES_MAXY]);
-Uint32 tempstor[RES_MAXX*RES_MAXY];
+Uint32 *blurbuffers[8]/*[RES_MAXX*RES_MAXY]*/;
+Uint32 *accumulation_buffer/*[RES_MAXX*RES_MAXY]*/;
+Uint32 *tempstor/*[RES_MAXX*RES_MAXY]*/;
 int blur_current;
 
 
@@ -159,6 +159,24 @@ void cycle_blur_mode(void)
 void set_blur_method(int newmethod)
 {
 	blur_method = newmethod % BLUR_COUNT;
+}
+
+void blur_init(void)
+{
+	int size = xres()*yres()*4;
+	for (int i = 0; i < 8; i++) {
+		blurbuffers[i] = (Uint32*) sse_malloc(size);
+	}
+	accumulation_buffer = (Uint32 *) sse_malloc(size);
+	tempstor = (Uint32*) sse_malloc(size);
+}
+
+void blur_close(void)
+{
+	for (int i = 0; i < 8; i++)
+		if (blurbuffers[i]) { sse_free(blurbuffers[i]); blurbuffers[i] = NULL; }
+	if (accumulation_buffer) { sse_free(accumulation_buffer); accumulation_buffer = NULL; }
+	if (tempstor) { sse_free(tempstor); tempstor = NULL; }
 }
 
 #endif // BLUR

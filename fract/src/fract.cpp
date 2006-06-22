@@ -54,7 +54,6 @@ unsigned mips_colors[] = {
 // sphere collection
 
 SSE_ALIGN(Sphere sp[MAX_SPHERES]);
-Vector pp[MAX_OBJECTS][MAX_SPHERE_SIDES];
 int num_sides[MAX_OBJECTS];
 int spherecount;
 
@@ -184,6 +183,7 @@ void init_fract_array(void)
 void init_program(void)
 {
 	common_init();
+	blur_init();
 }
 
 void close_program(void)
@@ -191,6 +191,7 @@ void close_program(void)
 	Scene::videoclose();
 	gfx_close();
 	bitmap_close();
+	blur_close();
 	cmdline_close();
 	rgb2yuv_close();
 	sphere_close();

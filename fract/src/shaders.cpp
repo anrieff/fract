@@ -56,45 +56,6 @@ SSE_ALIGN(float multi_ma3x_8_float[8][8]) = {
 	{ 0.125, 0.250, 0.375, 0.500, 0.500, 0.375, 0.250, 0.125 }
 };
 
-int multi_ma3x_16_int16[16][16] = {
-    { 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x8000, 0x7000, 0x6000, 0x5000, 0x4000, 0x3000, 0x2000, 0x1000 },
-    { 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0x9000, 0x8000, 0x7000, 0x6000, 0x5000, 0x4000, 0x3000, 0x2000 },
-    { 0x3000, 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0xa000, 0xa000, 0x9000, 0x8000, 0x7000, 0x6000, 0x5000, 0x4000, 0x3000 },
-    { 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0xa000, 0xb000, 0xb000, 0xa000, 0x9000, 0x8000, 0x7000, 0x6000, 0x5000, 0x4000 },
-    { 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0xa000, 0xb000, 0xc000, 0xc000, 0xb000, 0xa000, 0x9000, 0x8000, 0x7000, 0x6000, 0x5000 },
-    { 0x6000, 0x7000, 0x8000, 0x9000, 0xa000, 0xb000, 0xc000, 0xd000, 0xd000, 0xc000, 0xb000, 0xa000, 0x9000, 0x8000, 0x7000, 0x6000 },
-    { 0x7000, 0x8000, 0x9000, 0xa000, 0xb000, 0xc000, 0xd000, 0xe000, 0xe000, 0xd000, 0xc000, 0xb000, 0xa000, 0x9000, 0x8000, 0x7000 },
-    { 0x8000, 0x9000, 0xa000, 0xb000, 0xc000, 0xd000, 0xe000, 0xf000, 0xf000, 0xe000, 0xd000, 0xc000, 0xb000, 0xa000, 0x9000, 0x8000 },
-    { 0x8000, 0x9000, 0xa000, 0xb000, 0xc000, 0xd000, 0xe000, 0xf000, 0xf000, 0xe000, 0xd000, 0xc000, 0xb000, 0xa000, 0x9000, 0x8000 },
-    { 0x7000, 0x8000, 0x9000, 0xa000, 0xb000, 0xc000, 0xd000, 0xe000, 0xe000, 0xd000, 0xc000, 0xb000, 0xa000, 0x9000, 0x8000, 0x7000 },
-    { 0x6000, 0x7000, 0x8000, 0x9000, 0xa000, 0xb000, 0xc000, 0xd000, 0xd000, 0xc000, 0xb000, 0xa000, 0x9000, 0x8000, 0x7000, 0x6000 },
-    { 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0xa000, 0xb000, 0xc000, 0xc000, 0xb000, 0xa000, 0x9000, 0x8000, 0x7000, 0x6000, 0x5000 },
-    { 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0xa000, 0xb000, 0xb000, 0xa000, 0x9000, 0x8000, 0x7000, 0x6000, 0x5000, 0x4000 },
-    { 0x3000, 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0xa000, 0xa000, 0x9000, 0x8000, 0x7000, 0x6000, 0x5000, 0x4000, 0x3000 },
-    { 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0x9000, 0x8000, 0x7000, 0x6000, 0x5000, 0x4000, 0x3000, 0x2000 },
-    { 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x8000, 0x7000, 0x6000, 0x5000, 0x4000, 0x3000, 0x2000, 0x1000 }
-};
-
-
-SSE_ALIGN(float multi_ma3x_16_float[16][16]) = {
-    { 0.0625, 0.1250, 0.1875, 0.2500, 0.3125, 0.3750, 0.4375, 0.5000, 0.5000, 0.4375, 0.3750, 0.3125, 0.2500, 0.1875, 0.1250, 0.0625 },
-    { 0.1250, 0.1875, 0.2500, 0.3125, 0.3750, 0.4375, 0.5000, 0.5625, 0.5625, 0.5000, 0.4375, 0.3750, 0.3125, 0.2500, 0.1875, 0.1250 },
-    { 0.1875, 0.2500, 0.3125, 0.3750, 0.4375, 0.5000, 0.5625, 0.6250, 0.6250, 0.5625, 0.5000, 0.4375, 0.3750, 0.3125, 0.2500, 0.1875 },
-    { 0.2500, 0.3125, 0.3750, 0.4375, 0.5000, 0.5625, 0.6250, 0.6875, 0.6875, 0.6250, 0.5625, 0.5000, 0.4375, 0.3750, 0.3125, 0.2500 },
-    { 0.3125, 0.3750, 0.4375, 0.5000, 0.5625, 0.6250, 0.6875, 0.7500, 0.7500, 0.6875, 0.6250, 0.5625, 0.5000, 0.4375, 0.3750, 0.3125 },
-    { 0.3750, 0.4375, 0.5000, 0.5625, 0.6250, 0.6875, 0.7500, 0.8125, 0.8125, 0.7500, 0.6875, 0.6250, 0.5625, 0.5000, 0.4375, 0.3750 },
-    { 0.4375, 0.5000, 0.5625, 0.6250, 0.6875, 0.7500, 0.8125, 0.8750, 0.8750, 0.8125, 0.7500, 0.6875, 0.6250, 0.5625, 0.5000, 0.4375 },
-    { 0.5000, 0.5625, 0.6250, 0.6875, 0.7500, 0.8125, 0.8750, 0.9375, 0.9375, 0.8750, 0.8125, 0.7500, 0.6875, 0.6250, 0.5625, 0.5000 },
-    { 0.5000, 0.5625, 0.6250, 0.6875, 0.7500, 0.8125, 0.8750, 0.9375, 0.9375, 0.8750, 0.8125, 0.7500, 0.6875, 0.6250, 0.5625, 0.5000 },
-    { 0.4375, 0.5000, 0.5625, 0.6250, 0.6875, 0.7500, 0.8125, 0.8750, 0.8750, 0.8125, 0.7500, 0.6875, 0.6250, 0.5625, 0.5000, 0.4375 },
-    { 0.3750, 0.4375, 0.5000, 0.5625, 0.6250, 0.6875, 0.7500, 0.8125, 0.8125, 0.7500, 0.6875, 0.6250, 0.5625, 0.5000, 0.4375, 0.3750 },
-    { 0.3125, 0.3750, 0.4375, 0.5000, 0.5625, 0.6250, 0.6875, 0.7500, 0.7500, 0.6875, 0.6250, 0.5625, 0.5000, 0.4375, 0.3750, 0.3125 },
-    { 0.2500, 0.3125, 0.3750, 0.4375, 0.5000, 0.5625, 0.6250, 0.6875, 0.6875, 0.6250, 0.5625, 0.5000, 0.4375, 0.3750, 0.3125, 0.2500 },
-    { 0.1875, 0.2500, 0.3125, 0.3750, 0.4375, 0.5000, 0.5625, 0.6250, 0.6250, 0.5625, 0.5000, 0.4375, 0.3750, 0.3125, 0.2500, 0.1875 },
-    { 0.1250, 0.1875, 0.2500, 0.3125, 0.3750, 0.4375, 0.5000, 0.5625, 0.5625, 0.5000, 0.4375, 0.3750, 0.3125, 0.2500, 0.1875, 0.1250 },
-    { 0.0625, 0.1250, 0.1875, 0.2500, 0.3125, 0.3750, 0.4375, 0.5000, 0.5000, 0.4375, 0.3750, 0.3125, 0.2500, 0.1875, 0.1250, 0.0625 }
-};
-
 Uint32 shader_tmp[SHADER_MAXX*SHADER_MAXY];
 float *fft_filter = NULL;
 
@@ -446,7 +407,11 @@ static inline int clamp_int(int f)
 
 #define fix(x) (clamp_int((x)))
 
-SSE_ALIGN(complex in[3][MAX_FFT_SIZE][MAX_FFT_SIZE]);
+struct FloatArr {
+	complex in[3][MAX_FFT_SIZE][MAX_FFT_SIZE];
+};
+
+static Allocator<FloatArr> allocator(ALLOCATOR_MALLOC_FREE);
 
 // returns 1 on succes, zero otherwise
 int shader_FFT_Filter(Uint32 *src, Uint32 *dst, int resx, int resy)
@@ -463,22 +428,23 @@ int shader_FFT_Filter(Uint32 *src, Uint32 *dst, int resx, int resy)
 		while (x!=1) { x/=2; y++; }
 		}
 	fft_size = x<<y;
+	FloatArr *fa = allocator[0];
 
-	if (fft_size == MAX_FFT_SIZE) memset(in, 0, sizeof(in));
+	if (fft_size == MAX_FFT_SIZE) memset(fa->in, 0, sizeof(fa->in));
 		else{
 			for (j=0;j<3;j++) {
 				for (i=0;i<fft_size;i++) if (i>=resy)
-					memset(in[j][i], 0, sizeof(complex)*fft_size);
+					memset(fa->in[j][i], 0, sizeof(complex)*fft_size);
 					else
-					memset(in[j][i]+resx, 0, sizeof(complex)*(fft_size-resx));
+					memset(fa->in[j][i]+resx, 0, sizeof(complex)*(fft_size-resx));
 				}
 		}
 
 	for (j=0;j<resy;j++) {
 		for (i=0;i<resx;i++) {
 			for (k = 0; k < 3; k++) {
-				in[k][j][i].re = (float) ((src[i + j*resx]>>(8*k)) & 0xff);
-				in[k][j][i].im = 0.0;
+				fa->in[k][j][i].re = (float) ((src[i + j*resx]>>(8*k)) & 0xff);
+				fa->in[k][j][i].im = 0.0;
 			}
 		}
 	}
@@ -491,10 +457,10 @@ int shader_FFT_Filter(Uint32 *src, Uint32 *dst, int resx, int resy)
 	for (k = 0; k < 3; ++k) {
 		//k+=2;k%=3;
 		//printf("%d\n", k);
-		fft_2D_complex(in[k], 1, fft_size);
-		if (cpu.sse) apply_fft_filter_sse(in[k][0], fft_filter, fft_size);
-			else	 apply_fft_filter_x86(in[k][0], fft_filter, fft_size);
-		fft_2D_complex(in[k], -1, fft_size);
+		fft_2D_complex(fa->in[k], 1, fft_size);
+		if (cpu.sse) apply_fft_filter_sse(fa->in[k][0], fft_filter, fft_size);
+			else	 apply_fft_filter_x86(fa->in[k][0], fft_filter, fft_size);
+		fft_2D_complex(fa->in[k], -1, fft_size);
 		//k++;
 		//k%=3;
 		}
@@ -503,8 +469,8 @@ int shader_FFT_Filter(Uint32 *src, Uint32 *dst, int resx, int resy)
 	for (k = 0; k < 3; k++)
 		for (j = 0; j < resy; j++)
 			for (i = 0; i < resx; i++) {
-				//do_add(dst+i+j*resx, fix(in[0][j][i].re), fix(in[1][j][i].re), fix(in[2][j][i].re));
-				dst[i+j*resx] += fix((int)in[k][j][i].re)<<(8*k);
+				//do_add(dst+i+j*resx,fix(fa->in[0][j][i].re),fix(fa->in[1][j][i].re),fix(fa->in[2][j][i].re));
+				dst[i+j*resx] += fix((int)fa->in[k][j][i].re)<<(8*k);
 			}
 	prof_leave(PROF_SHADER2);
 	return 1;
@@ -843,7 +809,7 @@ void shader_object_glow(Uint32 *fb, Uint8 * glowbuff, Uint32 glow_color, int res
 	prof_leave(PROF_SHADER2);
 }
 
-int sqrt_tab[65536] = {-1};
+static int sqrt_tab[65536];
 
 void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy)
 {
@@ -871,7 +837,7 @@ void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy)
 		return;
 	}
 
-	if (sqrt_tab[0] == -1) {
+	if (sqrt_tab[65535] == 0) {
 		for (int i = 0; i < 65536; i++)
 			sqrt_tab[i] = (int) sqrt((float)i);
 	}

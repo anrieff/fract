@@ -413,7 +413,7 @@ void preframe_do(Uint32 *ptr, Vector lw)
 	for (i=0;i<allobjects.size();i++) {
 		allobjects[i]->id = i;
 		int y0 = 0, y1 = ysize_render(yres())-1;
-		project_it(allobjects[i], pp[i], num_sides+i, ptr, cur, w, xsize_render(xres()), ysize_render(yres()), i+1,
+		project_it(allobjects[i], num_sides+i, ptr, cur, w, xsize_render(xres()), ysize_render(yres()), i+1,
 			y0, y1);
 		if (y1 >= 0) {
 			obj_rows[OR_size].object_id = i;

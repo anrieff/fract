@@ -69,7 +69,6 @@ typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
  Uint32 blend_sse(Uint32 foreground, Uint32 background, float opacity);
  Uint32 blend_p5(Uint32 foreground, Uint32 background, float opacity);
  int project_it(Object *a, 
-	       Vector pt[], 
 	       int *ns, 
 	       Uint32 *fb, 
 	       Vector& cur, 

@@ -900,7 +900,7 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 	shadow_objects.clear();
 }
 
-static Allocator<PolyContext> allocator;
+static Allocator<PolyContext> allocator(ALLOCATOR_NEW_DELETE);
 
 void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
 		    Vector mtt, Vector mti, Vector mtti, int thread_idx)
