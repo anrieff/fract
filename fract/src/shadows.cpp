@@ -128,7 +128,14 @@ public:
 
 #define CLAMP(x,a,b) (x=x>a?(x<b?x:b):a)
 
-static int all_min_x, all_min_y, all_max_x, all_max_y;
+struct Box2D {
+	int min_x, min_y, max_x, max_y;
+	
+	Box2D() {
+		min_x = min_y = inf;
+		max_x = max_y = -inf;
+	}
+};
 
 struct WedgeDrawer : public AbstractDrawer {
 	bary_t bary;
@@ -201,8 +208,8 @@ struct Triangularized {
 Array <Triangularized> shadow_objects;
 Mutex shadow_objects_cs;
 
-static void raster_wedge(float aa[], float bb[], float cc[], int w1, int w2, int w3, int xr, int yr, Uint16 *sbuffer, 
-			int thread_idx, int thread_count)
+static void raster_wedge(Box2D& all, float aa[], float bb[], float cc[], int w1, int w2, int w3, 
+			int xr, int yr, Uint16 *sbuffer, int thread_idx, int thread_count)
 {
 	vec2f a(aa), b(bb), c(cc);
 	WedgeDrawer wd;
@@ -213,7 +220,7 @@ static void raster_wedge(float aa[], float bb[], float cc[], int w1, int w2, int
 	TriangleRasterizer rasterizer(xr, yr, a, b, c, thread_idx, thread_count);
 	rasterizer.draw(wd);
 
-	rasterizer.update_limits(all_min_x, all_max_x, all_min_y, all_max_y);
+	rasterizer.update_limits(all.min_x, all.max_x, all.min_y, all.max_y);
 }
 
 static void intersect(float a[], float b[], float c[], float d[], float x[])
@@ -272,100 +279,105 @@ struct PolyInfo {
 };
 
 
-static int recu_es;
-static Mesh::EdgeInfo recu_edges[MAX_SIDES];
-static Vector mesh_poly[MAX_SIDES];
+struct PolyContext {
+	int recu_es;
+	Mesh::EdgeInfo recu_edges[MAX_SIDES];
+	Vector mesh_poly[MAX_SIDES];
+	
+	bool ps[MAX_SIDES];
+	int maxdist, maxvert;
+	int temp_path[MAX_SIDES];
+	int final_path[MAX_SIDES];
+	int path_length;
+	bool visited[MAX_SIDES];
+	Vertex verts[MAX_SIDES];
+	int fwdmap[MAX_SIDES];
+	int g[MAX_SIDES][max_neighs + 1];
+	float casted[MAX_SIDES][2];
+	vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
+};
 
-static bool ps[MAX_SIDES];
-static int maxdist, maxvert;
 
-void dfs(int node, int g[][max_neighs + 1], int lev)
+
+void dfs(int node, int g[][max_neighs + 1], int lev, PolyContext &po)
 {
-	if (lev > maxdist) {
-		maxdist = lev;
-		maxvert = node;
+	if (lev > po.maxdist) {
+		po.maxdist = lev;
+		po.maxvert = node;
 	}
-	ps[node] = true;
+	po.ps[node] = true;
 	for (int i = 1; i <= g[node][0]; i++)
-		if (!ps[g[node][i]]) 
-			dfs(g[node][i], g, lev + 1);
+		if (!po.ps[g[node][i]]) 
+			dfs(g[node][i], g, lev + 1, po);
 }
 
-int find_most_distant(int g[][max_neighs + 1], int root, int n)
+int find_most_distant(int g[][max_neighs + 1], int root, int n, PolyContext &po)
 {
-	memset(ps, 0, sizeof(bool) * n);
-	maxdist = -1;
-	dfs(root, g, 0);
-	return maxvert;
+	memset(po.ps, 0, sizeof(bool) * n);
+	po.maxdist = -1;
+	dfs(root, g, 0, po);
+	return po.maxvert;
 }
 
-static int temp_path[MAX_SIDES];
-static int final_path[MAX_SIDES];
-static int path_length;
-
-static void record_path(int node, int dest, int g[][max_neighs + 1], bool ps[], int lev) 
+static void record_path(int node, int dest, int g[][max_neighs + 1], bool ps[], int lev, PolyContext &po) 
 {
-	temp_path[lev] = node;
+	po.temp_path[lev] = node;
 	ps[node] = true;
 	if (node == dest) {
-		memcpy(final_path, temp_path, (lev+1) * sizeof(int));
-		path_length = lev+1;
+		memcpy(po.final_path, po.temp_path, (lev+1) * sizeof(int));
+		po.path_length = lev+1;
 		return;
 	}
 	
 	for (int i = 1; i <= g[node][0]; i++) {
 		if (!ps[g[node][i]]) {
-			record_path(g[node][i], dest, g, ps, lev+1);
+			record_path(g[node][i], dest, g, ps, lev+1, po);
 		}
 	}
 }
 
-static int connect_graph(Mesh::EdgeInfo e[], int m)
+static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 {
-	static bool visited[MAX_SIDES];
-	static Vertex verts[MAX_SIDES];
-	static int fwdmap[MAX_SIDES];
-	static int g[MAX_SIDES][max_neighs + 1];
 	int n = 0;
-	memset(visited, 0, sizeof(visited));
+	memset(po.visited, 0, sizeof(po.visited));
 	
 	for (int i = 0; i < m; i++) {
-		if (!visited[e[i].ai]) {
-			visited[e[i].ai] = true;
-			verts[n++] = Vertex(e[i].ai, e[i].a);
+		if (!po.visited[e[i].ai]) {
+			po.visited[e[i].ai] = true;
+			po.verts[n++] = Vertex(e[i].ai, e[i].a);
 		}
-		if (!visited[e[i].bi]) {
-			visited[e[i].bi] = true;
-			verts[n++] = Vertex(e[i].bi, e[i].b);
+		if (!po.visited[e[i].bi]) {
+			po.visited[e[i].bi] = true;
+			po.verts[n++] = Vertex(e[i].bi, e[i].b);
 		}
 	}
-	sort(verts, n);
+	sort(po.verts, n);
 	for (int i = 0; i < n; i++)
-		fwdmap[verts[i].no] = i;
-	memset(g, 0, sizeof(int) * (max_neighs + 1) * n);
+		po.fwdmap[po.verts[i].no] = i;
+	memset(po.g, 0, sizeof(int) * (max_neighs + 1) * n);
 	for (int i = 0; i < m; i++) {
-		int x = fwdmap[e[i].ai];
-		int y = fwdmap[e[i].bi];
-		if (g[x][0] == max_neighs || g[y][0] == max_neighs) {
+		int x = po.fwdmap[e[i].ai];
+		int y = po.fwdmap[e[i].bi];
+		if (po.g[x][0] == max_neighs || po.g[y][0] == max_neighs) {
 #ifdef DEBUG
 			printf("Graph representation overflow\n");
 #endif
 			continue;
 		}
-		g[x][++g[x][0]] = y;
-		g[y][++g[y][0]] = x;
+		po.g[x][++po.g[x][0]] = y;
+		po.g[y][++po.g[y][0]] = x;
 	}
-	memset(visited, 0, sizeof(bool) * n);
+	memset(po.visited, 0, sizeof(bool) * n);
 	Array< Array <int> > compos;
-	for (int i = 0; i < n; i++) if (!visited[i]) {
-		int x = find_most_distant(g, i, n);
-		int y = find_most_distant(g, x, n);
-		memset(ps, 0, sizeof(bool) * n);
-		record_path(x, y, g, ps, 0);
+	for (int i = 0; i < n; i++) if (!po.visited[i]) {
+		int x = find_most_distant(po.g, i, n, po);
+		int y = find_most_distant(po.g, x, n, po);
+		memset(po.ps, 0, sizeof(bool) * n);
+		record_path(x, y, po.g, po.ps, 0, po);
 		Array<int> compo;
-		for (int j = 0; j < path_length; j++) {
-			compo += final_path[j];
-			visited[final_path[j]] = true;
+		for (int j = 0; j < po.path_length; j++) {
+			compo += po.final_path[j];
+			po.visited[po.final_path[j]] = true;
 		}
 		compos += compo;
 	}
@@ -389,15 +401,15 @@ static int connect_graph(Mesh::EdgeInfo e[], int m)
 		int bi = -1;
 		bool reversed = false;
 		double mdist = 1e99;
-		Vector & end = verts[all[all.size()-1]].v;
+		Vector & end = po.verts[all[all.size()-1]].v;
 		for (int i = 0; i < compos.size(); i++) if (!used[i]) {
-			double t = end.distto( verts[compos[i][0]].v );
+			double t = end.distto( po.verts[compos[i][0]].v );
 			if (t < mdist) {
 				bi = i;
 				mdist = t;
 				reversed = false;
 			}
-			t = end.distto( verts[ compos[i][compos[i].size()-1] ].v );
+			t = end.distto( po.verts[ compos[i][compos[i].size()-1] ].v );
 			if (t < mdist) {
 				bi = i;
 				mdist = t;
@@ -410,10 +422,10 @@ static int connect_graph(Mesh::EdgeInfo e[], int m)
 	}
 	int r = 0;
 	for (int i = 0; i < all.size(); i++) {
-		if (r == 0 || mesh_poly[r-1].distto(verts[all[i]].v) > 1e-9)
-			mesh_poly[r++] = verts[all[i]].v;
+		if (r == 0 || po.mesh_poly[r-1].distto(po.verts[all[i]].v) > 1e-9)
+			po.mesh_poly[r++] = po.verts[all[i]].v;
 	}
-	if (mesh_poly[r-1].distto(mesh_poly[0]) < 1e-9) r--;
+	if (po.mesh_poly[r-1].distto(po.mesh_poly[0]) < 1e-9) r--;
 	return r;
 }
 
@@ -439,23 +451,22 @@ static inline double evaluate(const Vector & xc, const Vector & p, double addage
 	return addage + xc * p;
 }
 
-static void reversed_check(Vector verts[], const PolyInfo &pi, const Vector & l)
+static void reversed_check(Vector verts[], const PolyInfo &pi, const Vector & l, PolyContext& po)
 {
-	static float casted[MAX_SIDES][2];
 	
 	int n = pi.size;
 	for (int i = 0; i < n; i++) {
 		Vector t = plane_cast(l, verts[pi.start + i]);
-		casted[i][0] = (float) t.v[0];
-		casted[i][1] = (float) t.v[2];
+		po.casted[i][0] = (float) t.v[0];
+		po.casted[i][1] = (float) t.v[2];
 	}
 #define fdist(a,b) (sqrt((a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1])))
 	float total_angle = 0;
 	for (int i = 1; i <= n; i++) {
-		float a = fdist(casted[i-1], casted[i%n]);
-		float b = fdist(casted[(i+1)%n], casted[i%n]);
-		float c = fdist(casted[i-1], casted[(i+1)%n]);
-		total_angle += copysign(M_PI - acos((a*a+b*b-c*c)/(2*a*b)), face(casted[i-1], casted[i%n], casted[(i+1)%n]));
+		float a = fdist(po.casted[i-1], po.casted[i%n]);
+		float b = fdist(po.casted[(i+1)%n], po.casted[i%n]);
+		float c = fdist(po.casted[i-1], po.casted[(i+1)%n]);
+		total_angle += copysign(M_PI - acos((a*a+b*b-c*c)/(2*a*b)), face(po.casted[i-1], po.casted[i%n], po.casted[(i+1)%n]));
 	}
 	float mul = 1.0;
 	//if (verts[pi.start][1] > l[1]) mul = -1.0;
@@ -483,7 +494,7 @@ static void thresh_light(Vector verts[], int n, Vector l)
 	}
 }
 
-static int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, double beta, PolyInfo o[])
+static int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, double beta, PolyInfo o[], PolyContext &po)
 {
 	Array<Vector> up, down;
 	//
@@ -557,7 +568,7 @@ static int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double al
 		o[os++] = pi;
 	}
 	for (int i = 0; i < os; i++) {
-		reversed_check(verts, o[i], l);
+		reversed_check(verts, o[i], l, po);
 	}
 	return os;
 }
@@ -567,7 +578,7 @@ static inline bool floorness(const Vector& v, const Vector &l)
 	return l[1] > v[1];
 }
 
-static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, Triangularized &wedgy)
+static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, Triangularized &wedgy, PolyContext& po)
 {
 	solid.tris.clear();
 	wedgy.tris.clear();
@@ -634,29 +645,28 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 		wedgy.tris += Simplex(v2, so, v3, so, v1, si);
 	}
 	
-	static vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
 	int cs1a, cs2a;
-	cs1a = n; memcpy(cs1, &inner[0], n * sizeof(cs1[0]));
+	cs1a = n; memcpy(po.cs1, &inner[0], n * sizeof(po.cs1[0]));
 	while (cs1a > 2) {
 		cs2a = 0;
 		int i = 0;
 		while (i < cs1a - 1) {
-			if (face(cs1[i], cs1[i+1], cs1[(i+2)%cs1a]) < +1e-6) {
+			if (face(po.cs1[i], po.cs1[i+1], po.cs1[(i+2)%cs1a]) < +1e-6) {
 				//draw it
-				solid.tris += Simplex(cs1[i], si, cs1[i+1], si, cs1[(i+2)%cs1a], si);
+				solid.tris += Simplex(po.cs1[i], si, po.cs1[i+1], si, po.cs1[(i+2)%cs1a], si);
 				//discard the second point
-				cs2[cs2a++] = cs1[i];
+				po.cs2[cs2a++] = po.cs1[i];
 				i += 2;
 			} else {
-				cs2[cs2a++] = cs1[i];
+				po.cs2[cs2a++] = po.cs1[i];
 				i++;
 			}
 		}
-		if (i == cs1a - 1) cs2[cs2a++] = cs1[i];
+		if (i == cs1a - 1) po.cs2[cs2a++] = po.cs1[i];
 
 		if (cs2a == cs1a) break;
 		cs1a = cs2a;
-		memcpy(cs1, cs2, cs1a * sizeof(cs1[0]));
+		memcpy(po.cs1, po.cs2, cs1a * sizeof(po.cs1[0]));
 	}
 
 }
@@ -722,8 +732,7 @@ static void poly_bias(Vector verts[], int n, const Vector& light, const Vector& 
 
 static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector mtt, Vector mti, Vector mtti, Uint16 *sbuffer, int thread_idx = 0, int thread_count = 1)
 {
-	all_min_x = all_min_y = inf;
-	all_max_x = all_max_y = -inf;
+	Box2D all;
 	
 	for (int i = 0; i < t.tris.size(); i++) {
 		Simplex & s = t.tris[i];
@@ -737,9 +746,9 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 			SolidDrawer sd(sbuffer, intensity, xr);
 			TriangleRasterizer ras(xr, yr, v[0], v[1], v[2], thread_idx, thread_count);
 			ras.draw(sd);
-			ras.update_limits(all_min_x, all_max_x, all_min_y, all_max_y);
+			ras.update_limits(all.min_x, all.max_x, all.min_y, all.max_y);
 		} else {
-			raster_wedge(
+			raster_wedge(all,
 					v[0].v, v[1].v, v[2].v, 
 					(int) s.coeff[0], (int) s.coeff[1], (int) s.coeff[2], 
 					xr, yr, sbuffer, thread_idx, thread_count);
@@ -747,17 +756,17 @@ static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector 
 	}
 	/* stage 3: reblend */
 	
-	CLAMP(all_min_x, 0, xr-1);	
-	CLAMP(all_max_x, 0, xr-1);	
-	CLAMP(all_min_y, 0, yr-1);	
-	CLAMP(all_max_y, 0, yr-1);
+	CLAMP(all.min_x, 0, xr-1);	
+	CLAMP(all.max_x, 0, xr-1);	
+	CLAMP(all.min_y, 0, yr-1);	
+	CLAMP(all.max_y, 0, yr-1);
 	if (cpu.mmx) {
-		fast_reblend_mmx(all_min_x, all_min_y, all_max_x, all_max_y, sbuffer, xr, shadow_intensity,
+		fast_reblend_mmx(all.min_x, all.min_y, all.max_x, all.max_y, sbuffer, xr, shadow_intensity,
 				thread_idx, thread_count);
 	} else {
-		for (int j = all_min_y; j <= all_max_y; j++) if (thread_idx == j % thread_count) {
+		for (int j = all.min_y; j <= all.max_y; j++) if (thread_idx == j % thread_count) {
 			Uint16 *buff = &sbuffer[j * xr];
-			for (int i = all_min_x; i <= all_max_x; i++) {
+			for (int i = all.min_x; i <= all.max_x; i++) {
 				Uint16 t = buff[i];
 				t = (t & 0xff) + (t >> 8);
 				if (t > shadow_intensity) t = shadow_intensity;
@@ -894,6 +903,7 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		    Vector mtt, Vector mti, Vector mtti, int thread_idx)
 {
 	Vector ml(lx, ly, lz);
+	PolyContext *po = new PolyContext;
 		
 	for (int i = 0; i < spherecount; i++) if ((sp[i].flags & CASTS_SHADOW)/* && thread_idx == i % cpu.count*/) {
 		Vector poly[SPHERE_SIDES*2+8];
@@ -906,14 +916,14 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		
 		PolyInfo pif[2];
 		prof_enter(PROF_POLY_REARRANGE);
-		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif);
+		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif, *po);
 		prof_leave(PROF_POLY_REARRANGE);
 		
 
 		for (int i = 0; i < pir; i++) {
 			prof_enter(PROF_MAKE_WEDGES);
 			Triangularized solid, wedgy;
-			make_wedges(poly + pif[i].start, pif[i].size, ml, solid, wedgy);
+			make_wedges(poly + pif[i].start, pif[i].size, ml, solid, wedgy, *po);
 			prof_leave(PROF_MAKE_WEDGES);
 			
 			prof_enter(PROF_FRUSTRUM_CLIP);
@@ -938,15 +948,15 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 	}
 	
 
-	for (int i = 0; i < mesh_count; i++) if ((mesh[i].get_flags() & CASTS_SHADOW) && thread_idx == 0) {
-		recu_es = 0;
+	for (int i = 0; i < mesh_count; i++) if (mesh[i].get_flags() & CASTS_SHADOW) {
+		po->recu_es = 0;
 		prof_enter(PROF_CONNECT_GRAPH);
 		for (int j = 0; j < mesh[i].num_edges; j++)
 		{
 			Mesh::EdgeInfo &e = mesh[i].edges[j];
 			Vector p = (e.a + e.b) * 0.5 - ml;
 			if ((p * e.norm1) * (p * e.norm2) < 0.0)
-				recu_edges[recu_es++] = e;
+				po->recu_edges[po->recu_es++] = e;
 #ifdef DEBUG
 			if (fabs(p * e.norm1) < 1e-8) {
 				printf("Warning: zero at edge %d\n", j);
@@ -958,20 +968,20 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			}
 #endif
 		}
-		int r = connect_graph(recu_edges, recu_es);
+		int r = connect_graph(po->recu_edges, po->recu_es, *po);
 		prof_leave(PROF_CONNECT_GRAPH);
 		
-		poly_bias(mesh_poly, r, ml, mesh[i].center);
+		poly_bias(po->mesh_poly, r, ml, mesh[i].center);
 	
 		PolyInfo pif[2];
 		prof_enter(PROF_POLY_REARRANGE);
-		int pir = rearrange_poly(mesh_poly, r, ml, cur, alpha, beta, pif);
+		int pir = rearrange_poly(po->mesh_poly, r, ml, cur, alpha, beta, pif, *po);
 		prof_leave(PROF_POLY_REARRANGE);
 		
 		for (int i = 0; i < pir; i++) {
 			prof_enter(PROF_MAKE_WEDGES);
 			Triangularized solid, wedgy;
-			make_wedges(mesh_poly + pif[i].start, pif[i].size, ml, solid, wedgy);
+			make_wedges(po->mesh_poly + pif[i].start, pif[i].size, ml, solid, wedgy, *po);
 			prof_leave(PROF_MAKE_WEDGES);
 			
 			prof_enter(PROF_FRUSTRUM_CLIP);
@@ -982,8 +992,8 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			
 			//if (cpu.count == 1) {
 				prof_enter(PROF_POLY_DISPLAY);
-				poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, 1);
-				poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, 1);
+				poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+				poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
 				prof_leave(PROF_POLY_DISPLAY);
 			/*} else {
 				shadow_objects_cs.enter();
@@ -1001,4 +1011,5 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			poly_display2(shadow_objects[i], xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx);
 	}
 	*/
+	delete po;
 }
