@@ -3,10 +3,10 @@ For the new release:
 GENERAL:
 fract:
 	[** ] Working shadows (+eventual speedup)
-	[   ] Remove the STL, add generic sort, add hashing instead of the std::map
-	[   ] Better multithreading
+	[***] Remove the STL, add generic sort, add hashing instead of the std::map
+	[***] Better multithreading
 	[   ] multithreaded shadows
-	[   ] multithreaded antibuffer init
+	[***] multithreaded antibuffer init
 	[   ] Change the sphere-holding thingy in oldbench.fsv
 	[   ] Readd SSE2 and SSE3 implementations of vector3
 	[   ] Try compile with VC 8.0
