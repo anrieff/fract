@@ -1,0 +1,43 @@
+ppl to credit:
+
+Friends:
+
+	alex
+	barnie
+	BeaZtiE
+	DJ Bamby
+	fellix
+	vegasis
+	Vesu
+	vlado
+
+My sweetheart:
+
+	Ivet - LYVM!
+
+Dev tools/libraries:
+
+	SDL
+	wxWidgets
+	
+Dev People:
+
+	Martin Reddy	  - OBJ format
+	Setfan Hetzl	  - BMP format
+	Paulo Barreto	  - AES lib
+	Rick Reed	  - Snell's law
+	Paul Bourke	  - FFTs
+	The fourcc page   - RGB/YUV stuff
+	Stefano Tommesani - MMX/SSE stuff
+	Matthew Jones     - Optimized x^(-1/4)
+	John Amanatides   - Grid traversal
+	Nils Pipenbrick   - 6DOF heightfield
+	
+These sites rock:
+
+	ujas.org
+	hardwarebg.com/forum
+	www.thedailywtf.com
+
+Thanks to all demoscene entries, which impressed
+me in the past (particularly, "paper")
