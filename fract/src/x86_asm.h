@@ -7089,35 +7089,42 @@ ende:
 		p[i] |= fill;
 }
 
-static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int xr, Uint16 sintensity)
+static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int xr, Uint16 sintensity, int cpui, int cpuc)
 {
 	sintensity = 255 - sintensity;
 	SSE_ALIGN(Uint16 x_mor[4]) = { 0xff, 0xff, 0xff, 0xff} ;
 	SSE_ALIGN(Uint16 x_add[4]) = { sintensity, sintensity, sintensity, sintensity };
 	x2 = ((x2/4)+1)*4;
-	y2 = ((y2/4)+1)*4;
 	x1 &= ~3;
-	y1 &= ~3;
 	int xsize = (x2 - x1)/4;
 	int ysize = y2 - y1;
 	if (xsize <= 0 || ysize <= 0) return;
 	Uint16 *p = &sbuff[y1 * xr + x1];
 	xr *= 2;
+	
+	cpui = ((y1 % cpuc) + cpuc - cpui) % cpuc + 1;
 	//
 	__asm {
 // 0 - p, 1 - ysize, 2 - xsize, 3 - xr
+				push	esi
+				push	edi
 				mov		esi,		p
 				mov		edx,		ysize
+				mov		ecx,		cpui
 				movq		mm7,		[x_mor]
 				movq		mm6,		[x_add]
 			
-			ALIGN 16
+			ALIGN	16
 			yyloop:
 				mov		edi,		esi
 				add		esi,		xr
+			
+				dec		ecx
+				jnz		skip_row
+				mov		ecx,		cpuc
 				mov		eax,		xsize
 			
-			ALIGN 16
+			ALIGN	16
 			xxloop:
 				movq		mm0,		[edi]
 				movq		mm1,		mm0
@@ -7132,14 +7139,17 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 				dec		eax
 				jnz		xxloop
 			
+			ALIGN	16
+			skip_row:
 				dec		edx
 				jnz		yyloop
 			
 				emms
+				pop		edi
+				pop		esi
 	
 	}
 }
-
 #endif
 #ifdef rgb2yuv_asm
 
