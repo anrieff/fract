@@ -192,6 +192,9 @@
 				RelativePath=".\src\antialias.cpp">
 			</File>
 			<File
+				RelativePath=".\src\barriers.h">
+			</File>
+			<File
 				RelativePath=".\src\bitmap.cpp">
 			</File>
 			<File
@@ -202,6 +205,9 @@
 			</File>
 			<File
 				RelativePath=".\src\common.cpp">
+			</File>
+			<File
+				RelativePath=".\src\cpu.cpp">
 			</File>
 			<File
 				RelativePath=".\src\fract.cpp">
@@ -220,6 +226,9 @@
 			</File>
 			<File
 				RelativePath=".\src\profile.cpp">
+			</File>
+			<File
+				RelativePath=".\src\random.cpp">
 			</File>
 			<File
 				RelativePath=".\src\render.cpp">
@@ -293,7 +302,7 @@
 				RelativePath=".\src\common.h">
 			</File>
 			<File
-				RelativePath=".\src\cpuid.h">
+				RelativePath=".\src\cpu.h">
 			</File>
 			<File
 				RelativePath=".\src\cross_vars.h">
@@ -336,6 +345,9 @@
 			</File>
 			<File
 				RelativePath=".\src\progress.h">
+			</File>
+			<File
+				RelativePath=".\src\random.h">
 			</File>
 			<File
 				RelativePath=".\src\render.h">
