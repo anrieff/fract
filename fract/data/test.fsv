@@ -35,7 +35,7 @@ Physics=1
 CollDetect=1
 
 # Physics engine parameters
-sv_gravity=99.660000
+sv_gravity=2.99660000
 sv_air=3.990000
 fov=1.000000
 
@@ -47,19 +47,19 @@ default_font="data/font1.bmp"
 # Sphere information section
 #
 
-spherecount=0
+spherecount=1
 Sphere[0].x=0
-Sphere[0].y=12.001
+Sphere[0].y=165.001
 Sphere[0].z=0
 Sphere[0].xi=0.00000
 Sphere[0].yi=0.00000
 Sphere[0].zi=0.00000
-Sphere[0].d=12
+Sphere[0].d=36
 Sphere[0].mass=1.00000
 Sphere[0].refl=0.13000
-Sphere[0].r=255
-Sphere[0].g=231
-Sphere[0].b=239
+Sphere[0].r=212
+Sphere[0].g=212
+Sphere[0].b=212
 Sphere[0].AniIndex=0
 Sphere[0].flags.raytraced=1
 Sphere[0].flags.recursive=0
@@ -477,32 +477,3 @@ Sphere[16].flags.normal_map=0
 
 meshcount=0
 
-
-thoruscount=1
-Thorus[0].x=80
-Thorus[0].y=167
-Thorus[0].z=80
-Thorus[0].xi=0.00000
-Thorus[0].yi=0.00000
-Thorus[0].zi=0.00000
-Thorus[0].d=24
-Thorus[0].mass=8.00000
-Thorus[0].refl=0.33000
-Thorus[0].r=24
-Thorus[0].g=38
-Thorus[0].b=225
-Thorus[0].AniIndex=0
-Thorus[0].flags.raytraced=1
-Thorus[0].flags.recursive=0
-Thorus[0].flags.transparent=0
-Thorus[0].flags.recurse_self=0
-Thorus[0].flags.static=1
-Thorus[0].flags.collideable=0
-Thorus[0].flags.animated=0
-Thorus[0].flags.gravity=1
-Thorus[0].flags.air=1
-Thorus[0].flags.mapped=0
-Thorus[0].flags.casts_shadow=0
-Thorus[0].flags.normal_map=0
-Thorus[0].rods=3
-Thorus[0].speed=5

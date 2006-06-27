@@ -518,12 +518,12 @@ Mesh[0].paint=16777215
 
 thoruscount=1
 Thorus[0].x=200
-Thorus[0].y=59
+Thorus[0].y=59.8
 Thorus[0].z=330
 Thorus[0].xi=0.00000
 Thorus[0].yi=0.00000
 Thorus[0].zi=0.00000
-Thorus[0].d=16
+Thorus[0].d=17.5
 Thorus[0].mass=8.00000
 Thorus[0].refl=0.33000
 Thorus[0].r=24

@@ -2,10 +2,10 @@ ppl to credit:
 
 Friends:
 
-	alex
 	barnie
 	BeaZtiE
 	DJ Bamby
+	espr1t
 	fellix
 	vegasis
 	Vesu
@@ -22,16 +22,18 @@ Dev tools/libraries:
 	
 Dev People:
 
-	Martin Reddy	  - OBJ format
-	Setfan Hetzl	  - BMP format
-	Paulo Barreto	  - AES lib
-	Rick Reed	  - Snell's law
-	Paul Bourke	  - FFTs
-	The fourcc page   - RGB/YUV stuff
-	Stefano Tommesani - MMX/SSE stuff
-	Matthew Jones     - Optimized x^(-1/4)
-	John Amanatides   - Grid traversal
-	Nils Pipenbrick   - 6DOF heightfield
+	Martin Reddy	     - OBJ format
+	Setfan Hetzl	     - BMP format
+	Paulo Barreto	     - AES lib
+	Rick Reed	     - Snell's law
+	Paul Bourke	     - FFTs
+	The fourcc page      - RGB/YUV stuff
+	Stefano Tommesani    - MMX/SSE stuff
+	Matthew Jones        - Optimized x^(-1/4)
+	John Amanatides      - Grid traversal
+	Nils Pipenbrick      - 6DOF heightfield
+	Tomas Akenine-Moller
+	Ulf Assarsson        - Soft shadows
 	
 These sites rock:
 
@@ -40,4 +42,4 @@ These sites rock:
 	www.thedailywtf.com
 
 Thanks to all demoscene entries, which impressed
-me in the past (particularly, "paper")
+me in the past (particularly, "paper", "second reality")

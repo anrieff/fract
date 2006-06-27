@@ -27,6 +27,7 @@
 #include "shadows.h"
 #include "saveload.h"
 #include "triangle.h"
+#include "thorus.h"
 #include "vectormath.h"
 #include "voxel.h"
 
@@ -184,6 +185,7 @@ void init_program(void)
 {
 	common_init();
 	blur_init();
+	thor_init();
 }
 
 void close_program(void)
@@ -474,6 +476,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
+	option_add("--scene=data/test.fsv");
+	option_add("--developer");
 	commandline_parse();
 	init_program();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {
