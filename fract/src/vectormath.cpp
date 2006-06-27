@@ -480,7 +480,7 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 		}
 		if (z!=NULL) {
 			z->intersect(v, cur, context);
-			return z->shade(v, cur, lix, 1.0, &dp, context, iteration + 1, finfo);
+			return z->shade(v, cur, lix, 1.0, dp, context, iteration + 1, finfo);
 		}
 	}
 	if (BackgroundMode == BACKGROUND_MODE_VOXEL) {

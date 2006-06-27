@@ -89,7 +89,7 @@ struct Sphere : public Object, public ShadowCaster {
 	}
 
 	Uint32 shade(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
-			float *opacity, void *IntersectContext, int iteration, FilteringInfo& finfo);
+			float &opacity, void *IntersectContext, int iteration, FilteringInfo& finfo);
 	
 	/* From ShadowCaster */
 	bool sintersect(const Vector & start, const Vector & dir, int opt = 0);

@@ -42,6 +42,7 @@
 #include "shadows.h"
 #include "sphere.h"
 #include "threads.h"
+#include "thorus.h"
 #include "triangle.h"
 #include "vector3.h"
 #include "vectormath.h"
@@ -397,6 +398,8 @@ void preframe_do(Uint32 *ptr, Vector lw)
 		t->recalc_zdepth(cur);
 		allobjects += t.current();
 	}
+	for (i = 0; i < thors_count; i++) 
+		allobjects += &thor[i];
 	allobjects.sort();
 	prof_leave(PROF_SORT);
 	
@@ -609,7 +612,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 								int k = 0;
 								while (k < buckets && bucket[k].id != foundid) k++;
 								if (k == buckets) {
-									fcol = obj->shade(v, cur, lw, Arcp, &opacity, 
+									fcol = obj->shade(v, cur, lw, Arcp, opacity, 
 										context, 0, fi);
 									bucket[k].id = foundid;
 									bucket[k].weight = fsaactx.weights[s];
@@ -646,7 +649,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 								while (k < buckets && bucket[k].id != foundid) k++;
 								if (k == buckets) {
 									fcol = bestobj->shade(v, cur, lw, 1,
-										&opacity, context, 0, fi);
+										opacity, context, 0, fi);
 									bucket[k].weight = fsaactx.weights[s];
 									bucket[k].color[0] = 0xff & (fcol >> 16);
 									bucket[k].color[1] = 0xff & (fcol >>  8);
@@ -693,7 +696,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 #endif
 						fi.through = t;
 						fcol = allobjects[dropped-1]->shade(v, cur, lw, Arcp, 
-								&opacity, context, 0, fi);
+								opacity, context, 0, fi);
 						if (opacity > 0.99)  {
 							*fb=fcol;
 							*fbuffer = 65535;
@@ -701,7 +704,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 							if (backd) {
 								if (allobjects[backd-1]->fastintersect(v, cur, A, context)) {
 									bfcol = allobjects[backd-1]->shade(
-										v, cur, lw, Arcp, &bopacity, context, 0, fi);
+										v, cur, lw, Arcp, bopacity, context, 0, fi);
 									if (bopacity>0.99) {
 										*fb = blend(fcol, bfcol, opacity);
 										*fbuffer = 65535;
@@ -742,7 +745,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 							bestobj->fastintersect(v, cur, 1, context);
 							fi.through = t;
 							fcol = bestobj->shade(
-								v, cur, lw, 1, &opacity, context, 0, fi);
+								v, cur, lw, 1, opacity, context, 0, fi);
 							if (opacity > 0.99) {
 								*fb=fcol;
 								*fbuffer = 65535;

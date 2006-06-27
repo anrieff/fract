@@ -424,7 +424,7 @@ void Sphere::map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], 
  * @return 
  */
 Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
-		float *opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
+		float &opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
 {
 #define limit1(a) (a>1?1:(a))
 #define lift(x) (((x)*(x))*((x)*(x))*((x)*(x))*((x)*(x))*((x)*(x))*((x)*(x))*((x)*(x))*((x)*(x)))
@@ -446,9 +446,9 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 	spc->determinant = fsqrt(spc->determinant); // <- this assumes we've called FastIntersect before Solve3D
 	lambda = (-(spc->gB) - (spc->determinant)) * rlsrcp;
 	if (!iteration) {	// check if we're close to the edge:
-		if (spc->determinant * doi > 0.25f) *opacity = 1.0f;
+		if (spc->determinant * doi > 0.25f) opacity = 1.0f;
 			else    {
-				*opacity = sqr(spc->determinant*doi*4.0f);
+				opacity = sqr(spc->determinant*doi*4.0f);
 			}
 	}
 	

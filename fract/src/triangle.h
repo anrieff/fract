@@ -81,7 +81,7 @@ struct Triangle : public Object {
 	bool intersect(const Vector& ray, const Vector &camera, void *IntersectContext);
 	double intersection_dist(void *IntersectContext) const;
 	Uint32 shade(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
-			float *opacity, void *IntersectContext, int iteration, FilteringInfo& finfo);
+			float &opacity, void *IntersectContext, int iteration, FilteringInfo& finfo);
 	int get_best_miplevel(double x0, double z0, FilteringInfo & fi);
 };
 

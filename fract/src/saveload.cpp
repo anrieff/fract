@@ -28,6 +28,7 @@
 #include "shaders.h"
 #include "shadows.h"
 #include "triangle.h"
+#include "thorus.h"
 
 /* ------------------------------------ export section ------------------------------------ */
 extern int spherecount;
@@ -349,38 +350,63 @@ static void get_shadow_quality(char *line, int *res)
 	*res = 1; // default choice
 }
 
-static void get_sphere_info(char *si)
+static int get_index(char *si) 
 {
-	int i, j, index;
+	int res;
+	
+	while (si[0] != '[') si++;
+	if (1 == sscanf(si, "[%d]", &res))
+		return res;
+	else
+		return -1;
+}
+
+static void get_sphere_info(char *si, Sphere *sph)
+{
+	int i;
 	char *s;
 
-	for (i=0;si[i]!='[';i++);
-	j = ++i;
-	while (si[j]!=']') j++;
-	si[j]=0;
-	sscanf(si+i, "%d", &index);
-	i = j+2; // after the dot
-	s = si+i;
+	for (i=0;si[i]!=']';i++);
+	s = si+i+2;
 	switch (hashid(s)) {
-		case 0x0078: sp[index].pos.v[0]	=	get_real(s); break;
-		case 0x0079: sp[index].pos.v[1]	=	get_real(s); break;
-		case 0x007a: sp[index].pos.v[2]	=	get_real(s); break;
-		case 0x69e1: sp[index].mov.v[0]	=	get_real(s); break;
-		case 0x69e2: sp[index].mov.v[1]	=	get_real(s); break;
-		case 0x69e3: sp[index].mov.v[2]	=	get_real(s); break;
-		case 0x0064: sp[index].d	=	get_real(s); break;
-		case 0x48b5: sp[index].mass	=	get_real(s); break;
-		case 0x38a8: sp[index].refl	=	get_real(s); break;
-		case 0x8cfb: sp[index].opacity	=	get_real(s); break;
-		case 0x0072: sp[index].r	=	get_int (s); break;
-		case 0x0067: sp[index].g	=	get_int (s); break;
-		case 0x0062: sp[index].b	=	get_int (s); break;
-		case 0xd212: sp[index].AniIndex =	get_int (s); break;
-		case 0xa8e8: get_sphere_flags(s+6, &sp[index].flags);break;
+		case 0x0078: sph->pos.v[0]	=	get_real(s); break;
+		case 0x0079: sph->pos.v[1]	=	get_real(s); break;
+		case 0x007a: sph->pos.v[2]	=	get_real(s); break;
+		case 0x69e1: sph->mov.v[0]	=	get_real(s); break;
+		case 0x69e2: sph->mov.v[1]	=	get_real(s); break;
+		case 0x69e3: sph->mov.v[2]	=	get_real(s); break;
+		case 0x0064: sph->d	=	get_real(s); break;
+		case 0x48b5: sph->mass	=	get_real(s); break;
+		case 0x38a8: sph->refl	=	get_real(s); break;
+		case 0x8cfb: sph->opacity	=	get_real(s); break;
+		case 0x0072: sph->r	=	get_int (s); break;
+		case 0x0067: sph->g	=	get_int (s); break;
+		case 0x0062: sph->b	=	get_int (s); break;
+		case 0xd212: sph->AniIndex =	get_int (s); break;
+		case 0xa8e8: get_sphere_flags(s+6, &sph->flags);break;
 		default:
 			printf("LoadContext: The following line has no meaning to me:\n[%s]\n", s); fflush(stdout);
 			break;
 		}
+}
+
+static void get_thorus_info(char *si, Thorus *thor)
+{
+	int i;
+	char *s;
+
+	for (i=0;si[i]!=']';i++);
+	s = si+i+2;
+	switch (hashid(s)) {
+		case 0x47b9: thor->rods = get_int(s); break;
+		case 0xd1b1: thor->phi = get_real(s); break;
+		case 0x9fc8: thor->warpspeed = get_real(s); break;
+		default: {
+			get_sphere_info(si, static_cast<Sphere*>(thor));
+			break;
+		}
+	}
+	thor->init();
 }
 
 static void get_mesh_info(char *basedir, char *si)
@@ -546,13 +572,16 @@ int load_context(const char *fn)
 				case 0x9bff: /*get_str (line, default_font);*/ break;
 			/* Spheres: */
 				case 0x414c: spherecount = get_int (line); break;
-				case 0x1665: get_sphere_info(line); break;
+				case 0x1665: get_sphere_info(line, sp + get_index(line)); break;
 			/* Ani structures: */
 				case 0x1e7f: anicnt = get_int (line); break;
 				case 0x5394: get_ani_info(line); break;
 			/* Meshes: */
 				case 0x6c15: mesh_count = get_int(line); break;
 				case 0x418c: get_mesh_info(basedir, line); break;
+			/* Thori: */
+				case 0x5e2a: thors_count = get_int(line); break;
+				case 0x3387: get_thorus_info(line, thor + get_index(line)); break;
 			/* MISC: */
 				case 0x2988: input_type = SAVLOAD_COORDS; shb = 1; break;
 				case 0xc0df: input_type = SAVLOAD_COORDS_106; shb = 1; break;

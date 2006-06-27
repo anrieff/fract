@@ -137,7 +137,7 @@ public:
 				const Vector& camera,
 				const Vector& light,
 				double rlsrcp,
-				float *opacity,
+				float &opacity,
 				void *IntersectContext,
 				int iteration,
 				FilteringInfo& finfo

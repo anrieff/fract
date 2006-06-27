@@ -24,6 +24,13 @@ int power_of_2(int x);
 float lightformulae_tiny(float x);
 Uint32 bilinea4(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, int x, int y);
 
+// smooth hermite interpolation between the values of a and b (t must be in [0..1])
+template <typename T>
+T hermite(const T& a, const T& b, double t)
+{
+	return a + (-3.0 * t * t + 2.0 * t * t* t) * (a - b);
+}
+
 void *sse_malloc(size_t size);
 void sse_free(void *ptr);
 

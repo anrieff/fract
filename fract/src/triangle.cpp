@@ -211,7 +211,7 @@ double Triangle::intersection_dist(void *IntersectContext) const
 }
 
 Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
-		float *opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
+		float &opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
 {
 	Vector CI;
 	Vector ray_one, ray_reflected;
@@ -222,7 +222,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& light, d
 	if (!iteration) prof_enter(PROF_SOLVE3D);
 #endif
 
-	*opacity = 1.0f;
+	opacity = 1.0f;
 	float intensity = ambient;
 	if (flags & STOCHASTIC) {
 		intensity += ambient * 0.5 * perlin(tic->u, tic->v);

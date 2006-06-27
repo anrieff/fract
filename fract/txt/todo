@@ -5,9 +5,10 @@ fract:
 	[** ] Working shadows (+eventual speedup)
 	[***] Remove the STL, add generic sort, add hashing instead of the std::map
 	[***] Better multithreading
-	[   ] multithreaded shadows
+	[***] multithreaded shadows
 	[***] multithreaded antibuffer init
-	[   ] Change the sphere-holding thingy in oldbench.fsv
+	[***] Change the sphere-holding thingy in oldbench.fsv
+	[   ] Include an installation ID in the result fmt (maybe time_t?)
 	[   ] Readd SSE2 and SSE3 implementations of vector3
 	[   ] Try compile with VC 8.0
 	[   ] Output to temp.txt (FPS & CPU MHz atleast)
@@ -19,7 +20,8 @@ wxfractgui:
 	[   ] Browse the last result
 	[   ] Show my.xml and db.xml in the result browsing window
               (and suggest downloading newer db.xml)
-	[   ] 
+	[   ] Support uploading the result directly
+	[   ] Include instructions for uploading through mail
 
 MINOR:
 fract:

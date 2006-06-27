@@ -355,7 +355,7 @@ Sphere[12].z=330.00000
 Sphere[12].xi=0.00000
 Sphere[12].yi=0.00000
 Sphere[12].zi=0.00000
-Sphere[12].d=8.00000
+Sphere[12].d=5.20000
 Sphere[12].mass=10000.00000
 Sphere[12].refl=0.00000
 Sphere[12].r=255
@@ -401,9 +401,9 @@ AS[2].cy=95.00000
 AS[2].cz=330.00000
 AS[2].radius=37.00000
 AS[2].alpha=5.68000
-AS[2].beta=0.01000
-AS[2].speed=0.38500
-AS[2].betaspeed=-0.30250
+AS[2].beta=0.1000
+AS[2].speed=0.138500
+AS[2].betaspeed=-0.10250
 AS[3].cx=200.00000
 AS[3].cy=95.00000
 AS[3].cz=330.00000
@@ -492,9 +492,9 @@ AS[12].betaspeed=0.00000
 
 meshcount=1
 Mesh[0].file_name=data/3pyramid.obj
-Mesh[0].scale=66.00000
+Mesh[0].scale=44.00000
 Mesh[0].translate.x=200.00000
-Mesh[0].translate.y=22.99999
+Mesh[0].translate.y=0
 Mesh[0].translate.z=330.00000
 Mesh[0].refl=0.75000
 Mesh[0].opacity=0.00000
@@ -511,6 +511,40 @@ Mesh[0].flags.mapped=0
 Mesh[0].flags.casts_shadow=1
 Mesh[0].flags.normal_map=0
 Mesh[0].paint=16777215
+
+#
+# Thorus info section
+#
+
+thoruscount=1
+Thorus[0].x=200
+Thorus[0].y=59
+Thorus[0].z=330
+Thorus[0].xi=0.00000
+Thorus[0].yi=0.00000
+Thorus[0].zi=0.00000
+Thorus[0].d=16
+Thorus[0].mass=8.00000
+Thorus[0].refl=0.33000
+Thorus[0].r=24
+Thorus[0].g=38
+Thorus[0].b=225
+Thorus[0].AniIndex=0
+Thorus[0].flags.raytraced=1
+Thorus[0].flags.recursive=0
+Thorus[0].flags.transparent=0
+Thorus[0].flags.recurse_self=0
+Thorus[0].flags.static=1
+Thorus[0].flags.collideable=0
+Thorus[0].flags.animated=0
+Thorus[0].flags.gravity=1
+Thorus[0].flags.air=1
+Thorus[0].flags.mapped=0
+Thorus[0].flags.casts_shadow=0
+Thorus[0].flags.normal_map=0
+Thorus[0].rods=3
+Thorus[0].speed=5
+
 
 coords106=(
 0.000	200.000000	35.000000	640.000000	3.141593	0.100000	200.000000	100.000000	500.000000	0	0.0000
