@@ -32,39 +32,6 @@
 Triangle trio[MAX_TRIANGLES];
 extern int spherecount;
 
-// ********************* Utility functions *********************************/
-
-
-float noise(unsigned x)
-{
-	x = (x<<13) ^ x;
-	return ( 1.0 - ( (x * (x * x * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
-}
-/// perlin:
-/// generates fractal perlin noise
-/// @param x - should be in [0..1]
-/// @param y - should be in [0..1]
-/// @returns a float [-1..+1]
-float perlin(float x, float y)
-{
-	float res = 0.0f, amp = 1.0f;
-	unsigned size = 1;
-	for (int i = 0; i <6; i++, size*=2) {
-		unsigned x0 = (unsigned) (x*size);
-		unsigned y0 = (unsigned) (y*size);
-		unsigned q = x0 + y0 *size;
-		float fx = x*size - x0;
-		float fy = y*size - y0;
-		float nf = noise(q       )*(1.0f-fx)*(1.0f-fy) +
-		           noise(q+1     )*(     fx)*(1.0f-fy) +
-			   noise(q  +size)*(1.0f-fx)*(     fy) +
-			   noise(q+1+size)*(     fx)*(     fy);
-		res += amp * nf;
-		amp *= 0.72;
-	}
-	return res;
-}
-
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * @class Triangle                                                          *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/

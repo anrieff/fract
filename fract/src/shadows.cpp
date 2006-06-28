@@ -37,6 +37,8 @@ const int max_neighs = 7;
 
 int g_shadowquality = 1;
 
+const double YOFFSET = 0.125;
+
 
 static float rowstart[RES_MAXY][2], rowincrease[RES_MAXY][2];
 static int ceilmax, floormin; // ending row for ceiling, starting row for floor in the image
@@ -238,10 +240,18 @@ static void intersect(float a[], float b[], float c[], float d[], float x[])
 	}
 	float D = 1.0f / down;
 	float p = D * (h[0] * u[1] - h[1] * u[0]);
-	if (p < -1) p = -1;
-	if (p > +2) p = 2;
-	x[0] = a[0] + v[0] * p;
-	x[1] = a[1] + v[1] * p;
+	if (p < -1 || p > +2) {
+		if (p < -1) p = -1;
+		if (p > +2) p = 2;
+		x[0] = a[0] + v[0] * p;
+		x[1] = a[1] + v[1] * p;
+		return;
+	}
+	float q = -D * (v[0] * h[1] - v[1] * h[0]);
+	if (q < -1) q = -1;
+	if (q > +2) q = 2;
+	x[0] = c[0] + u[0] * q;
+	x[1] = c[1] + u[1] * q;
 }
 
 struct SolidDrawer : public AbstractDrawer 
@@ -486,11 +496,11 @@ static void reversed_check(Vector verts[], const PolyInfo &pi, const Vector & l,
 static void thresh_light(Vector verts[], int n, Vector l)
 {
 	for (int i = 0; i < n; i++) {
-		if (fabs(verts[i][1] - l[1]) < DST_THRESHOLD) {
+		if (fabs(verts[i][1] - l[1]) < YOFFSET) {
 			if (verts[i][1] <= l[1])
-				verts[i][1] = l[1] - DST_THRESHOLD;
+				verts[i][1] = l[1] - YOFFSET;
 			else
-				verts[i][1] = l[1] + DST_THRESHOLD;
+				verts[i][1] = l[1] + YOFFSET;
 		}
 	}
 }
@@ -508,24 +518,22 @@ static int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double al
 		Vector b = plane_cast(l, vb);
 		bool afloor = a.v[1] == (double) daFloor;
 		if ((va[1] - l[1])*(vb[1] - l[1]) < 0) {
-			double t = (l[1] - va[1])/(vb[1] - va[1]);
+			double t1 = (l[1] - YOFFSET - va[1])/(vb[1] - va[1]);
+			double t2 = (l[1] + YOFFSET - va[1])/(vb[1] - va[1]);
 			Vector dv; dv.make_vector(vb, va);
-			Vector c;
-			c.macc(va, dv, t);
+			Vector c1, c2;
+			c1.macc(va, dv, t1);
+			c2.macc(va, dv, t2);
 			//c.v[1] -= DST_THRESHOLD;
 			if (afloor) {
 				down += va;
-				c.v[1] -= DST_THRESHOLD;
-				down += c;
-				c.v[1] += 2.0* DST_THRESHOLD;
-				up += c;
+				down += c1;
+				up += c2;
 				up += vb;
 			} else {
 				up += va;
-				c.v[1] += DST_THRESHOLD;
-				up += c;
-				c.v[1] -= 2.0* DST_THRESHOLD;
-				down += c;
+				up += c2;
+				down += c1;
 				down += vb;
 			}
 		} else {
@@ -548,7 +556,7 @@ static int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double al
 		pi.start = 0;
 		pi.size = 0;
 		for (int i = 0; i < up.size(); i++) {
-			if (i == 0 || up[i] != verts[pi.size-1])
+			if (i == 0 || !up[i].like(verts[pi.size-1]))
 				verts[pi.size++] = up[i];
 		}
 		if (pi.size > 1 && verts[pi.size-1] == verts[0]) pi.size--;
@@ -560,7 +568,7 @@ static int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double al
 		pi.start = pi.size + 2;
 		pi.size = 0;
 		for (int i = 0; i < down.size(); i++) {
-			if (i == 0 || down[i] != verts[pi.start + pi.size - 1])
+			if (i == 0 || !down[i].like(verts[pi.start + pi.size - 1]))
 				verts[pi.start + pi.size++] = down[i];
 		}
 		if (pi.size > 1 && verts[pi.start + pi.size - 1] == verts[pi.start]) pi.size--;
@@ -587,7 +595,7 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 	wedgy.solid = false;
 	Array<vec2f> inner;
 	Array<vec2f> outer;
-	vec2f *temp = new vec2f[n * 4];
+	vec2f *temp = (vec2f*) alloca(sizeof(vec2f)*n*4);
 	//
 	solid.isfloor = wedgy.isfloor = floorness(verts[0], l);
 	//
@@ -605,8 +613,8 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 			else light -= normal;
 			Vector X = (j % 2 ? b : a);
 			if (floorness(X, light) != solid.isfloor) {
-				if (solid.isfloor) light[1] = X[1] + DST_THRESHOLD;
-				else light[1] = X[1] - DST_THRESHOLD;
+				if (solid.isfloor) light[1] = X[1] + YOFFSET;
+				else light[1] = X[1] - YOFFSET;
 			}
 			Vector t = plane_cast(light, X);
 			temp[i * 4 + j] = vec2f(t[0], t[2]);
@@ -622,15 +630,16 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 		c = temp[j * 4    ];
 		d = temp[j * 4 + 1];
 		intersect(a.v, b.v, c.v, d.v, r.v);
-		inner += r;
+		//inner += r;
+		inner += c;
 		a = temp[i * 4 + 2];
 		b = temp[i * 4 + 3];
 		c = temp[j * 4 + 2];
 		d = temp[j * 4 + 3];
 		intersect(a.v, b.v, c.v, d.v, r.v);
-		outer += r;
+		//outer += r;
+		outer += c;
 	}
-	delete [] temp;
 	//
 	float si = (float) shadow_intensity;
 	float so = 0.0f;
@@ -645,7 +654,9 @@ static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, 
 		wedgy.tris += Simplex(v2, so, v1, si, v0, si);
 		wedgy.tris += Simplex(v2, so, v3, so, v1, si);
 	}
-	
+	//
+		
+	//
 	int cs1a, cs2a;
 	cs1a = n; memcpy(po.cs1, &inner[0], n * sizeof(po.cs1[0]));
 	while (cs1a > 2) {

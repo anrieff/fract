@@ -278,7 +278,7 @@ inline bool vec2f::like(const vec2f &r, double compare_factor) const
 
 inline void vec2f::print() const
 {
-	printf("(%.4f, %.4f)\n", v[0], v[1]);
+	printf("(%.4f, %.4f)", v[0], v[1]);
 }
 
 #endif // __VECTOR2F_H__

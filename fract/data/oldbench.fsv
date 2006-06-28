@@ -528,7 +528,7 @@ Thorus[0].mass=8.00000
 Thorus[0].refl=0.33000
 Thorus[0].r=24
 Thorus[0].g=38
-Thorus[0].b=225
+Thorus[0].b=255
 Thorus[0].AniIndex=0
 Thorus[0].flags.raytraced=1
 Thorus[0].flags.recursive=0
@@ -543,7 +543,7 @@ Thorus[0].flags.mapped=0
 Thorus[0].flags.casts_shadow=0
 Thorus[0].flags.normal_map=0
 Thorus[0].rods=3
-Thorus[0].speed=5
+Thorus[0].speed=3
 
 
 coords106=(

@@ -28,8 +28,10 @@ Uint32 bilinea4(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, int x, int y
 template <typename T>
 T hermite(const T& a, const T& b, double t)
 {
-	return a + (-3.0 * t * t + 2.0 * t * t* t) * (a - b);
+	return a + (a - b) * (-3.0 * t * t + 2.0 * t * t* t);
 }
+
+float perlin(float x, float y);
 
 void *sse_malloc(size_t size);
 void sse_free(void *ptr);
@@ -326,7 +328,7 @@ enum AllocatorType {
  * 
  * The data is automatically allocated and deallocated
  * 
- * The constructor acceptsh an optional parameter which determines how allocation and
+ * The constructor accepts an optional parameter which determines how allocation and
  * deallocation will be performed; malloc()/free() in the case of ALLOCATOR_MALLOC_FREE,
  * new/delete in the case of ALLOCATOR_NEW_DELETE.
 */ 

@@ -2,7 +2,7 @@ For the new release:
 
 GENERAL:
 fract:
-	[** ] Working shadows (+eventual speedup)
+	[***] Working shadows (+eventual speedup)
 	[***] Remove the STL, add generic sort, add hashing instead of the std::map
 	[***] Better multithreading
 	[***] multithreaded shadows

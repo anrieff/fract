@@ -900,9 +900,9 @@ void render_single_frame_do(void)
 	}
 	
 	if (r_shadows) {
-		prof_enter(PROF_MERGE);
+		prof_enter(PROF_RENDER_SHADOWS);
 		shadows_merge(xr, yr, ptr, sbuffer);
-		prof_leave(PROF_MERGE);
+		prof_leave(PROF_RENDER_SHADOWS);
 	}
 
 	prof_enter(PROF_MERGE_BUFFERS);

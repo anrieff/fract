@@ -190,10 +190,10 @@ int  project_point(float *dx, float *dy, const  Vector & d, const Vector & cur, 
 {
 	Vector a, b, c, h;
 	double m[3][3];
-	double Dcr;
+	double Dcr, rDcr;
 	double beta, gamma, delta;
 	
-	*dx = 0.0f; *dy = 0.0;
+	*dx = 0.0f; *dy = 0.0f;
 	// init the a, b, c & h vectors
 	h = cur - w[0];
 	a = w[1] - w[0];
@@ -205,18 +205,18 @@ int  project_point(float *dx, float *dy, const  Vector & d, const Vector & cur, 
 	if (iabs(Dcr)<0.01) {
 		//printf("Negative Determinant - ");
 		return 8; // sphere is inprojectable - zero determinant
-	}
+	} else rDcr = 1 / Dcr;
 	
 	// solve the ugly equation
 	//InitMatrix(m);
 	ReplaceCol(m, 0, h);
-	beta = MatrixRoot(m) / Dcr;
+	beta = MatrixRoot(m) * rDcr;
 	InitMatrix(m);
 	ReplaceCol(m, 1, h);
-	gamma = MatrixRoot(m) / Dcr;
+	gamma = MatrixRoot(m) * rDcr;
 	InitMatrix(m);
 	ReplaceCol(m, 2, h);
-	delta = MatrixRoot(m) / Dcr;
+	delta = MatrixRoot(m) * rDcr;
 	
 	if (delta < 0) {
 		//printf("bad delta");

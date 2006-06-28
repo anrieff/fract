@@ -476,8 +476,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	option_add("--scene=data/benchmark.fsv");
-	//option_add("--developer");
+	option_add("--scene=data/oldbench.fsv");
+	option_add("--no-overlay");
 	commandline_parse();
 	init_program();
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {
