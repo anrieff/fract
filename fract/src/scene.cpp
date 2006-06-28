@@ -16,6 +16,7 @@
 #include "MyTypes.h"
 #include "antialias.h"
 #include "bitmap.h"
+#include "blur.h"
 #include "vector3.h"
 #include "object.h"
 #include "sphere.h"
@@ -455,6 +456,7 @@ void Scene::videoinit(void)
 #endif
 	set_fsaa_mode(FSAA_STARTING_MODE);
 	check_fsaa_param();
+	blur_init();
 }
 
 Scene::~Scene()

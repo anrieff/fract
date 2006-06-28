@@ -164,6 +164,7 @@ void set_blur_method(int newmethod)
 void blur_init(void)
 {
 	int size = xres()*yres()*4;
+	blur_close();
 	for (int i = 0; i < 8; i++) {
 		blurbuffers[i] = (Uint32*) sse_malloc(size);
 	}
