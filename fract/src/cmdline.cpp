@@ -117,7 +117,6 @@ void display_usage(void)
 	printf("Usage: fract [options]\n");
 	printf(" OPTIONS: \n");
 	printf("  --scene=xxx     - load the given scene instead of the default one\n");
-	printf("  --no-mem        - disable bigarr allocation\n");
 	printf("  --force-overlay - use overlay video drawing mode\n");
 	printf("                    even if it's not hardware accelerated\n");
 	printf("  --no-overlay    - use surface drawing mode even\n");

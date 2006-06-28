@@ -2,7 +2,7 @@
 
 ROOTFILES="AUTHORS COPYING ChangeLog Doxyfile INSTALL Makefile.am Makefile.cvs Makefile.in NEWS README acconfig.h aclocal.m4 config.guess config.h.in config.sub configure configure.in depcomp fract.kdevelop fract.kdevelop.pcs fract.kdevses install-sh ltconfig ltmain.sh missing mkinstalldirs"
 
-DATAFILES="data/2.bmp data/benchmark.fsv data/font1.bmp data/fract_benchmark.bmp data/intro.bmp"
+DATAFILES="data/2.bmp data/benchmark.fsv data/font1.bmp data/intro.bmp"
 
 
 if [ $# -ne 1 ]; then

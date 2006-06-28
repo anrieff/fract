@@ -139,8 +139,6 @@ void CPU::init()
 	if (option_exists("--no-mmx2" )) mmx2 = false;
 	if (option_exists("--no-sse"  )) sse  = false;
 	if (option_exists("--no-sse2" )) sse2 = false;
-	if (option_exists("--no-mem"  )) memory_size = 0;
-	if (option_exists("--force-mem")) memory_size = MEMORY_REQUIREMENT * 1024;
 
 }
 
