@@ -8,6 +8,7 @@ fract:
 	[***] multithreaded shadows
 	[***] multithreaded antibuffer init
 	[***] Change the sphere-holding thingy in oldbench.fsv
+	[   ] Vectorize shaders
 	[   ] Include an installation ID in the result fmt (maybe time_t?)
 	[   ] Readd SSE2 and SSE3 implementations of vector3
 	[   ] Try compile with VC 8.0
