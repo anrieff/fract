@@ -258,6 +258,9 @@
 				RelativePath=".\src\sphere.cpp">
 			</File>
 			<File
+				RelativePath=".\src\thorus.cpp">
+			</File>
+			<File
 				RelativePath=".\src\threads.cpp">
 			</File>
 			<File
@@ -378,6 +381,9 @@
 			</File>
 			<File
 				RelativePath=".\src\sphere.h">
+			</File>
+			<File
+				RelativePath=".\src\thorus.h">
 			</File>
 			<File
 				RelativePath=".\src\threads.h">
