@@ -841,7 +841,7 @@ void FrustrumClipper::clip(ClipRes& cr, Vector trio[], int which)
 	cr.n = 0;
 	bool vis[3];
 	for (int i = 0; i < 3; i++) {
-		vis[i] = eval(trio[i]) > -0.001;
+		vis[i] = eval(trio[i]) > -1;
 	}
 	for (int i = 0; i < 3; i++) {
 		int j = (i + 1) % 3;

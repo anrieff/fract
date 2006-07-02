@@ -147,10 +147,13 @@ void _mergesort_imp(T a[], int l, int r, T t[])
 		a[l + k] = t[k];
 }
 	
-/// Generic sorting function
-/// @param a - the array of values to sort
-/// @param n - the number of elements in the array
-/// NOTE: sort() requires a operator &lt; to be defined
+/** Generic sorting function
+ *  THREAD SAFETY: No (uses static storage)
+ *  STABLE: Yes
+ *  @param a - the array of values to sort
+ *  @param n - the number of elements in the array
+ * NOTE: sort() requires a operator &lt; to be defined
+*/
 template <typename T>
 void sort(T a[], int n)
 {
@@ -173,6 +176,51 @@ void sort(T a[], int n)
 	// non static storage must be freed
 	if (!static_storage)
 		free(storage);
+}
+
+/**
+ * Generic sorting function for use in multithreaded environment
+ * THREAD SAFETY: Yes
+ * STABLE: No
+ * @param a - the array of values to sort
+ * @param n - the number of elements in the array
+ * NOTE: sort_inplace() requires a operator &lt; to be defined
+*/
+template <typename T>
+void sort_inplace(T a[], int n)
+{
+	a--; // make the array 1-based
+	// Stage 1: create the heap
+	for (int i = 2; i <= n; i++) {
+		int x = i;
+		while (x != 1 && a[x/2] < a[x]) { // sift up
+			T t = a[x/2];
+			a[x/2] = a[x];
+			a[x] = t;
+			x /= 2;
+		}
+	}
+	
+	// Stage 2: extract elements from the heap
+	for (; n; n--) {
+		// exchange top & tail:
+		T t = a[1];
+		a[1] = a[n];
+		a[n] = t;
+		
+		// sift the top element down
+		int x = 1, y;
+		while (1) {
+			y = -1;
+			if (x * 2 < n && a[x] < a[x*2]) y = x * 2;
+			if (x * 2 + 1 < n && a[x] < a[x*2+1] && a[x*2] < a[x*2+1]) y = x * 2 + 1;
+			if (y == -1) break;
+			t = a[x];
+			a[x] = a[y];
+			a[y] = t;
+			x = y;
+		}
+	}
 }
 
 /**

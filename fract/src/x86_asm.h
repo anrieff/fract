@@ -3194,7 +3194,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 	x2 = ((x2/4)+1)*4;
 	x1 &= ~3;
 	int xsize = (x2 - x1)/4;
-	int ysize = y2 - y1;
+	int ysize = y2 - y1+1;
 	if (xsize <= 0 || ysize <= 0) return;
 	Uint16 *p = &sbuff[y1 * xr + x1];
 	xr *= 2;
@@ -7097,7 +7097,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 	x2 = ((x2/4)+1)*4;
 	x1 &= ~3;
 	int xsize = (x2 - x1)/4;
-	int ysize = y2 - y1;
+	int ysize = y2 - y1 + 1;
 	if (xsize <= 0 || ysize <= 0) return;
 	Uint16 *p = &sbuff[y1 * xr + x1];
 	xr *= 2;

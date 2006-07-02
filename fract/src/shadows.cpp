@@ -208,9 +208,6 @@ struct Triangularized {
 	
 };
 
-Array <Triangularized> shadow_objects;
-Mutex shadow_objects_cs;
-
 static void raster_wedge(Box2D& all, float aa[], float bb[], float cc[], int w1, int w2, int w3, 
 			int xr, int yr, Uint16 *sbuffer, int thread_idx, int thread_count)
 {
@@ -362,7 +359,7 @@ static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 			po.verts[n++] = Vertex(e[i].bi, e[i].b);
 		}
 	}
-	sort(po.verts, n);
+	sort_inplace(po.verts, n);
 	for (int i = 0; i < n; i++)
 		po.fwdmap[po.verts[i].no] = i;
 	memset(po.g, 0, sizeof(int) * (max_neighs + 1) * n);
@@ -908,7 +905,6 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 	
 	shadows_precalc(xr, yr, mtt, mti, mtti);
 	
-	shadow_objects.clear();
 }
 
 static Allocator<PolyContext> allocator(ALLOCATOR_NEW_DELETE);
@@ -945,23 +941,15 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			frustrum_clip(frustrum, solid);
 			frustrum_clip(frustrum, wedgy);
 			prof_leave(PROF_FRUSTRUM_CLIP);
-			
-			//if (cpu.count == 1) {
-				prof_enter(PROF_POLY_DISPLAY);
-				poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
-				poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
-				prof_leave(PROF_POLY_DISPLAY);
-			/*} else {
-				shadow_objects_cs.enter();
-				shadow_objects += solid;
-				shadow_objects += wedgy;
-				shadow_objects_cs.leave();
-			}
-			*/
+				
+			prof_enter(PROF_POLY_DISPLAY);
+			poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+			prof_leave(PROF_POLY_DISPLAY);
 		}
 	}
 	
-
+	
 	for (int i = 0; i < mesh_count; i++) if ((mesh[i].get_flags() & CASTS_SHADOW)) {
 		po->recu_es = 0;
 		prof_enter(PROF_CONNECT_GRAPH);
@@ -1004,25 +992,11 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			frustrum_clip(frustrum, wedgy);
 			prof_leave(PROF_FRUSTRUM_CLIP);
 			
-			//if (cpu.count == 1) {
-				prof_enter(PROF_POLY_DISPLAY);
-				poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
-				poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
-				prof_leave(PROF_POLY_DISPLAY);
-			/*} else {
-				shadow_objects_cs.enter();
-				shadow_objects += solid;
-				shadow_objects += wedgy;
-				shadow_objects_cs.leave();
-			}
-			*/
+			prof_enter(PROF_POLY_DISPLAY);
+			poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+			prof_leave(PROF_POLY_DISPLAY);
 		}
 	}
 	
-	/*
-	if (cpu.count != 1) {
-		for (int i = 0; i < shadow_objects.size(); i++)
-			poly_display2(shadow_objects[i], xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx);
-	}
-	*/
 }
