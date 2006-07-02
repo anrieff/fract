@@ -21,6 +21,7 @@
 #include "asmconfig.h"
 #include "common.h"
 #include "cpu.h"
+#include "fract.h"
 #include "MyLimits.h"
 #include "gfx.h"
 #include "render.h"
@@ -904,7 +905,7 @@ void shader_gamma(Uint32 *fb, int resx, int resy, float multiplier)
 void shader_outro_effect(Uint32 *fb)
 {
 #ifdef ACTUALLYDISPLAY	
-	if (SDL_GetTicks() % 3 == 0) {
+	if (get_ticks() % 3 == 0) {
 		shader_sobel(fb, fb, xres(), yres());
 		shader_gamma_shr(fb, fb, xres(), yres(), 1);
 		return;

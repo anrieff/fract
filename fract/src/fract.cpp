@@ -31,7 +31,9 @@
 #include "vectormath.h"
 #include "voxel.h"
 
-#ifndef ACTUALLYDISPLAY
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/time.h>
 #endif
 
@@ -127,28 +129,27 @@ int fpsfrm=0;
 
 Uint32 get_ticks(void)
 {
-#ifdef ACTUALLYDISPLAY
-	return SDL_GetTicks();
-#else
-	//return clock() / (CLOCKS_PER_SEC/1000);
 	static unsigned int start_val;
 	static int start_val_inited = 0;
-	struct timeval Time; 
 	unsigned int temp;
+#ifdef _WIN32
+	temp = GetTickCount();
+#else
+	struct timeval Time; 
 	gettimeofday(&Time, NULL);
 	temp = Time.tv_sec * 1000 + Time.tv_usec / 1000;
+#endif
 	if (!start_val_inited) {
 		start_val_inited = 1;
 		start_val = temp;
 	}
 	return temp - start_val;
-#endif
 }
 
 
 double bTime(void)
 {
- return ((get_ticks() - clk) / 1000.0);
+	return ((get_ticks() - clk) / 1000.0);
 }
 
 
