@@ -994,7 +994,7 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 			
 			prof_enter(PROF_POLY_DISPLAY);
 			poly_display2(solid, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
-			poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
+			//poly_display2(wedgy, xr, yr, cur, mtt, mti, mtti, sbuffer, thread_idx, cpu.count);
 			prof_leave(PROF_POLY_DISPLAY);
 		}
 	}

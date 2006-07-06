@@ -312,7 +312,7 @@ static inline void get_str(char *s, char *so)
 	j = ++i;
 	while (s[j]!=0) j++;
 	j--;
-	if (s[j]=='\n') s[j--]=0;
+	while (s[j]=='\n' || s[j] == '\r') s[j--]=0;
 	if (s[j] == '"' && s[i] == '"') {
 		++i;
 		s[j--] = 0;
