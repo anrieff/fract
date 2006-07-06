@@ -264,6 +264,9 @@
 				RelativePath=".\src\threads.cpp">
 			</File>
 			<File
+				RelativePath=".\src\tracer.cpp">
+			</File>
+			<File
 				RelativePath=".\src\triangle.cpp">
 			</File>
 			<File
@@ -387,6 +390,9 @@
 			</File>
 			<File
 				RelativePath=".\src\threads.h">
+			</File>
+			<File
+				RelativePath=".\src\tracer.h">
 			</File>
 			<File
 				RelativePath=".\src\triangle.h">

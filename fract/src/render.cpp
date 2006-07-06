@@ -43,6 +43,7 @@
 #include "sphere.h"
 #include "threads.h"
 #include "thorus.h"
+#include "tracer.h"
 #include "triangle.h"
 #include "vector3.h"
 #include "vectormath.h"
@@ -390,16 +391,21 @@ void preframe_do(Uint32 *ptr, Vector lw)
 	prof_leave(PROF_PHYSICS);
 	prof_enter(PROF_SORT);
 	allobjects.clear(cur);
-	for (i = 0; i < spherecount; i++) {
-		allobjects += &sp[i];
+	if (!g_view_tracers) {
+		for (i = 0; i < spherecount; i++) {
+			allobjects += &sp[i];
+		}
+		for (TriangleIterator t; t.ok(); ++t) {
+			t->recalc_normal();
+			t->recalc_zdepth(cur);
+			allobjects += t.current();
+		}
+		for (i = 0; i < thors_count; i++) 
+			allobjects += &thor[i];
+	} else {
+		for (i = 0; i < tracers_count; i++)
+			allobjects += &tracer[i];
 	}
-	for (TriangleIterator t; t.ok(); ++t) {
-		t->recalc_normal();
-		t->recalc_zdepth(cur);
-		allobjects += t.current();
-	}
-	for (i = 0; i < thors_count; i++) 
-		allobjects += &thor[i];
 	allobjects.sort();
 	prof_leave(PROF_SORT);
 	

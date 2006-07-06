@@ -28,6 +28,7 @@
 #include "saveload.h"
 #include "triangle.h"
 #include "thorus.h"
+#include "tracer.h"
 #include "vectormath.h"
 #include "voxel.h"
 
@@ -361,7 +362,15 @@ void kbd_do(int *ShouldExit)
 			if (e.key.keysym.sym == SDLK_x) {
 				g_scpuabi = !g_scpuabi;
 			}
+
+			if (e.key.keysym.sym == SDLK_t) {
+				g_view_tracers = !g_view_tracers;
+			}
 			
+			if (e.key.keysym.sym == SDLK_i) {
+				cur.print();
+			}
+
 			// /FIXME
 			
 			if (e.key.keysym.sym == SDLK_g) switch_gravity();

@@ -29,6 +29,7 @@
 #include "shadows.h"
 #include "triangle.h"
 #include "thorus.h"
+#include "tracer.h"
 
 /* ------------------------------------ export section ------------------------------------ */
 extern int spherecount;
@@ -409,6 +410,25 @@ static void get_thorus_info(char *si, Thorus *thor)
 	thor->init();
 }
 
+static void get_tracer_info(char *si, Tracer *t)
+{
+	int i;
+	char *s;
+	for (i = 0; si[i] != ']'; i++);
+	s = si + i + 2;
+	switch (hashid(s)) {
+		case 0xed5a: get_vector(s, t->points[0]); break;
+		case 0xee5d: get_vector(s, t->points[1]); break;
+		case 0xef5c: get_vector(s, t->points[2]); if (strstr(s, ".z")!=NULL) t->init(); break;
+		case 0x5b29: t->thickness = get_real(s); break;
+		case 0xb621: t->phasespeed = get_real(s); break;
+		default: {
+			get_sphere_info(si, static_cast<Sphere*>(t));
+			break;
+		}
+	}
+}
+
 static void get_mesh_info(char *basedir, char *si)
 {
 	static Vector v_translation;
@@ -582,6 +602,9 @@ int load_context(const char *fn)
 			/* Thori: */
 				case 0x5e2a: thors_count = get_int(line); break;
 				case 0x3387: get_thorus_info(line, thor + get_index(line)); break;
+			/* Tracers: */
+				case 0x0d79: tracers_count = get_int(line); break;
+				case 0x0f63: get_tracer_info(line, tracer + get_index(line)); break;
 			/* MISC: */
 				case 0x2988: input_type = SAVLOAD_COORDS; shb = 1; break;
 				case 0xc0df: input_type = SAVLOAD_COORDS_106; shb = 1; break;
