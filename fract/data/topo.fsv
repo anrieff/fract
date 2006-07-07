@@ -68,6 +68,7 @@ Mesh[0].flags.air=0
 Mesh[0].flags.mapped=0
 Mesh[0].flags.stochastic=0
 Mesh[0].flags.normal_map=0
+Mesh[0].flags.casts_shadow=1
 
 Mesh[1].file_name=topo2.obj
 Mesh[1].scale=25.0000
@@ -89,6 +90,7 @@ Mesh[1].flags.air=0
 Mesh[1].flags.mapped=0
 Mesh[1].flags.stochastic=0
 Mesh[1].flags.normal_map=0
+Mesh[1].flags.casts_shadow=1
 
 tracers_count=2
 Tracer[0].point1.x=119.9201
