@@ -87,6 +87,40 @@ void Event::signal(void)
 	pthread_cond_signal(&c);
 }
 
+/**
+ @class Barrier
+ **/
+
+Barrier::Barrier(int cpu_count)
+{
+	pthread_mutex_init(&m, NULL);
+	pthread_cond_init(&c, NULL);
+	set_threads(cpu_count);
+}
+
+Barrier::~Barrier()
+{
+	pthread_cond_destroy(&c);
+	pthread_mutex_destroy(&m);
+}
+
+void Barrier::set_threads(int cpu_count)
+{
+	counter = cpu_count;
+}
+
+void Barrier::checkout(void)
+{
+	int r = --counter;
+	if (r){
+		pthread_mutex_lock(&m);
+		pthread_cond_wait(&c, &m);
+		pthread_mutex_unlock(&m);
+	} else {
+		pthread_cond_broadcast(&c);
+	}
+}
+
 // FUNCTIONS
 
 int atomic_add(volatile int *addr, int val) 

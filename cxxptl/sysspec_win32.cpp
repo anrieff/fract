@@ -69,6 +69,35 @@ void Event::signal(void)
 	SetEvent(event);
 }
 
+/**
+ @class Barrier
+ **/
+
+Barrier::Barrier(int cpu_count)
+{
+	event = CreateEvent(NULL, TRUE, FALSE, NULL);
+	set_threads(cpu_count);
+}
+
+Barrier::~Barrier()
+{
+	CloseHandle(event);
+}
+
+void Barrier::set_threads(int cpu_count)
+{
+	counter = cpu_count;
+}
+
+void Barrier::checkout(void)
+{
+	int r = --counter;
+	if (r)
+		WaitForSingleObject(event, INFINITE);
+	else
+		SetEvent(event);
+}
+
 // FUNCTIONS
 int system_get_processor_count(void)
 {
@@ -79,15 +108,6 @@ int system_get_processor_count(void)
 
 int atomic_add(volatile int *addr, int val) 
 {
-	/*	
-	__asm {
-		mov		edx,	addr
-		mov		eax,	val
-		lock xadd	[edx],	eax
-		mov		val,		eax
-	}
-	return val;
-	*/
 	return InterlockedExchangeAdd((volatile long*)addr, val);
 }
 

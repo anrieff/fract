@@ -44,38 +44,6 @@ void multithreaded_memset(void *data, unsigned fill_pattern, long size, int thre
 	// single "rep stosd" instruction
 }
  
-/** 
- @class Barrier
- **/
-  
-static volatile int lockers[MAX_BARRIERS][MAX_CPU_COUNT];
-
-Barrier::Barrier()
-{
-	id = -1;
-}
-
-void Barrier::checkin(int barrier_id, int thread_idx, int threads_count)
-{
-	id = barrier_id;
-	idx = thread_idx;
-	count = threads_count;
-}
-
-void Barrier::checkout()
-{
-	int x = ++lockers[id][idx];
-	while (1) {
-		bool good = true;
-		for (int i = 0; i < count; i++)
-			if (lockers[id][i] != x) {
-				good = false;
-				break;
-			}
-		if (good) break;
-	}
-}
-
 /**
  @class ThreadPool
  **/

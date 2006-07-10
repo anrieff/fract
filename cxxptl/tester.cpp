@@ -26,13 +26,27 @@
 ThreadPool pool;
 
 struct DoWork: public Parallel {
-	double data[1600];
+	Barrier barrier;
+
+	double data[2000];
+
+	DoWork(int bla) : barrier(bla)
+	{}
+
 	void entry(int j, int k)
 	{
 		printf("DoWork::entry(%d, %d)\n", j, k); fflush(stdout);
 		data[j*100] = 0;
-		for (int i = j; i < 1000000000; i+=k) {
+		int i;
+		for (i = j; i < 500000000; i+=k) {
 			if (!i) continue;
+			double d = i;
+			data[j*100] += 1.0 / (d*d);
+		}
+		printf("Thread %d: waiting for others...\n", j); fflush(stdout);
+		barrier.checkout();
+		printf("Thread %d: continuing\n", j); fflush(stdout);
+		for (; i < 1000000000; i+=k) {
 			double d = i;
 			data[j*100] += 1.0 / (d*d);
 		}
@@ -46,7 +60,7 @@ int main(void)
 	printf("This PC has %d processors\n", get_processor_count());
 	for (n = 1; n <= 8; n*=2) {
 		printf("Using %d processors for internal calculations.\n", n);
-		DoWork dowork;
+		DoWork dowork(n);
 		time_t xt = time(NULL);
 		pool.run(&dowork, n);
 		xt = time(NULL) - xt;
