@@ -92,52 +92,6 @@ int atomic_add(volatile int *addr, int val);
 // OK, the classes next
 //
 
-/**
- * @class Barrier
- * @author Veselin Georgiev
- * @date 2005-10-14
- * --
- * @brief Implements a simple multithreaded barrier
- *
- * Barriers are used when you want to ensure that a given section of code has been
- * executed by all threads and continue execution only after that.
- * Points at code where threads wait for completion of the other threads are called
- * Barrier Points.
- *
- * Example usage:
- * @Example
- * @code
- *
- * void foo(int thread_idx, int threads_count) {
- *	
- *	...
- *	// CODE 1
- *	...
- *	Barrier b;
- *	b.checkin(BARRIER_ID_FOO, thread_idx, threads_count);
- *	...
- *	// CODE 2
- *	...
- *	b.checkout(BARRIER_ID_FOO, thread_idx, threads_count);
- *	...
- *	// CODE 3
- *	...
- * }
- * @endcode
- *
- * CODE 3 will be executed only after all threads have had executed CODE2 (and therefore, CODE1)
- * Barrier ids are simple integers that are uniquie for each barrier used in your code.
-*/ 
-class Barrier {
-	int id;
-	int idx, count;
-public:
-	Barrier();
-	void checkin(int barrier_id, int thread_idx, int threads_count);
-	void checkout();
-};
-
-
 /// Simple interlocked variable, with atomic increment and decrementing operators
 class InterlockedInt {
 	volatile int data;
@@ -186,7 +140,40 @@ public:
  * signal()s the condition, but no thread is currently waiting on the
  * condition, later invocation of wait() returns immediately (thus, signals()s
  * are, in a sense, "saved", and not "lost" as in pthread's API).
-*/ 
+*/
+
+/**
+ * @class Barrier
+ * @brief A simple multi-blocking event (used for barriers)
+ *
+ * Barriers are used for synchronization withing multithreaded procedures, e.g.
+ * when some work must be completed by ALL threads before ANY thread continues
+ * past some point, called barrier point. Example:
+ *
+ * SINGLE THREADED FUNCTION:
+ * ....
+ * memset(a, 0, sizeof(a)); // zero some array
+ * for (int i = 0; i < n; i++) a[i] = 2*i; // do some work on the zeroed array
+ * ....
+ *
+ * MULTI THREADED VERSION:
+ *
+ * static Barrier barrier; // one version for all threads
+ * ....
+ * multithreaded_memset(a, 0, sizeof(a)); // use all threads for the memset
+ * barrier.checkout();                    // synchronize here; all threads
+ *                                        // must reach this point before 
+ *                                        // continuing.
+ * for (int i = thread_idx; i < n; i += thread_count) a[i] = 2*i;
+ * // ^ continue the computation
+ *
+ *
+ * Class interface:
+ * Constructor - accepts the number of threads, that will use the barrier
+ * (might be changed later with a call to set_threads())
+ *
+ * checkout() - the point where threads wait for the other threads
+*/
 
 /// function: relent() - voluntarily relinquishes the CPU to other threads.
 
@@ -212,6 +199,17 @@ public:
 	void signal(void);
 };
 
+class Barrier {
+	HANDLE event;
+	InterlockedInt counter;
+public:
+	Barrier(int cpu_count);
+	~Barrier();
+
+	void set_threads(int cpu_count);
+	void checkout(void);
+};
+
 typedef HANDLE ThreadID;
 #define relent() Sleep(0)
 #else
@@ -235,6 +233,18 @@ public:
 	~Event(void);
 	void wait(void);
 	void signal(void);
+};
+
+class Barrier {
+	pthread_mutex_t m;
+	pthread_cont_t c;
+	InterlockedInt counter;
+public:
+	Barrier(int cpu_count);
+	~Barrier();
+
+	void set_threads(int cpu_count);
+	void checkout(void);
 };
 
 typedef pthread_t ThreadID;

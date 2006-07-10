@@ -192,9 +192,6 @@
 				RelativePath=".\src\antialias.cpp">
 			</File>
 			<File
-				RelativePath=".\src\barriers.h">
-			</File>
-			<File
 				RelativePath=".\src\bitmap.cpp">
 			</File>
 			<File

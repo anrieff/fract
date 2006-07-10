@@ -16,7 +16,6 @@
 #include <errno.h>
 #include "MyGlobal.h"
 #include "antialias.h"
-#include "barriers.h"
 #include "bitmap.h"
 #include "common.h"
 #include "cpu.h"
@@ -76,6 +75,8 @@ int voxel_rendering_method = 0, shadow_casting_method = 0;
 bool light_moving = true;
 bool must_recalc_light;
 bool shooting;
+
+Barrier bar1(0), lightOuter(0), bar(0), precalculation(0);
 
 
 
@@ -458,8 +459,6 @@ void voxel_light_recalc2(int thread_idx)
 
 	for (k = 0; k < NUM_VOXELS; k++) {
 		size = vox[k].size;
-		Barrier b;
-		b.checkin(VOXEL_LIGHT_INNER2, thread_idx, cpu.count);
 		multithreaded_memset(vox[k].texture, 0xffffffff, size*size, thread_idx, cpu.count);
 		/* explanation:
 			If a texel has 0xff in its MSB (alpha channel) it is still
@@ -497,7 +496,7 @@ void voxel_light_recalc2(int thread_idx)
 				vox[k].texture[x + z * size] = point_is_in_shadow(vox + k, x, z) ? 0x01000000 : 0x02000000;
 
 		}
-		b.checkout();
+		bar1.checkout();
 		for (int z = 0, all=0; z < size; z += SHADOW_CAST_ACCURACY)
 			for (int x = 0; x < size; x += SHADOW_CAST_ACCURACY,all++) if (all % cpu.count == thread_idx) {
 				subdivshadow(vox + k, x, z, SHADOW_CAST_ACCURACY);
@@ -537,8 +536,6 @@ void recalc_miplevel(int thread_idx)
 void voxel_light_recalc(int thread_idx)
 {
 	if (!must_recalc_light) return;
-	Barrier lightOuter;
-	lightOuter.checkin(VOXEL_LIGHT_OUTER, thread_idx, cpu.count);
 	if (shadow_casting_method) {
 		voxel_light_recalc2(thread_idx);
 	} else {
@@ -983,8 +980,6 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	return;
 	/***/
 #endif
-	Barrier bar;
-	bar.checkin(VOXEL_BARRIER1, thread_index, cpu.count);
 	//memset(fb, 0, xr*yr*4);
 	//for (int i = 0; i < xr*yr; i++)
 	//	zbuffer[i] = -1.0f;
@@ -998,8 +993,6 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	bar.checkout();
 	// precalculate the big grid
 	for (int k = 0; k < NUM_VOXELS; k++) {
-		Barrier precalculation;
-		precalculation.checkin(VOXEL_BARRIER2, thread_index, cpu.count);
 		int all_rays = 0;
 		for (int j = 0; j < yr; j+=8) {
 			Vector t(walky);
@@ -1066,6 +1059,13 @@ void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vecto
 void voxel_frame_init(void)
 {
 	must_recalc_light = false;
+
+	// initialize barriers
+	bar1.set_threads(cpu.count);
+	bar.set_threads(cpu.count);
+	precalculation.set_threads(cpu.count);
+	lightOuter.set_threads(cpu.count);
+
 	
 	if (light_moving) {
 		lx = (int) (256 + 128 * sin(bTime()*0.1));

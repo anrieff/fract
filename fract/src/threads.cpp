@@ -158,6 +158,40 @@ void Event::signal(void)
 	pthread_cond_signal(&c);
 }
 
+/**
+ @class Barrier
+ **/
+
+Barrier::Barrier(int cpu_count)
+{
+	pthread_mutex_init(&m, NULL);
+	pthread_cond_init(&c, NULL);
+	set_threads(cpu_count);
+}
+
+Barrier::~Barrier()
+{
+	pthread_cond_destroy(&c);
+	pthread_mutex_destroy(&m);
+}
+
+void Barrier::set_threads(int cpu_count)
+{
+	counter = cpu_count;
+}
+
+void Barrier::checkout(void)
+{
+	int r = --counter;
+	if (r){
+		pthread_mutex_lock(&m);
+		pthread_cond_wait(&c, &m);
+		pthread_mutex_unlock(&m);
+	} else {
+		pthread_cond_broadcast(&c);
+	}
+}
+
 // FUNCTIONS
 
 int atomic_add(volatile int *addr, int val) 
@@ -264,6 +298,36 @@ void Event::signal(void)
 	SetEvent(event);
 }
 
+/**
+ @class Barrier
+ **/
+
+Barrier::Barrier(int cpu_count)
+{
+	event = CreateEvent(NULL, TRUE, FALSE, NULL);
+	set_threads(cpu_count);
+}
+
+Barrier::~Barrier()
+{
+	CloseHandle(event);
+}
+
+void Barrier::set_threads(int cpu_count)
+{
+	ResetEvent(event);
+	counter = cpu_count;
+}
+
+void Barrier::checkout(void)
+{
+	int r = --counter;
+	if (r)
+		WaitForSingleObject(event, INFINITE);
+	else
+		SetEvent(event);
+}
+
 // FUNCTIONS
 int system_get_processor_count(void)
 {
@@ -274,15 +338,6 @@ int system_get_processor_count(void)
 
 int atomic_add(volatile int *addr, int val) 
 {
-	/*	
-	__asm {
-		mov		edx,	addr
-		mov		eax,	val
-		lock xadd	[edx],	eax
-		mov		val,		eax
-	}
-	return val;
-	*/
 	return InterlockedExchangeAdd((volatile long*)addr, val);
 }
 
@@ -347,38 +402,6 @@ void multithreaded_memset(void *data, unsigned fill_pattern, long size, int thre
 	// single "rep stosd" instruction
 }
  
-/** 
- @class Barrier
- **/
-  
-static volatile int lockers[MAX_BARRIERS][MAX_CPU_COUNT];
-
-Barrier::Barrier()
-{
-	id = -1;
-}
-
-void Barrier::checkin(int barrier_id, int thread_idx, int threads_count)
-{
-	id = barrier_id;
-	idx = thread_idx;
-	count = threads_count;
-}
-
-void Barrier::checkout()
-{
-	int x = ++lockers[id][idx];
-	while (1) {
-		bool good = true;
-		for (int i = 0; i < count; i++)
-			if (lockers[id][i] != x) {
-				good = false;
-				break;
-			}
-		if (good) break;
-	}
-}
-
 /**
  @class ThreadPool
  **/
