@@ -86,6 +86,7 @@ Barrier::~Barrier()
 
 void Barrier::set_threads(int cpu_count)
 {
+	ResetEvent(event);
 	counter = cpu_count;
 }
 
