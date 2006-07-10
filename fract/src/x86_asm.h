@@ -2325,8 +2325,8 @@ void shader_fbmerge_mmx2(Uint32 *dest, Uint8 * src, int resx, int resy, float in
 	);
 }
 
-void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[]) __attribute__((noinline));
-void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[])
+void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[], int ti, int tc) __attribute__((noinline));
+void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[], int ti, int tc)
 {
 	SSE_ALIGN(short int h_kernel[9][4]);
 	SSE_ALIGN(short int v_kernel[9][4]);
@@ -2343,9 +2343,20 @@ void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int h
 	short int *fh_kernel = &h_kernel[0][0];
 	short int *fv_kernel = &v_kernel[0][0];
 	for (int i = 0; i < resx; i++) dest[i] = dest[(resy-1)*resx+i] = 0;
+	// move one row further, since we already zeroed the first one
 	src += resx;
 	dest += resx;
+	
+	// total rows to do -= 2, since the topmost and the bottom are zeroed
 	resy -= 2;
+	
+	// the offsets up break up threading assigments, fix them
+	ti = (ti - 1 + tc) % tc;
+	
+	src += resx * ti;
+	dest += resx * ti;
+	resy -= ti;
+	int fi_increase = (tc-1)*resx*4;
 	//
 	__asm __volatile
 	(
@@ -2490,11 +2501,13 @@ XALIGN
 "               movl    $0,     (%%edi)\n"
 "               add     $4,     %%edi\n"
 "               add     $4,     %%esi\n"
-"               inc     %%edx\n"
-"               cmp     %6,    %%edx\n"
+"               add     %8,     %%edi\n"
+"               add     %8,     %%esi\n"
+"               add     %7,     %%edx\n"
+"               cmp     %6,     %%edx\n"
 "               jb      yloop\n"
 "               emms\n"
-::"m"(src), "m"(dest), "m"(*two_pow_m16), "m"(resx), "m"(fh_kernel), "m"(fv_kernel), "m"(resy)
+::"m"(src), "m"(dest), "m"(*two_pow_m16), "m"(resx), "m"(fh_kernel), "m"(fv_kernel), "m"(resy), "m"(tc), "m"(fi_increase)
 :"memory", "eax", "ecx", "edx", "esi", "edi"
 	);
 
@@ -6057,7 +6070,7 @@ void shader_fbmerge_mmx2(Uint32 *dest, Uint8 * src, int resx, int resy, float in
 		emms
 	}
 }
-void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[])
+void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[], int ti, int tc)
 {
 	SSE_ALIGN(short int h_kernel[9][4]);
 	SSE_ALIGN(short int v_kernel[9][4]);

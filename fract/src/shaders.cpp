@@ -194,6 +194,19 @@ void shader_cmdline_option(const char *opt)
 	}
 }
 
+// multithread framebuffer copy (M-th thread in N-threaded configuration copies
+// only rows Y where Y mod N == M
+void mt_fb_memcpy(Uint32 *dest, Uint32 *src, int resx, int resy, int thread_idx, int threads_count)
+{
+	if (threads_count == 1)
+		memcpy(dest, src, resx * resy * 4);
+	else {
+		for (int j = thread_idx; j < resy; j += threads_count)
+			for (int i = 0; i < resx; i++)
+				dest[j * resx + i] = src[j * resx + i];
+	}
+}
+
 
 /*
 	The following code is taken directly from http://astronomy.swin.edu.au/~pbourke/analysis/fft2d/
@@ -812,7 +825,7 @@ void shader_object_glow(Uint32 *fb, Uint8 * glowbuff, Uint32 glow_color, int res
 
 static int sqrt_tab[65536];
 
-void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy)
+void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy, int thread_idx, int threads_count)
 {
 	const int h_kernel[9] = 
 	{
@@ -833,8 +846,9 @@ void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy)
 		mydest = dest;
 	}
 	if (cpu.sse) {
-		shader_sobel_sse(src, mydest, resx, resy, h_kernel, v_kernel);
-		if (src == dest) memcpy(dest, shader_tmp, resx*resy*4);
+		shader_sobel_sse(src, mydest, resx, resy, h_kernel, v_kernel, thread_idx, threads_count);
+		if (src == dest) 
+			mt_fb_memcpy(dest, shader_tmp, resx, resy, thread_idx, threads_count);
 		return;
 	}
 
@@ -844,7 +858,7 @@ void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy)
 	}
 	prof_enter(PROF_SHADER1);
 	int p = 0;
-	for (int j = 0; j < resy; j++) {
+	for (int j = thread_idx; j < resy; j += threads_count) {
 		for (int i = 0; i < resx; i++, p++) {
 			mydest[p] = 0;
 			if (i == 0 || i == resx - 1 || j == 0 || j == resy - 1) {
@@ -873,7 +887,8 @@ void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy)
 	}
 	prof_leave(PROF_SHADER1);
 	prof_enter(PROF_SHADER2);
-	if (src == dest) memcpy(dest, shader_tmp, resx*resy*4);
+	if (src == dest) 
+		mt_fb_memcpy(dest, shader_tmp, resx, resy, thread_idx, threads_count);
 	prof_leave(PROF_SHADER2);
 }
 
@@ -891,16 +906,33 @@ void shader_shutters(Uint32 *fb, Uint32 col, int resx, int resy, float amount)
 	}
 }
 
-void shader_gamma(Uint32 *fb, int resx, int resy, float multiplier)
+void shader_gamma(Uint32 *fb, int resx, int resy, float multiplier, int thread_idx, int threads_count)
 {
 	unsigned m = (unsigned)(multiplier * 255u);
-	int sz = resx * resy;
-	for (int i = 0; i < sz; i++) {
-		fb[i] = (((fb[i] & 0xff)*m)>>8) + 
-			((((fb[i] & 0xff00)*m)>>8) & 0xff00) + 
-			((((fb[i] & 0xff0000)*m)>>8) & 0xff0000);
+
+	for (int j = thread_idx; j < resy; j += threads_count) {
+		Uint32* fbl = &fb[j*resx];
+		for (int i = 0; i < resx; i++)
+			fbl[i] = (((fbl[i] & 0xff)*m)>>8) + 
+				((((fbl[i] & 0xff00)*m)>>8) & 0xff00) + 
+				((((fbl[i] & 0xff0000)*m)>>8) & 0xff0000);
 	}
 }
+
+void shader_gamma_cpy(Uint32 *src, Uint32 *dest, int resx, int resy, float multiplier, int thread_idx, int threads_count)
+{
+	unsigned m = (unsigned)(multiplier * 255u);
+
+	for (int j = thread_idx; j < resy; j += threads_count) {
+		Uint32* srcl = &src[j*resx];
+		Uint32* dstl = &dest[j*resx];
+		for (int i = 0; i < resx; i++)
+			dstl[i] =       (((srcl[i] & 0xff)*m)>>8) + 
+					((((srcl[i] & 0xff00)*m)>>8) & 0xff00) + 
+					((((srcl[i] & 0xff0000)*m)>>8) & 0xff0000);
+	}
+}
+
 
 void shader_outro_effect(Uint32 *fb)
 {

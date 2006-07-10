@@ -24,6 +24,7 @@
 #include "MyGlobal.h"
 #include "MyTypes.h"
 #include "antialias.h"
+#include "barriers.h"
 #include "bitmap.h"
 #include "blur.h"
 #include "cmdline.h"
@@ -169,42 +170,74 @@ void postframe_do(SDL_Surface *p, SDL_Overlay *ov)
 void postframe_do(void)
 #endif
 {
- static char buff[1024];
+	static char buff[1024];
 #ifdef ACTUALLYDISPLAY
- SDL_Rect ddestrect;
-
- ddestrect.x = 0;
- ddestrect.y = 0;
- ddestrect.w = xres() * (parallel?2:1) + 8*parallel;
- ddestrect.h = yres();
+	SDL_Rect ddestrect;
+	
+	ddestrect.x = 0;
+	ddestrect.y = 0;
+	ddestrect.w = xres() * (parallel?2:1) + 8*parallel;
+	ddestrect.h = yres();
 #endif
 
 	prof_enter(PROF_ANTIALIAS);
- antialias(framebuffer);
+	antialias(framebuffer);
 	prof_leave(PROF_ANTIALIAS);
-	//memcpy(savebuffer[vframe+1], sfb, 400*300*4);
-    if (pp_state) {
-	if (pp_state & SHADER_ID_INVERSION)
-		shader_inversion(framebuffer, framebuffer, xres(), yres(), xres()/5);
-	if (pp_state & SHADER_ID_EDGE_GLOW) 
-		shader_edge_glow(framebuffer, framebuffer, xres(), yres());
-	if (pp_state & SHADER_ID_SOBEL)
-		shader_sobel(framebuffer, framebuffer, xres(), yres());
-	if (pp_state & SHADER_ID_FFT_FILTER)
-		shader_FFT_Filter(framebuffer, framebuffer, xres(), yres());
-	if (pp_state & SHADER_ID_BLUR)
-		shader_blur(framebuffer, framebuffer, xres(), yres(), 7);
-	if (pp_state & SHADER_ID_OBJECT_GLOW) {
-		antialias(fb_copy);
-		shader_object_glow(framebuffer, fb_copy, 0xffffff, xres(), yres(), 0.36);
+	if (pp_state) {
+		bool have_mt_shader = cpu.count > 1 && 0 != (pp_state & SUPPORTED_MT_SHADERS);
+		int st_pp_state = pp_state;
+		if (have_mt_shader) st_pp_state &= ~SUPPORTED_MT_SHADERS;
+		
+		if (st_pp_state & SHADER_ID_INVERSION)
+			shader_inversion(framebuffer, framebuffer, xres(), yres(), xres()/5);
+		if (st_pp_state & SHADER_ID_EDGE_GLOW) 
+			shader_edge_glow(framebuffer, framebuffer, xres(), yres());
+		if (st_pp_state & SHADER_ID_SOBEL)
+			shader_sobel(framebuffer, framebuffer, xres(), yres());
+		if (st_pp_state & SHADER_ID_FFT_FILTER)
+			shader_FFT_Filter(framebuffer, framebuffer, xres(), yres());
+		if (st_pp_state & SHADER_ID_BLUR)
+			shader_blur(framebuffer, framebuffer, xres(), yres(), 7);
+		if (st_pp_state & SHADER_ID_OBJECT_GLOW) {
+			antialias(fb_copy);
+			shader_object_glow(framebuffer, fb_copy, 0xffffff, xres(), yres(), 0.36);
+		}
+		if (st_pp_state & SHADER_ID_SHUTTERS) {
+			shader_shutters(framebuffer, 0x0, xres(), yres(), shader_param);
+		}
+		if (st_pp_state & SHADER_ID_GAMMA) {
+			shader_gamma(framebuffer, xres(), yres(), shader_param);
+		}
+		
+		if (have_mt_shader) {
+			class ShaderThreads : public Parallel {
+				Uint32 *fbuff;
+				int pp_state;
+				float shd_param;
+				Barrier b;
+			public:
+				ShaderThreads(Uint32 *_fbuff, int xpp, float parm, int cpu_count) : 
+					fbuff(_fbuff), pp_state(xpp), shd_param(parm), b(cpu_count)
+				{
+				}
+				void entry(int ti, int tc)
+				{
+					mt_fb_memcpy(shader_tmp, fbuff, xres(), yres(), ti, tc);
+					b.checkout();
+					if (pp_state & SHADER_ID_SOBEL) {
+						shader_sobel(shader_tmp, fbuff, xres(), yres(), ti, tc);
+					}
+					
+					if (pp_state & SHADER_ID_GAMMA) {
+						shader_gamma(fbuff, xres(), yres(), shd_param, ti, tc);
+					}
+					
+				}
+			} shader_threads(framebuffer, pp_state, shader_param, cpu.count);
+			thread_pool.run(&shader_threads, cpu.count);
+		}
+		
 	}
-	if (pp_state & SHADER_ID_SHUTTERS) {
-		shader_shutters(framebuffer, 0x0, xres(), yres(), shader_param);
-	}
-	if (pp_state & SHADER_ID_GAMMA) {
-		shader_gamma(framebuffer, xres(), yres(), shader_param);
-	}
-    }
 #ifdef MAKE_CHECKSUM
 	prof_enter(PROF_CHECKSUM);
 #ifdef ONLY_FIRST_FRAME
@@ -220,11 +253,11 @@ void postframe_do(void)
 	prof_leave(PROF_CHECKSUM);
 #endif // MAKE_CHECKSUM
 #ifdef BLUR
-if (apply_blur) {
-	prof_enter(PROF_BLUR_DO);
- blur_do(framebuffer, framebuffer, xres()*yres(), vframe);
- 	prof_leave(PROF_BLUR_DO);
-}
+	if (apply_blur) {
+		prof_enter(PROF_BLUR_DO);
+		blur_do(framebuffer, framebuffer, xres()*yres(), vframe);
+		prof_leave(PROF_BLUR_DO);
+	}
 #endif
 #ifdef DUMPPREPASS
 	if (wantdump) {
@@ -243,74 +276,79 @@ if (apply_blur) {
 #ifdef ACTUALLYDISPLAY
 #ifdef SHOWFPS
 	prof_enter(PROF_SHOWFPS);
- if (developer && stereo_mode == STEREO_MODE_NONE) {
- 	fpsfrm++;
- 	if (get_ticks()-fpsclk>FPS_UPDATE_INTERVAL || not_fps_written_yet) {
- 		not_fps_written_yet = 0;
- 		sprintf(buff, "fps: %.1lf", (double) fpsfrm / ((get_ticks()-fpsclk)/1000.0));
-		printxy(p, framebuffer, font0, 0, 0, FPS_COLOR, 0.8, buff);
- 		fpsfrm = 0;
- 		fpsclk = get_ticks();
- 		} else printxy(p, framebuffer, font0, 0, 0, FPS_COLOR, 0.8, buff);
- }
- 	prof_leave(PROF_SHOWFPS);
+	if (developer && stereo_mode == STEREO_MODE_NONE) {
+		fpsfrm++;
+		if (get_ticks()-fpsclk>FPS_UPDATE_INTERVAL || not_fps_written_yet) {
+			not_fps_written_yet = 0;
+			sprintf(buff, "fps: %.1lf", (double) fpsfrm / ((get_ticks()-fpsclk)/1000.0));
+			printxy(p, framebuffer, font0, 0, 0, FPS_COLOR, 0.8, buff);
+			fpsfrm = 0;
+			fpsclk = get_ticks();
+		} else {
+			printxy(p, framebuffer, font0, 0, 0, FPS_COLOR, 0.8, buff);
+		}
+	}
+	prof_leave(PROF_SHOWFPS);
 #endif // SHOWFPS
 #ifdef SHOWFSAA
-if (developer && stereo_mode == STEREO_MODE_NONE) {
-	double tt = bTime() - last_fsaa_change;
-	if (tt < 4) {
-		double opacity = tt < 3 ? 0.75 : 0.75 - 0.75*(tt-3);
-		char fsaabuf[100];
-		sprintf(fsaabuf, "FSAA: %s", fsaa_name);
-		printxy(p, framebuffer, font0, xres()-(int)(strlen(fsaabuf)*11)-5, 0, 0xdddddd, opacity, fsaabuf);
+	if (developer && stereo_mode == STEREO_MODE_NONE) {
+		double tt = bTime() - last_fsaa_change;
+		if (tt < 4) {
+			double opacity = tt < 3 ? 0.75 : 0.75 - 0.75*(tt-3);
+			char fsaabuf[100];
+			sprintf(fsaabuf, "FSAA: %s", fsaa_name);
+			printxy(p, framebuffer, font0, xres()-(int)(strlen(fsaabuf)*11)-5, 0, 0xdddddd, opacity, fsaabuf);
+		}
 	}
-}
 #endif
 #endif // ACTUALLYDISPLAY
 #ifdef ACTUALLYDISPLAY
-if (stereo_mode == STEREO_MODE_NONE || stereo_mode == STEREO_MODE_FINAL) {
-	Uint32 *thebuffer = stereo_mode == STEREO_MODE_FINAL ? stereo_buffer: framebuffer;
- if (ov==NULL) { // use the surface directly
- 	surface_lock(p);
+	if (stereo_mode == STEREO_MODE_NONE || stereo_mode == STEREO_MODE_FINAL) {
+		Uint32 *thebuffer = stereo_mode == STEREO_MODE_FINAL ? stereo_buffer: framebuffer;
+	if (ov==NULL) { // use the surface directly
+		surface_lock(p);
+		
 		prof_enter(PROF_MEMCPY);
- 	memcpy(p->pixels, thebuffer, p->h*p->w*4);
+		memcpy(p->pixels, thebuffer, p->h*p->w*4);
 		prof_leave(PROF_MEMCPY);
- 	surface_unlock(p);
+		
+		surface_unlock(p);
+		
 		prof_enter(PROF_SDL_FLIP);
- 	SDL_Flip(p);
+		SDL_Flip(p);
 		prof_leave(PROF_SDL_FLIP);
- 	}
-	else { // use the overlay
-	SDL_LockYUVOverlay(ov);
+	} else { // use the overlay
+		SDL_LockYUVOverlay(ov);
+		
 		prof_enter(PROF_CONVERTRGB2YUV);
-	ConvertRGB2YUV((Uint32 *) ov->pixels[0], thebuffer, p->h*p->w);
+		ConvertRGB2YUV((Uint32 *) ov->pixels[0], thebuffer, p->h*p->w);
 		prof_leave(PROF_CONVERTRGB2YUV);
-	SDL_UnlockYUVOverlay(ov);
+
+		SDL_UnlockYUVOverlay(ov);
+		
 		prof_enter(PROF_DISPLAYOVERLAY);
-	SDL_DisplayYUVOverlay(ov, &ddestrect);
+		SDL_DisplayYUVOverlay(ov, &ddestrect);
 		prof_leave(PROF_DISPLAYOVERLAY);
 	}
-} else { // not final mode in stereoscopic view:
-	if (!stereo_buffer) {
-		stereo_buffer = (Uint32*) malloc((xres()*2+8)*yres()*4);
-		memset(stereo_buffer, 0, (xres()*2+8)*yres()*4);
+	} else { // not final mode in stereoscopic view:
+		if (!stereo_buffer) {
+			stereo_buffer = (Uint32*) malloc((xres()*2+8)*yres()*4);
+			memset(stereo_buffer, 0, (xres()*2+8)*yres()*4);
+		}
+		int xx = xres();
+		int xoffset = stereo_mode == STEREO_MODE_LEFT ? 0 : xx + 8;
+		
+		for (int j = 0; j < yres(); j++) 
+			memcpy(&stereo_buffer[xoffset + j * (xx * 2+8)], &framebuffer[j * xx], xx * 4);
 	}
-	int xx = xres();
-	int xoffset = stereo_mode == STEREO_MODE_LEFT ? 0 : xx + 8;
-	
-	for (int j = 0; j < yres(); j++)
-	{
-		memcpy(&stereo_buffer[xoffset + j * (xx * 2+8)], &framebuffer[j * xx], xx * 4);
-	}
-}
 #endif // ACTUALLYDISPLAY
- if (stereo_mode == STEREO_MODE_NONE || stereo_mode == STEREO_MODE_FINAL) vframe++;
+	if (stereo_mode == STEREO_MODE_NONE || stereo_mode == STEREO_MODE_FINAL) vframe++;
 #ifdef FSTAT
- int all = good + worse + realbad;
- printf("frame %6d: good/bad/realbad = %7.3lf%%/%7.3lf%%/%7.3lf%%\n", vframe,
- (double) 100.0*good    / ((double) all),
- (double) 100.0*worse   / ((double) all),
- (double) 100.0*realbad / ((double) all)); fflush(stdout);
+	int all = good + worse + realbad;
+	printf("frame %6d: good/bad/realbad = %7.3lf%%/%7.3lf%%/%7.3lf%%\n", vframe,
+	(double) 100.0*good    / ((double) all),
+	(double) 100.0*worse   / ((double) all),
+	(double) 100.0*realbad / ((double) all)); fflush(stdout);
 #endif
 }
 

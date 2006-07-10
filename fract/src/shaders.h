@@ -40,6 +40,8 @@
 #define SHADER_ID_SHUTTERS		0X00000001
 #define SHADER_ID_GAMMA			0x00000002
 
+#define SUPPORTED_MT_SHADERS	(SHADER_ID_GAMMA | SHADER_ID_SOBEL)
+
 
 
 typedef struct{
@@ -56,10 +58,15 @@ extern ConvolveMatrix pshop_ma3x_3, pshop_ma3x_5, pshop_ma3x_7;
 extern ConvolveMatrix blur_ma3x_3, blur_ma3x_5;
 extern int pp_state;
 extern float shader_param;
+extern Uint32 shader_tmp[SHADER_MAXX*SHADER_MAXY];
 
 void shader_cmdline_option(const char *opt);
 void effects_init(void);
 void shaders_close(void);
+
+// multithread framebuffer copy (M-th thread in N-threaded configuration copies
+// only rows Y where Y mod N == M
+void mt_fb_memcpy(Uint32 *dest, Uint32 *src, int resx, int resy, int thread_idx, int threads_count);
 
 void fft_2d_complex(complex *src, complex *dst, int n, int isi);
 
@@ -91,7 +98,7 @@ void shader_inversion(Uint32 *src, Uint32 *dest, int resx, int resy, double radi
 
 void shader_outro_effect(Uint32 *fb);
 
-void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy);
+void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy, int thread_idx = 0, int thread_count = 1);
 
 /**
  * shader_prepare_for_glow
@@ -119,6 +126,9 @@ void shader_object_glow(Uint32 *fb, Uint8 * glowbuff, Uint32 glow_color, int res
 void shader_shutters(Uint32 *fb, Uint32 col, int resx, int resy, float amount);
 
 // Multiplies the pixels by the given gamma (0-1)
-void shader_gamma(Uint32 *fb, int resx, int resy, float multiplier);
+void shader_gamma(Uint32 *fb, int resx, int resy, float multiplier, int thread_idx = 0, int thread_count = 1);
+
+// Multiplies the pixels by the given gamma (0-1) and copy
+void shader_gamma_cpy(Uint32 *src, Uint32 *dest, int resx, int resy, float multiplier, int thread_idx = 0, int thread_count = 1);
 
 #endif //__SHADERS_H__

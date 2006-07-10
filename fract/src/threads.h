@@ -237,8 +237,9 @@ public:
 
 class Barrier {
 	pthread_mutex_t m;
-	pthread_cont_t c;
+	pthread_cond_t c;
 	InterlockedInt counter;
+	volatile int state;
 public:
 	Barrier(int cpu_count);
 	~Barrier();
