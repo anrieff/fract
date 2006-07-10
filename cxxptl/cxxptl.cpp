@@ -151,7 +151,7 @@ void my_thread_proc(ThreadInfoStruct *info)
 				}
 				break;
 			}
-			default:
+			default: break;
 		}
 	} while (!she);
 	info->state = THREAD_DEAD;

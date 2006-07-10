@@ -107,6 +107,7 @@ Barrier::~Barrier()
 void Barrier::set_threads(int cpu_count)
 {
 	counter = cpu_count;
+	state = 0;
 }
 
 void Barrier::checkout(void)
@@ -114,9 +115,16 @@ void Barrier::checkout(void)
 	int r = --counter;
 	if (r){
 		pthread_mutex_lock(&m);
+		if (state == 1) {
+			pthread_mutex_unlock(&m);
+			return;
+		}
 		pthread_cond_wait(&c, &m);
 		pthread_mutex_unlock(&m);
 	} else {
+		pthread_mutex_lock(&m);
+		state = 1;
+		pthread_mutex_unlock(&m);
 		pthread_cond_broadcast(&c);
 	}
 }
