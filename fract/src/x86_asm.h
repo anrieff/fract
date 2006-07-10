@@ -2759,7 +2759,7 @@ Uint32 bilinea4(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, int x, int y
  *********************************************************/
 
 // note: count must be divisable by 8
-void blur_forward_mmx(Uint32 *dest, Uint32 *src, int count)
+void blur_forward_mmx(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
 	int andval[6] __attribute__((aligned(8))) = {
 			0x000000ff, 0x000000ff,
@@ -2771,87 +2771,93 @@ void blur_forward_mmx(Uint32 *dest, Uint32 *src, int count)
 	"	movq	8%0,	%%mm6\n"
 	"	movq	16%0,	%%mm7\n"
 	::"m"(*andval):"memory");
-	count /= 8; // we are doing 8 pixels per cycle :)
-	while (count--) {
-		__asm __volatile(
+	src += xr * ti; dest += xr * ti;
 
-		"	movq	%1,	%%mm0\n"
-		"	movq	8%1,	%%mm3\n"
-		"	movq	%%mm6,	%%mm4\n"
-		"	movq	%%mm7,	%%mm5\n"
-		"	movq	%%mm0,	%%mm1\n"
-		"	movq	%%mm0,	%%mm2\n"
+	for (int i = ti; i < yr; i += tc) {
+		int count = xr / 8; // we are doing 8 pixels per cycle :)
+		while (count--) {
+			__asm __volatile(
 
-		"	pand	%2,	%%mm0\n"
-		"	pand	%%mm3,	%%mm4\n"
-		"	pand	%%mm3,	%%mm5\n"
-		"	pand	%2,	%%mm3\n"
-		"	pand	%%mm6,	%%mm1\n"
-		"	pand	%%mm7,	%%mm2\n"
+			"	movq	%1,	%%mm0\n"
+			"	movq	8%1,	%%mm3\n"
+			"	movq	%%mm6,	%%mm4\n"
+			"	movq	%%mm7,	%%mm5\n"
+			"	movq	%%mm0,	%%mm1\n"
+			"	movq	%%mm0,	%%mm2\n"
 
-		"	pslld	$3,	%%mm4\n"
-		"	pslld	$5,	%%mm5\n"
+			"	pand	%2,	%%mm0\n"
+			"	pand	%%mm3,	%%mm4\n"
+			"	pand	%%mm3,	%%mm5\n"
+			"	pand	%2,	%%mm3\n"
+			"	pand	%%mm6,	%%mm1\n"
+			"	pand	%%mm7,	%%mm2\n"
 
-		"	pslld	$3,	%%mm1\n"
-		"	pslld	$5,	%%mm2\n"
+			"	pslld	$3,	%%mm4\n"
+			"	pslld	$5,	%%mm5\n"
 
-		"	por	%%mm5,	%%mm4\n"
-		"	movq	24%1,	%%mm5\n"
-		"	por	%%mm2,	%%mm1\n"
-		"	movq	16%1,	%%mm2\n"
-/* REGISTER ALLOCATION:
-	mm0	- blue  of point0 + orig of point0
-	mm1	- R+G   of point0
-	mm2	- third point
-	mm3	- blue  of point1 + orig of point1
-	mm4	- R+G   of point1
-	mm5	- fourth point
-*/
-		"	paddd	%%mm4,	%%mm3\n"
-		"	movq	%%mm7,	%%mm4\n"
-		"	paddd	%%mm1,	%%mm0\n"
-		"	movq	%%mm7,	%%mm1\n"
-		"	movq	%%mm3,	8%0\n"
-		"	movq	%%mm0,	%0\n"
-// 1 & 2 done;
+			"	pslld	$3,	%%mm1\n"
+			"	pslld	$5,	%%mm2\n"
 
-		"	pand	%%mm5,	%%mm4\n"
-		"	movq	%%mm5,	%%mm3\n"
-		"	pand	%2,	%%mm5\n"
-		"	movq	%%mm2,	%%mm0\n"
-		"	pand	%%mm2,	%%mm1\n"
-		"	pand	%2,	%%mm2\n"
-		"	pand	%%mm6,	%%mm3\n"
-		"	pand	%%mm6,	%%mm0\n"
-		"	pslld	$5,	%%mm4\n"
-		"	pslld	$3,	%%mm3\n"
-		"	pslld	$5,	%%mm1\n"
-		"	pslld	$3,	%%mm0\n"
-		"	paddd	%%mm4,	%%mm3\n"
-		"	paddd	%%mm1,	%%mm0\n"
-		"	paddd	%%mm3,	%%mm5\n"
-		"	paddd	%%mm0,	%%mm2\n"
-		"	movq	%%mm5,	24%0\n"
-		"	movq	%%mm2,	16%0\n"
+			"	por	%%mm5,	%%mm4\n"
+			"	movq	24%1,	%%mm5\n"
+			"	por	%%mm2,	%%mm1\n"
+			"	movq	16%1,	%%mm2\n"
+	/* REGISTER ALLOCATION:
+		mm0	- blue  of point0 + orig of point0
+		mm1	- R+G   of point0
+		mm2	- third point
+		mm3	- blue  of point1 + orig of point1
+		mm4	- R+G   of point1
+		mm5	- fourth point
+	*/
+			"	paddd	%%mm4,	%%mm3\n"
+			"	movq	%%mm7,	%%mm4\n"
+			"	paddd	%%mm1,	%%mm0\n"
+			"	movq	%%mm7,	%%mm1\n"
+			"	movq	%%mm3,	8%0\n"
+			"	movq	%%mm0,	%0\n"
+	// 1 & 2 done;
+
+			"	pand	%%mm5,	%%mm4\n"
+			"	movq	%%mm5,	%%mm3\n"
+			"	pand	%2,	%%mm5\n"
+			"	movq	%%mm2,	%%mm0\n"
+			"	pand	%%mm2,	%%mm1\n"
+			"	pand	%2,	%%mm2\n"
+			"	pand	%%mm6,	%%mm3\n"
+			"	pand	%%mm6,	%%mm0\n"
+			"	pslld	$5,	%%mm4\n"
+			"	pslld	$3,	%%mm3\n"
+			"	pslld	$5,	%%mm1\n"
+			"	pslld	$3,	%%mm0\n"
+			"	paddd	%%mm4,	%%mm3\n"
+			"	paddd	%%mm1,	%%mm0\n"
+			"	paddd	%%mm3,	%%mm5\n"
+			"	paddd	%%mm0,	%%mm2\n"
+			"	movq	%%mm5,	24%0\n"
+			"	movq	%%mm2,	16%0\n"
 
 
-		:"=m"(*dest)
-		:"m"(*src), "m"(*andval)
-		:"memory");
-		src+=8; dest+=8;
+			:"=m"(*dest)
+			:"m"(*src), "m"(*andval)
+			:"memory");
+			src+=8; dest+=8;
+		}
+		src += (tc-1)*xr;
+		dest += (tc-1)*xr;
 	}
 	__asm __volatile("emms");
 }
 
 // note: count must be divisable by 2
-void blur_backward_mmx(Uint32 *dest, Uint32 *src, int count)
+void blur_backward_mmx(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
 	int shifted_8bits[6] __attribute__((aligned(8))) = {
 			0x000007f8, 0x000007f8,
 			0x003fc000, 0x003fc000,
 			0xff000000, 0xff000000
 	};
-	count /= 2;
+	//count /= 2;
 	__asm __volatile(
 		"	pxor	%%mm4,	%%mm4\n"
 		"	movq	%0,	%%mm5\n"
@@ -2860,85 +2866,98 @@ void blur_backward_mmx(Uint32 *dest, Uint32 *src, int count)
 		::"m"(*shifted_8bits):"memory");
 
 
-	while (count--) {
-		__asm __volatile(
+	src += ti * xr; dest += ti * xr;
+	for (int i = ti; i < yr; i += tc) {
+		int count = xr / 2;
+		while (count--) {
+			__asm __volatile(
 
-		"	movq	%1,	%%mm0\n"
-		"	movq	%%mm6,	%%mm1\n"
-		"	movq	%%mm7,	%%mm2\n"
-		"	pand	%%mm0,	%%mm1\n"
-		"	pand	%%mm0,	%%mm2\n"
-		"	pand	%%mm5,	%%mm0\n"
+			"	movq	%1,	%%mm0\n"
+			"	movq	%%mm6,	%%mm1\n"
+			"	movq	%%mm7,	%%mm2\n"
+			"	pand	%%mm0,	%%mm1\n"
+			"	pand	%%mm0,	%%mm2\n"
+			"	pand	%%mm5,	%%mm0\n"
 
-		"	psrld	$6,	%%mm1\n"
-		"	psrld	$8,	%%mm2\n"
-		"	psrld	$3,	%%mm0\n"
-		"	por	%%mm1,	%%mm0\n"
-		"	por	%%mm2,	%%mm0\n"
+			"	psrld	$6,	%%mm1\n"
+			"	psrld	$8,	%%mm2\n"
+			"	psrld	$3,	%%mm0\n"
+			"	por	%%mm1,	%%mm0\n"
+			"	por	%%mm2,	%%mm0\n"
 
-		"	movq	%%mm0,	%0\n"
+			"	movq	%%mm0,	%0\n"
 
-		:"=m"(*dest)
-		:"m"(*src)
-		:"memory");
-		dest+=2; src+=2;
+			:"=m"(*dest)
+			:"m"(*src)
+			:"memory");
+			dest+=2; src+=2;
+		}
+		src += (tc-1)*xr; dest += (tc-1)*xr;
 	}
 	__asm __volatile("emms");
 }
 
 // note: count must be divisable by 8
-void buffer_minus_mmx(Uint32 *dest, Uint32 *src, int count)
+void buffer_minus_mmx(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
-	count /= 8;
-	do {
-		__asm __volatile(
-		"	movq	  %0,	%%mm0\n"
-		"	movq	 8%0,	%%mm1\n"
-		"	movq	16%0,	%%mm2\n"
-		"	movq	24%0,	%%mm3\n"
-		"	psubd	  %1,	%%mm0\n"
-		"	psubd	 8%1,	%%mm1\n"
-		"	psubd	16%1,	%%mm2\n"
-		"	psubd	24%1,	%%mm3\n"
-		"	movq	%%mm0,	  %0\n"
-		"	movq	%%mm1,	 8%0\n"
-		"	movq	%%mm2,	16%0\n"
-		"	movq	%%mm3,	24%0\n"
+	src += xr * ti; dest += xr * ti;
+	for (int i = ti; i < yr; i+= tc) {
+		int count = xr / 8;
+		do {
+			__asm __volatile(
+			"	movq	  %0,	%%mm0\n"
+			"	movq	 8%0,	%%mm1\n"
+			"	movq	16%0,	%%mm2\n"
+			"	movq	24%0,	%%mm3\n"
+			"	psubd	  %1,	%%mm0\n"
+			"	psubd	 8%1,	%%mm1\n"
+			"	psubd	16%1,	%%mm2\n"
+			"	psubd	24%1,	%%mm3\n"
+			"	movq	%%mm0,	  %0\n"
+			"	movq	%%mm1,	 8%0\n"
+			"	movq	%%mm2,	16%0\n"
+			"	movq	%%mm3,	24%0\n"
 
-		:"=m"(*dest)
-		:"m"(*src)
-		:"memory"
-		);
-		dest += 8; src += 8;
-	} while (--count);
+			:"=m"(*dest)
+			:"m"(*src)
+			:"memory"
+			);
+			dest += 8; src += 8;
+		} while (--count);
+		src += (tc-1)*xr; dest += (tc-1)*xr;
+	}
 	__asm __volatile("emms");
 }
 
 // note: count must be divisable by 8
-void buffer_plus_mmx(Uint32 *dest, Uint32 *src, int count)
+void buffer_plus_mmx(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
-	count /= 8;
-	do {
-		__asm __volatile(
-		"	movq	  %0,	%%mm0\n"
-		"	movq	 8%0,	%%mm1\n"
-		"	movq	16%0,	%%mm2\n"
-		"	movq	24%0,	%%mm3\n"
-		"	paddd	  %1,	%%mm0\n"
-		"	paddd	 8%1,	%%mm1\n"
-		"	paddd	16%1,	%%mm2\n"
-		"	paddd	24%1,	%%mm3\n"
-		"	movq	%%mm0,	  %0\n"
-		"	movq	%%mm1,	 8%0\n"
-		"	movq	%%mm2,	16%0\n"
-		"	movq	%%mm3,	24%0\n"
+	src += xr * ti; dest += xr * ti;
+	for (int i = ti; i < yr; i+= tc) {
+		int count = xr / 8;
+		do {
+			__asm __volatile(
+			"	movq	  %0,	%%mm0\n"
+			"	movq	 8%0,	%%mm1\n"
+			"	movq	16%0,	%%mm2\n"
+			"	movq	24%0,	%%mm3\n"
+			"	paddd	  %1,	%%mm0\n"
+			"	paddd	 8%1,	%%mm1\n"
+			"	paddd	16%1,	%%mm2\n"
+			"	paddd	24%1,	%%mm3\n"
+			"	movq	%%mm0,	  %0\n"
+			"	movq	%%mm1,	 8%0\n"
+			"	movq	%%mm2,	16%0\n"
+			"	movq	%%mm3,	24%0\n"
 
-		:"=m"(*dest)
-		:"m"(*src)
-		:"memory"
-		);
-		dest += 8; src += 8;
-	} while (--count);
+			:"=m"(*dest)
+			:"m"(*src)
+			:"memory"
+			);
+			dest += 8; src += 8;
+		} while (--count);
+		src += (tc-1)*xr; dest += (tc-1)*xr;
+	}
 	__asm __volatile("emms");
 }
 
@@ -6084,9 +6103,20 @@ void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int h
 		}
 	}
 	for (int i = 0; i < resx; i++) dest[i] = dest[(resy-1)*resx+i] = 0;
+	// move one row further, since we already zeroed the first one
 	src += resx;
 	dest += resx;
+	
+	// total rows to do -= 2, since the topmost and the bottom are zeroed
 	resy -= 2;
+	
+	// the offsets up break up threading assigments, fix them
+	ti = (ti - 1 + tc) % tc;
+	
+	src += resx * ti;
+	dest += resx * ti;
+	resy -= ti;
+	int fi_increase = (tc-1)*resx*4;
 	//
 	__asm {
 		pxor	mm7,	mm7
@@ -6229,7 +6259,9 @@ void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int h
 		mov	[edi],	0
 		add	edi,	4
 		add	esi,	4
-		inc	edx
+		add edi,	fi_increase
+		add	esi,	fi_increase
+		add edx,	tc
 		cmp	edx,	resy
 		jb	yloop
 
@@ -6484,7 +6516,7 @@ Uint32 bilinea4(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, int x, int y
  *********************************************************/
 
 // note: count must be divisable by 8
-void blur_forward_mmx(Uint32 *dest, Uint32 *src, int count)
+void blur_forward_mmx(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
 	SSE_ALIGN(int andval[6]) = {
 			0x000000ff, 0x000000ff,
@@ -6498,7 +6530,7 @@ void blur_forward_mmx(Uint32 *dest, Uint32 *src, int count)
 		movq		mm7,		[andval + 16]
 	
 	}
-	count /= 8; // we are doing 8 pixels per cycle :)
+	//count /= 8; // we are doing 8 pixels per cycle :)
 	//while (count--) {
 		__asm {
 
@@ -6506,7 +6538,15 @@ void blur_forward_mmx(Uint32 *dest, Uint32 *src, int count)
 			push		edi
 			mov			esi,	src
 			mov			edi,	dest
-			mov			ecx,	count
+			mov			edx,	xr
+			imul		edx,	ti
+			shl			edx,	2
+			add			esi,	edx
+			add			edi,	edx
+			mov			eax,	ti
+	XaLoop:
+			mov			ecx,	xr
+			shr			ecx,	3
 
 			ALIGN	16
 	UaLoop:
@@ -6574,6 +6614,15 @@ void blur_forward_mmx(Uint32 *dest, Uint32 *src, int count)
 			dec			ecx
 			jnz			UaLoop
 
+			mov			edx,		tc
+			lea			eax,		[edx+eax]
+			lea			edx,		[edx-1]
+			imul		edx,		xr
+			lea			esi,		[edx*4+esi]
+			lea			edi,		[edx*4+edi]
+			cmp			eax,		yr
+			jb			XaLoop
+
 			pop			edi
 			pop			esi
 		
@@ -6584,14 +6633,14 @@ void blur_forward_mmx(Uint32 *dest, Uint32 *src, int count)
 }
 
 // note: count must be divisable by 2
-void blur_backward_mmx(Uint32 *dest, Uint32 *src, int count)
+void blur_backward_mmx(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
 	SSE_ALIGN(int shifted_8bits[6]) = {
 			0x000007f8, 0x000007f8,
 			0x003fc000, 0x003fc000,
 			0xff000000, 0xff000000
 	};
-	count /= 2;
+	//count /= 2;
 	__asm {
 
 			pxor		mm4,		mm4
@@ -6609,7 +6658,17 @@ void blur_backward_mmx(Uint32 *dest, Uint32 *src, int count)
 			push		edi
 			mov			esi,		src
 			mov			edi,		dest
-			mov			ecx,		count
+
+			mov			edx,		ti
+			imul		edx,		xr
+			shl			edx,		2
+			add			esi,		edx
+			add			edi,		edx
+			mov			eax,		ti
+
+XbLoop:
+			mov			ecx,		xr
+			shr			ecx,		1
 
 ALIGN 16
 UbLoop:
@@ -6633,6 +6692,16 @@ UbLoop:
 			add			edi,		8
 			dec			ecx
 			jnz			UbLoop
+
+			mov			edx,		tc
+			lea			eax,		[edx + eax]
+			lea			edx,		[edx - 1]
+			imul		edx,		xr
+			lea			esi,		[esi + edx*4]
+			lea			edi,		[edi + edx*4]
+			cmp			eax,		yr
+			jb			XbLoop
+
 			pop			edi
 			pop			esi
 
@@ -6644,16 +6713,25 @@ UbLoop:
 }
 
 // note: count must be divisable by 8
-void buffer_minus_mmx(Uint32 *dest, Uint32 *src, int count)
+void buffer_minus_mmx(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
-	count /= 8;
 		__asm {
 
 			push		esi
 			push		edi
 			mov			esi,		src
 			mov			edi,		dest
-			mov			ecx,		count
+
+			mov			edx,		ti
+			imul		edx,		xr
+			shl			edx,		2
+			add			esi,		edx
+			add			edi,		edx
+			mov			eax,		ti
+
+XcLoop:
+			mov			ecx,		xr
+			shr			ecx,		3
 
 ALIGN 16
 UcLoop:
@@ -6676,6 +6754,15 @@ UcLoop:
 			dec			ecx
 			jnz			UcLoop
 
+			mov			edx,		tc
+			lea			eax,		[edx + eax]
+			lea			edx,		[edx - 1]
+			imul		edx,		xr
+			lea			esi,		[edx*4 + esi]
+			lea			edi,		[edx*4 + edi]
+			cmp			eax,		yr
+			jb			XcLoop
+
 			pop			edi
 			pop			esi
 			
@@ -6685,20 +6772,29 @@ UcLoop:
 }
 
 // note: count must be divisable by 8
-void buffer_plus_mmx(Uint32 *dest, Uint32 *src, int count)
+void buffer_plus_mmx(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
-	count /= 8;
-//	do {
 		__asm {
 
 			push		esi
 			push		edi
 			mov			esi,		src
 			mov			edi,		dest
-			mov			ecx,		count
+
+			mov			edx,		ti
+			imul		edx,		xr
+			shl			edx,		2
+			add			esi,		edx
+			add			edi,		edx
+			mov			eax,		ti
+
+XdLoop:
+			mov			ecx,		xr
+			shr			ecx,		3
 
 ALIGN 16
 UdLoop:
+
 			movq		mm0,		[edi]
 			movq		mm1,		[edi + 8]
 			movq		mm2,		[edi + 16]
@@ -6717,14 +6813,23 @@ UdLoop:
 			dec			ecx
 			jnz			UdLoop
 
+			mov			edx,		tc
+			lea			eax,		[edx + eax]
+			lea			edx,		[edx - 1]
+			imul		edx,		xr
+			lea			esi,		[edx*4 + esi]
+			lea			edi,		[edx*4 + edi]
+			cmp			eax,		yr
+			jb			XdLoop
+
 			pop			edi
 			pop			esi
-
+			
 			emms
+		
 		}
-//		dest += 8; src += 8;
-//	} while (--count);
 }
+
 
 #endif
 
@@ -7059,24 +7164,6 @@ void fast_line_fill(Uint16 *p, int size, Uint16 fill)
 {
 	SSE_ALIGN(Uint16 bigfill[4]) = {fill, fill, fill, fill};
 	int k = size / 4;
-	/*
-	__asm {
-	movq		mm7,		[bigfill]
-	
-	}
-	while (k--) {
-		__asm {
-
-					movq		mm0,		[p]
-					por		mm0,		mm7
-					movq		[p],		mm0
-			
-		}
-		p += 4;
-	}
-	__asm {
-		emms
-	}*/
 	__asm {
 		movq	mm7,	[bigfill]
 		mov		eax,	p

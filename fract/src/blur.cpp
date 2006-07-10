@@ -19,6 +19,8 @@
 #include "blur.h"
 #include "cpu.h"
 #include "gfx.h"
+#include "shaders.h"
+#include "threads.h"
 
 int apply_blur = 0, blur_method = BLUR_DISCRETE;
 
@@ -27,9 +29,9 @@ int apply_blur = 0, blur_method = BLUR_DISCRETE;
 extern Uint32 framebuffer[RES_MAXX*RES_MAXY];
 
 // **************** GLOBAL VARIABLES ******************************
-Uint32 *blurbuffers[8]/*[RES_MAXX*RES_MAXY]*/;
-Uint32 *accumulation_buffer/*[RES_MAXX*RES_MAXY]*/;
-Uint32 *tempstor/*[RES_MAXX*RES_MAXY]*/;
+Uint32 *blurbuffers[8];
+Uint32 *accumulation_buffer;
+Uint32 *tempstor;
 int blur_current;
 
 
@@ -67,69 +69,99 @@ int blur_current;
 
 
 /* Blur Forward - convert an ordinary RGB framebuffer `src' into the format, suitable for blur accumulation */
-void blur_forward(Uint32 *dest, Uint32 *src, int count)
+void blur_forward(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
 	int i;
 	if (cpu.mmx) {
 		//printf("Blur_Forward: not implemented\n");
-		blur_forward_mmx(dest, src, count);
+		blur_forward_mmx(dest, src, xr, yr, ti, tc);
 	} else {
-		for (i=0; i < count; i++)
-			dest[i]  = (src[i] & 0xff)  | (( src[i] & 0xff00) << 3) | (( src[i] &0xf80000) << 5);
+		for (i=ti; i < yr; i+= tc)
+			for (int j = 0; j < xr; j++) {
+				int p = i * xr + j;
+				dest[p]  = (src[p] & 0xff)  | (( src[p] & 0xff00) << 3) | (( src[p] &0xf80000) << 5);
+			}
 	}
 }
 
 /* Blur Backward - decomposes an accumulated framebuffer `src' into an ordinary RGB framebuffer */
-void blur_backward(Uint32 *dest, Uint32 *src, int count)
+void blur_backward(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
 	int i;
 	if (cpu.mmx) {
-		blur_backward_mmx(dest, src, count);
+		blur_backward_mmx(dest, src, xr, yr, ti, tc);
 	} else {
-		for (i=0;i<count; i++)
-			dest[i] =	((src[i] & 0x000007f8) >> 3) |
-					((src[i] & 0x003fc000) >> 6) |
-					((src[i] & 0xff000000) >> 8);
+		for (i = ti; i < yr; i += tc)
+			for (int j = 0; j < xr; j++) {
+				int p = i * xr + j;
+				dest[p] =	((src[p] & 0x000007f8) >> 3) |
+						((src[p] & 0x003fc000) >> 6) |
+						((src[p] & 0xff000000) >> 8);
+			}
 	}
 }
 
 /* Substracts all `src' points from `dest' (warp-around arithmetic) */
-void buffer_minus(Uint32 *dest, Uint32 *src, int count)
+void buffer_minus(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
 	int i;
 	if (cpu.mmx) {
-		buffer_minus_mmx(dest, src, count);
+		buffer_minus_mmx(dest, src, xr, yr, ti, tc);
 	} else {
-		for (i=0;i<count;i++) dest[i] -= src[i];
+		for (i = ti; i < yr; i += tc) 
+			for (int j = 0; j < xr; j++)
+				dest[i*xr + j] -= src[i*xr + j];
 	}
 }
 
 /* Adds all `src' points to `dest'. Accumulates a blur-friendly-format framebuffer into a blur-friendly-format accumulation buffer */
-void buffer_plus(Uint32 *dest, Uint32 *src, int count)
+void buffer_plus(Uint32 *dest, Uint32 *src, int xr, int yr, int ti, int tc)
 {
 	int i;
 	if (cpu.mmx) {
-		buffer_plus_mmx(dest, src, count);
+		buffer_plus_mmx(dest, src, xr, yr, ti, tc);
 	} else {
-		for (i=0;i<count;i++) dest[i] += src[i];
+		for (i = ti; i < yr; i += tc)
+			for (int j = 0; j < xr; j++)
+				dest[i*xr + j] += src[i*xr + j];
 	}
 }
 
 /*
 	Does the actual blur procedure
 */
-void blur_do(Uint32 *src, Uint32 *display_buff, int count, int frame_num)
+
+struct BlurProcedure : public Parallel {
+	Uint32 *cbuff, *display_buff, *src;
+	int xres, yres, frame_num;
+
+	BlurProcedure(Uint32 *_src, Uint32 *_display_buff, int xr, int yr, int fn)
+	{
+		src = _src;
+		display_buff = _display_buff;
+		xres = xr;
+		yres = yr;
+		frame_num = fn;
+	}
+	void entry(int ti, int tc)
+	{
+		buffer_minus(accumulation_buffer, cbuff, xres, yres, ti, tc);
+		blur_forward(cbuff, src, xres, yres, ti, tc);
+		buffer_plus(accumulation_buffer, cbuff, xres, yres, ti, tc);
+		if (blur_method == BLUR_DISCRETE) {
+			if (frame_num % 8 == 0)
+				blur_backward(tempstor, accumulation_buffer, xres, yres, ti, tc);
+			mt_fb_memcpy(display_buff, tempstor, xres, yres, ti, tc);
+		} else
+			blur_backward(display_buff, accumulation_buffer, xres, yres, ti, tc);
+	}
+};
+
+void blur_do(Uint32 *src, Uint32 *display_buff, int xres, int yres, int frame_num, ThreadPool &thread_pool)
 {
-	Uint32 *cbuff = blurbuffers[blur_current];
-	buffer_minus(accumulation_buffer, cbuff, count);
-	blur_forward(cbuff, src, count);
-	buffer_plus(accumulation_buffer, cbuff, count);
-	if (blur_method == BLUR_DISCRETE) {
-		if (frame_num % 8 == 0)
-			blur_backward(tempstor, accumulation_buffer, count);
-		memcpy(display_buff, tempstor, count*sizeof(Uint32));
-	} else
-		blur_backward(display_buff, accumulation_buffer, count);
+	BlurProcedure bp(src, display_buff, xres, yres, frame_num);
+	bp.cbuff = blurbuffers[blur_current];
+	thread_pool.run(&bp, cpu.count);
 
 	blur_current = (blur_current + 1) % 8;
 }
@@ -142,8 +174,8 @@ void blur_reinit(void)
 	int i, count = xres()*yres();
 	blur_current = 0;
 	for (i=0;i<8;i++)
-		blur_forward(blurbuffers[i], framebuffer, count);
-	blur_forward(accumulation_buffer, framebuffer, count);
+		blur_forward(blurbuffers[i], framebuffer, xres(), yres(), 0, 1);
+	blur_forward(accumulation_buffer, framebuffer, xres(), yres(), 0, 1);
 
 	for (i=0; i < count; i++)
 		accumulation_buffer[i] <<= 3; // make as if 8 frames were layered in the accumulation buffer

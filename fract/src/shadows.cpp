@@ -10,7 +10,6 @@
 
 #include "shadows.h"
 #include "MyGlobal.h"
-#include "barriers.h"
 #include "cross_vars.h"
 #include "cpu.h"
 #include "common.h"

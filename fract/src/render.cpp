@@ -24,7 +24,6 @@
 #include "MyGlobal.h"
 #include "MyTypes.h"
 #include "antialias.h"
-#include "barriers.h"
 #include "bitmap.h"
 #include "blur.h"
 #include "cmdline.h"
@@ -255,7 +254,7 @@ void postframe_do(void)
 #ifdef BLUR
 	if (apply_blur) {
 		prof_enter(PROF_BLUR_DO);
-		blur_do(framebuffer, framebuffer, xres()*yres(), vframe);
+		blur_do(framebuffer, framebuffer, xres(), yres(), vframe, thread_pool);
 		prof_leave(PROF_BLUR_DO);
 	}
 #endif

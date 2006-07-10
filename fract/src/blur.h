@@ -12,6 +12,7 @@
 #define __BLUR_H__
 #include "MyGlobal.h"
 #include "MyTypes.h"
+#include "threads.h"
 
 #ifdef BLUR
 
@@ -24,7 +25,7 @@
 #define BLUR_ID_NORMAL     0x00000004
 #define BLUR_ID_CONTINUOUS 0x00000008
 
-void blur_do(Uint32 *src, Uint32 *display_buff, int count, int frame_num);
+void blur_do(Uint32 *src, Uint32 *display_buff, int xr, int yr, int frame_num, ThreadPool &);
 void cycle_blur_mode(void);
 void set_blur_method(int newmethod);
 void blur_reinit(void);
