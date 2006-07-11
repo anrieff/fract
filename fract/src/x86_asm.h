@@ -7916,7 +7916,7 @@ void convolve_mmx_w_shifts_generic(Uint32 *src, Uint32 *dest, int resx, int resy
 void convolve_mmx_w_shifts_3(Uint32 *src, Uint32 *dest, int resx, int resy, ConvolveMatrix *M, int shift) {}
 void convolve_mmx_w_shifts_5(Uint32 *src, Uint32 *dest, int resx, int resy, ConvolveMatrix *M, int shift) {}
 static inline void convolve_mmx_w_shifts(Uint32 *src, Uint32 *dest, int resx, int resy, ConvolveMatrix *M, int shift) {}
-void FFT_1D_complex_sse(int dir, int m, float *x, float *y) {}
+void fft_1D_complex_sse(int dir, int m, float *x, float *y) {}
 void shader_gamma_shl(Uint32 *src, Uint32 *dest, int resx, int resy, int shift) {}
 void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift) {}
 void float_copy_ij_i(float *a, float *b, complex c[], int fft_size) {}
@@ -7925,16 +7925,16 @@ void float_copy_ij_j(float *a, float *b, complex c[], int fft_size) {}
 void float_copy_j_ij(float *a, float *b, complex c[], int fft_size) {}
 void shader_spill_mmx(Uint8*, Uint8*, int, int, float) {}
 void shader_fbmerge_mmx2(Uint32 *dest, Uint8 * src, int resx, int resy, float intensity, Uint32 glow_color) {}
-
+void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[], int ti, int tc) {}
 #endif // shaders_asm
 #ifdef apply_fft_filter_asm
 void apply_fft_filter_sse(complex *dest, float *filter, int fft_size) {}
 #endif
 #ifdef blur_asm
-void blur_forward_mmx(Uint32 *dest, Uint32 *src, int count){}
-void blur_backward_mmx(Uint32 *dest, Uint32 *src, int count){}
-void buffer_minus_mmx(Uint32 *dest, Uint32 *src, int count){}
-void buffer_plus_mmx(Uint32 *dest, Uint32 *src, int count) {}
+void blur_forward_mmx(Uint32 *dest, Uint32 *src, int, int, int, int){}
+void blur_backward_mmx(Uint32 *dest, Uint32 *src, int, int, int, int){}
+void buffer_minus_mmx(Uint32 *dest, Uint32 *src, int, int, int, int){}
+void buffer_plus_mmx(Uint32 *dest, Uint32 *src, int, int, int, int) {}
 #endif
 #ifdef fract_asm
 //static inline Uint32 bilinea_p5(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, unsigned Fx, unsigned Fy) {return 0;}
@@ -7944,7 +7944,11 @@ void blur_do_MMX(Uint32 *bb, Uint32 *src, Uint32 *dst, int count, int kopy) {}
 #endif
 #ifdef genrender_asm
 void merge_rows(Uint32 *flr, Uint32 *sph, unsigned short *multi, int count) {}
+#endif
+#ifdef shadows_related
 void shadows_merge_mmx2(Uint32 *dst, Uint16 *src, int count) {}
+void fast_line_fill(Uint16 *p, int size, Uint16 fill) {}
+void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int xr, Uint16 sintensity, int cpui, int cpuc) {}
 #endif
 #ifdef rgb2yuv_asm
 void ConvertRGB2YUV_X86_ASM(Uint32 *dest, Uint32 *src, size_t count) {}
