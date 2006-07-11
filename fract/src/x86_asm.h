@@ -3231,7 +3231,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 	Uint16 *p = &sbuff[y1 * xr + x1];
 	xr *= 2;
 	
-	cpui = ((y1 % cpuc) + cpuc - cpui) % cpuc + 1;
+	cpui = (-(y1 % cpuc) + cpuc + cpui) % cpuc + 1;
 	//
 	__asm __volatile (// 0 - p, 1 - ysize, 2 - xsize, 3 - xr
 			"	mov	%0,	%%esi\n"
@@ -7202,7 +7202,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 	Uint16 *p = &sbuff[y1 * xr + x1];
 	xr *= 2;
 	
-	cpui = ((y1 % cpuc) + cpuc - cpui) % cpuc + 1;
+	cpui = (-(y1 % cpuc) + cpuc + cpui) % cpuc + 1;
 	//
 	__asm {
 // 0 - p, 1 - ysize, 2 - xsize, 3 - xr
