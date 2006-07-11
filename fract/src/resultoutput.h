@@ -18,8 +18,24 @@
 
 #define USER_INFO_FILE "userinfo.txt"
 #define USER_COMMENT_FILE "comment.txt"
+#define FRACT_CONFIG_FILE "fract.cfg"
 #include "resultfmt.h"
 
 void generate_result_file(FPSWatch & );
 int query_integrity(void);
+
+struct FractConfig {
+	void init(void);
+	void finish(void);
+	void defaults(void);
+	FractConfig();
+
+	char credits_shown[16];
+	int install_id;
+	int last_mhz;
+	float last_fps;
+};
+
+extern FractConfig config;
+
 #endif // __RESULT_OUTPUT_H__

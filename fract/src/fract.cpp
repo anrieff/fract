@@ -187,6 +187,7 @@ void init_program(void)
 {
 	common_init();
 	thor_init();
+	config.init();
 }
 
 void close_program(void)
@@ -210,6 +211,7 @@ void close_program(void)
 	if (outrocap)
 		delete outrocap;
 	outrocap = NULL;
+	config.finish();
 }
 
 

@@ -13,6 +13,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "MyGlobal.h"
 #include "aes.h"
 #include "cmdline.h"
@@ -84,6 +85,61 @@ static bool md5_check(void)
 	return true;
 }
 
+/**
+ @class FractConfig
+ **/
+
+FractConfig::FractConfig()
+{
+	defaults();
+}
+
+void FractConfig::init(void)
+{
+	FILE *f;
+	char s1[1000], a[500], b[500];
+	f = fopen(FRACT_CONFIG_FILE, "rt");
+	if (!f) return;
+	while (fgets(s1, 1000, f)) {
+		int i = strlen(s1) - 1;
+		while (i > 0 && s1[i] != '=') i--;
+		s1[i] = 0;
+		strcpy(a, s1);
+		strcpy(b, s1 + i + 1);
+		if (!strcmp(a, "credits_shown"))
+			strcpy(credits_shown, b);
+		if (!strcmp(a, "install_id"))
+			sscanf(b, "%d", &install_id);
+		if (!strcmp(a, "last_mhz"))
+			sscanf(b, "%d", &last_mhz);
+		if (!strcmp(a, "last_fps"))
+			sscanf(b, "%f", &last_fps);
+	}
+	fclose(f);
+}
+
+void FractConfig::finish(void)
+{
+	FILE *f;
+	f = fopen(FRACT_CONFIG_FILE, "wt");
+	if (!f) return;
+	fprintf(f, "credits_shown=%s\n", credits_shown);
+	fprintf(f, "install_id=%d\n", install_id);
+	fprintf(f, "last_mhz=%d\n", last_mhz);
+	fprintf(f, "last_fps=%.3f\n", last_fps);
+	fclose(f);
+}
+
+void FractConfig::defaults(void)
+{
+	strcpy(credits_shown, "no");
+	install_id = time(NULL);
+	last_mhz = 200;
+	last_fps = 0.01;
+}
+
+FractConfig config;
+
 /*
 Implementation specific things:
 */
@@ -142,8 +198,8 @@ void generate_result_file(FPSWatch & watch)
 		fclose(f);
 		return;
 	}
-	if (strlen(username) > 31) {
-		printf("Your username is too long; it must be less than 32 characters\n");
+	if (strlen(username) > 27) {
+		printf("Your username is too long; it must be less than 28 characters\n");
 		fclose(f);
 		return;
 	}
@@ -211,6 +267,8 @@ void generate_result_file(FPSWatch & watch)
 	a.res_x = xres();
 	a.res_y = yres();
 	a.overall_fps = (float) (watch.total_data() / watch.total());
+	config.last_fps = a.overall_fps;
+	config.last_mhz = a.cpu_mhz;
 	for (int i = 0; i < watch.size(); i++) {
 		a.scene[i] = (float) (watch.get_data(i)/ watch[i]);
 	}

@@ -43,7 +43,8 @@ struct result_file {
 	BYTE results_padding[32];
 
 	/* # user info */
-	char username[32];
+	char username[28];
+	int install_id;
 	char country[16];
 	BYTE md5sum[16];
 
