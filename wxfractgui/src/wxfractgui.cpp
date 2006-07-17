@@ -30,7 +30,7 @@ IMPLEMENT_APP(MyApp);
 bool MyApp::OnInit()
 {
 	MainFrame *main_frame = new MainFrame(
-			"Fract Launcher for Fract 1.06",
+			"Fract Launcher for Fract 1.07",
 			wxPoint(50, 50),
 			wxSize(640, 640));
 	main_frame->Show(TRUE);
