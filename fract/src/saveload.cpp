@@ -675,7 +675,7 @@ static void check_state(int & state, int newstate)
 	state = newstate;
 }
 
-bool load_frame(int frame_no, double time, int mySceneType)
+bool load_frame(int frame_no, double time, int mySceneType, int loopmode, int& loops_remaining)
 {
 	int i;
 	if (mySceneType == FRAME_BASED) {
@@ -694,7 +694,9 @@ bool load_frame(int frame_no, double time, int mySceneType)
 		return true;
 	}
 	if (mySceneType == TIME_BASED) {
-		if (time > cd[cd_frames-1].time) return false;
+		int iterations = loopmode ? loops_remaining : 1;
+		if (time > cd[cd_frames-1].time * iterations) return false;
+		time -= cd[cd_frames-1].time * floor(time/cd[cd_frames-1].time);
 		int l = 0, r = cd_frames - 1;
 		while (r - l > 1) {
 			int m = (l + r) / 2;

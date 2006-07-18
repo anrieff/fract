@@ -58,7 +58,7 @@ void save_coords(const char *fn);
 int load_context(const char *fn);
 void generate_coords(void);
 void record_do(double time);
-bool load_frame(int frame_no, double time, int mySceneType);
+bool load_frame(int frame_no, double time, int mySceneType, int loopmode, int& loops_remaining);
 void saveload_close(void);
 
 

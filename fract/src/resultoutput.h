@@ -34,6 +34,7 @@ struct FractConfig {
 	int install_id;
 	int last_mhz;
 	float last_fps;
+	char last_resultfile[256];
 };
 
 extern FractConfig config;

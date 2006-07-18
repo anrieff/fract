@@ -55,7 +55,8 @@ static char *mdfilelist[] = {
 	""
 };
 
-unsigned file_hash_ok[4] = {0x0E8D9991, 0x98EEE322, 0x1EC1EE09, 0x859B7967};
+unsigned file_hash_ok[4] = {0xB3B77425, 0xF97D130D, 0x3CAFFED8, 0xEF5F15FA};
+
 static bool md5_check(void)
 {
 	MD5Hasher hash;
@@ -127,12 +128,14 @@ void FractConfig::finish(void)
 	fprintf(f, "install_id=%d\n", install_id);
 	fprintf(f, "last_mhz=%d\n", last_mhz);
 	fprintf(f, "last_fps=%.3f\n", last_fps);
+	if (last_resultfile[0]) fprintf(f, "last_resultfile=%s\n", last_resultfile);
 	fclose(f);
 }
 
 void FractConfig::defaults(void)
 {
 	strcpy(credits_shown, "no");
+	strcpy(last_resultfile, "");
 	install_id = time(NULL);
 	last_mhz = 200;
 	last_fps = 0.01;
@@ -294,6 +297,7 @@ void generate_result_file(FPSWatch & watch)
 	}
 	fwrite(&a, sizeof(a), 1, f);
 	fclose(f);
+	strcpy(config.last_resultfile, fn);
 }
 
 int query_integrity(void)

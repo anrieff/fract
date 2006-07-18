@@ -303,8 +303,11 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 #endif
 		if (file_control) {
 			camera_moved = 1;
-			if (!load_frame(vframe%(cd_frames?cd_frames:1), bTime(), SceneType))
+			if (!load_frame(vframe%(cd_frames?cd_frames:1), bTime(), SceneType, loop_mode, loops_remaining)) {
 				she = RUN_OK;
+				if (loop_mode && SceneType == TIME_BASED)
+					she = RUN_LOOPS_FINISHED;
+			}
 		}
 #ifdef RECORD
 		record_do(bTime());

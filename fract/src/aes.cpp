@@ -1360,7 +1360,7 @@ int blockDecrypt(cipherInstance *cipher, keyInstance *key,
 /****************************************************************************/
 
 #ifndef aeskey
-#define aeskey "thisisnotwhatisokforthebenchmark"
+#define aeskey "11111111111111111111111111111111"
 #endif
 bool aes_encrypt(void *data, int octets)
 {
