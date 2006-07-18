@@ -22,7 +22,7 @@ Dev tools/libraries:
 	
 Dev People:
 
-	Humus                - object glow effect
+	Emil "Humus" Persson - object glow effect
 	Martin Reddy	     - OBJ format
 	Setfan Hetzl	     - BMP format
 	Paulo Barreto	     - AES lib
