@@ -50,6 +50,8 @@ struct ResultNode {
 	float fps;
 	int cpu_mhz, mem_mhz;
 	Status status;
+	
+	bool operator < (const ResultNode &r ) const { return fps > r.fps; }
 };
 
 class ResultXml {
@@ -80,7 +82,8 @@ public:
 	bool RunPressed(void);
 	bool CanRun(void);
 	void UpdateGrid(void);
-	void AddResults(ResultXml *, int&);
+	void AddResults(ResultXml *, std::vector<ResultNode>&);
+	void DisplayResults(std::vector<ResultNode>&);
 	
 	DECLARE_EVENT_TABLE()
 };

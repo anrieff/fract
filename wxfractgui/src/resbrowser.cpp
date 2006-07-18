@@ -20,8 +20,10 @@
 
 #include "resbrowser.h"
 #include <time.h>
+#include <algorithm>
+using namespace std;
 
-const int COLCNT = 4;
+const int COLCNT = 5;
 
 BEGIN_EVENT_TABLE(ResultBrowser, GenericTab)
 	EVT_BUTTON(bSendResult, ResultBrowser:: OnBtnSendResult)
@@ -92,6 +94,22 @@ float get_float(const wxString& s)
 	float f;
 	sscanf(s.c_str(), "%f", &f);
 	return f;
+}
+
+wxString transform(wxString s)
+{
+	wxString r;
+	int acc = 0;
+	for (unsigned i = 0; i < s.length(); i++) {
+		r += s[i];
+		if (acc > 19 && s[i] == ' ') {
+			r += '\n';
+			acc = 0;
+		}
+		++acc;
+		
+	}
+	return r;
 }
 
 /**
@@ -197,16 +215,28 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 	if (builtin && get_current_date() - builtin->get_date() > 20) {
 		wxStaticText* old_warning = new wxStaticText(this, -1, 
 		"Your result database (db.xml) is more than 20 days old\n"
-		"Get a fresh copy from http://fbench.com/", wxPoint(20, 320));
+		"Get a fresh copy from http://fbench.com/", wxPoint(20, 325));
 		old_warning->Refresh();
 	}
 	
-	m_grid = new wxGrid(this, gGrid, wxPoint(20, 20), wxSize(470, 300));
+	m_grid = new wxGrid(this, gGrid, wxPoint(20, 20), wxSize(480, 300));
+	
 	m_grid->CreateGrid(0, COLCNT);
+	m_grid->SetSelectionMode(wxGrid::wxGridSelectRows);
+	m_grid->SetRowLabelSize(15);
+	m_grid->SetDefaultRowSize(46);
+	m_grid->SetColSize(0, 180);
+	m_grid->SetColSize(1, 72);
+	m_grid->SetColSize(2, 76);
+	m_grid->SetColSize(3, 72);
+	m_grid->SetColSize(4, 56);
+	m_grid->SetDefaultCellAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
 	m_grid->SetColLabelValue(0, "Description");
 	m_grid->SetColLabelValue(1, "Score");
 	m_grid->SetColLabelValue(2, "CPU");
 	m_grid->SetColLabelValue(3, "Memory");
+	m_grid->SetColLabelValue(4, "Select");
+	m_grid->SetColFormatBool(4);
 	
 	UpdateGrid();
 }
@@ -214,30 +244,42 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 void ResultBrowser::UpdateGrid(void)
 {
 	m_grid->ClearGrid();
-	int base = 0;
-	if (builtin) AddResults(builtin, base);
-	if (my) AddResults(my, base);
-	m_grid->AutoSizeColumns();
+	vector<ResultNode> all;
+	if (builtin) AddResults(builtin, all);
+	if (my) AddResults(my, all);
+	DisplayResults(all);
 }
 
-void ResultBrowser::AddResults(ResultXml *something, int & base)
+void ResultBrowser::AddResults(ResultXml *file, vector<ResultNode> & all)
 {
-	if (!something->size()) return;
-	m_grid->AppendRows(something->size());
+	for (int i = 0; i < file->size(); i++)
+		all.push_back((*file)[i]);
+}
+
+void ResultBrowser::DisplayResults(vector<ResultNode> & results)
+{
+	if (results.empty()) return;
+	sort(results.begin(), results.end());
+	m_grid->AppendRows(results.size());
 	
-	for (int i = 0; i < something->size(); i++) {
-		ResultNode r = (*something)[i];
+	for (unsigned i = 0; i < results.size(); i++) {
+		ResultNode &r = results[i];
 		wxColour col;
 		if (r.status == STATUS_NORMAL) col = wxColour(0xffffff);
 		if (r.status == STATUS_MY) col = wxColour(0xb2daef);
 		if (r.status == STATUS_HOT) col = wxColour(0xefc3b2);
-		for (int j = 0; j < COLCNT; j++) m_grid->SetCellBackgroundColour(base+i, j, col);
-		m_grid->SetCellValue(base+i, 0, r.sys_desc);
-		m_grid->SetCellValue(base+i, 1, wxString::Format("%.2f FPS", r.fps));
-		m_grid->SetCellValue(base+i, 2, wxString::Format("%d MHz", r.cpu_mhz));
-		m_grid->SetCellValue(base+i, 3, wxString::Format("%d MHz", r.mem_mhz));
+		for (int j = 0; j < COLCNT; j++) {
+			m_grid->SetCellBackgroundColour(i, j, col);
+			if (j != COLCNT - 1)
+				m_grid->SetReadOnly(i, j);
+		}
+		m_grid->SetCellValue(i, 0, transform(r.sys_desc));
+		m_grid->SetCellValue(i, 1, wxString::Format("%.2f FPS", r.fps));
+		m_grid->SetCellValue(i, 2, wxString::Format("%d MHz", r.cpu_mhz));
+		m_grid->SetCellValue(i, 3, wxString::Format("%d MHz", r.mem_mhz));
+		m_grid->SetCellEditor(i, 4, new wxGridCellBoolEditor);
+		m_grid->SetRowLabelValue(i, "");
 	}
-	base += something->size();
 }
 
 void ResultBrowser::OnBtnSendResult(wxCommandEvent &)
