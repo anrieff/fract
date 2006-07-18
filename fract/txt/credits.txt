@@ -22,6 +22,7 @@ Dev tools/libraries:
 	
 Dev People:
 
+	Humus                - object glow effect
 	Martin Reddy	     - OBJ format
 	Setfan Hetzl	     - BMP format
 	Paulo Barreto	     - AES lib
@@ -34,6 +35,11 @@ Dev People:
 	Nils Pipenbrick      - 6DOF heightfield
 	Tomas Akenine-Moller
 	Ulf Assarsson        - Soft shadows
+	
+People I admire:
+
+	aardappel
+	humus
 	
 These sites rock:
 
