@@ -22,13 +22,56 @@
 #define __RESBROWSER_H__
 
 #include "generictab.h"
+#include <wx/xml/xml.h>
+#include <wx/grid.h>
+#include <vector>
 
 void add_last_result(void);
 int file_count(const char *filter);
 
+enum Status {
+	STATUS_NORMAL,
+	STATUS_MY,
+	STATUS_HOT
+};
+
+struct ResultNode {
+	ResultNode() { defaults(); }
+	void defaults(void) {
+		sys_desc = "";
+		fps = 0.0;
+		cpu_mhz = 1;
+		mem_mhz = 0;
+		status = STATUS_NORMAL;
+	}
+	
+	// the actual data:
+	wxString sys_desc;
+	float fps;
+	int cpu_mhz, mem_mhz;
+	Status status;
+};
+
+class ResultXml {
+	std::vector<ResultNode> m_data;
+	wxString m_fn;
+	wxXmlDocument m_xml;
+	bool m_loaded;
+public:
+	ResultXml(wxString file_name);
+	void load(void);
+	void save(void);
+	void add_entry(const ResultNode &re);
+	int get_date(void);
+	
+	ResultNode operator [] (int index) const;
+	int size() const;
+};
+
 class ResultBrowser : public GenericTab {
-	wxStaticText *m_maintext;
 	wxButton *m_sendbutton; 
+	ResultXml *builtin, *my;
+	wxGrid *m_grid;
 	
 	void OnBtnSendResult(wxCommandEvent &);
 public:
@@ -36,12 +79,15 @@ public:
 	void RefreshCmdLine(void);
 	bool RunPressed(void);
 	bool CanRun(void);
+	void UpdateGrid(void);
+	void AddResults(ResultXml *, int&);
 	
 	DECLARE_EVENT_TABLE()
 };
 
 enum {
-	bSendResult=100
+	bSendResult=100,
+	gGrid,
 };
 
 #endif

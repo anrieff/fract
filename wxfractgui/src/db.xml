@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FractDB>
+	<results>
+		<result>
+			<description>Xeon Prestonia, 533, 2.4 GHz, 2 CPUs w/ HT</description>
+			<score>21.78</score>
+			<cpu_mhz>2400</cpu_mhz>
+			<mem_mhz>400</mem_mhz>
+		</result>
+		<result>
+			<description>Opteron 165 (Dual-core), 400, 2.16 GHz</description>
+			<score>35.36</score>
+			<cpu_mhz>2160</cpu_mhz>
+			<mem_mhz>500</mem_mhz>
+		</result>
+	</results>
+	<date>2006-07-18</date>
+</FractDB>
