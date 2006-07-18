@@ -26,6 +26,7 @@
 #include "mainframe.h"
 #include "fract_specific.h"
 #include "fract_logo.xpm"
+#include "resbrowser.h"
 
 #include "generictab.h"
 #include "basictab.h"
@@ -122,8 +123,10 @@ Tabbed::Tabbed(wxWindow * parent, int id, const wxPoint & p, const wxSize & s, w
 {
 	wxPanel *wnd1 = new BasicTab(this, rl);
 	wxPanel *wnd2 = new AdvancedTab(this, rl);
+	wxPanel *wnd3 = new ResultBrowser(this, rl);
 	AddPage(wnd1, "Basic Options", true);
 	AddPage(wnd2, "Advanced Options", false);
+	AddPage(wnd3, "Result Browser", false);
 	GenericTab *current = dynamic_cast<GenericTab*>(GetCurrentPage());
 	current->RefreshCmdLine();
 }
@@ -139,6 +142,15 @@ void MainFrame::TabChanged(wxNotebookEvent & event)
 	}
 #endif
 	GenericTab *current = dynamic_cast<GenericTab*>(tabbed->GetCurrentPage());
+	if (current->CanRun()) {
+		run_button->Enable();
+		run_line->Enable();
+		run_prog->Enable();
+	} else {
+		run_line->Disable();
+		run_button->Disable();
+		run_prog->Disable();
+	}
 	current->RefreshCmdLine();
 }
 
@@ -146,9 +158,11 @@ void MainFrame::RunPressed(wxCommandEvent &)
 {
 	GenericTab *current = dynamic_cast<GenericTab*>(tabbed->GetCurrentPage());
 	if (!current->RunPressed()) return;
+	system("rm anrieff__35_38.result");
+	int rescount = file_count("*.result");
 	char cmd[1000];
 	strcpy(cmd,"");
-#if defined linux || defined __linux__
+#if defined linux || defined __linux__ || defined __APPLE__ || defined unix
 	strcat(cmd,"./");
 #endif	
 	if (run_prog && run_prog->GetValue() == "fract_sse2")
@@ -157,4 +171,8 @@ void MainFrame::RunPressed(wxCommandEvent &)
 		strcat(cmd, "fract_p5 ");
 	strcat(cmd, run_line->GetValue().c_str());
 	system(cmd);
+	if (file_count("*.result") > rescount) {
+		add_last_result();
+		tabbed->SetSelection(2);
+	}
 }

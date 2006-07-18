@@ -31,6 +31,7 @@ public:
 	BasicTab(wxWindow *parent, wxTextCtrl *cmdline);
 	void RefreshCmdLine(void);
 	bool RunPressed(void);
+	bool CanRun(void);
 };
 
 int EndX(wxWindow * w);

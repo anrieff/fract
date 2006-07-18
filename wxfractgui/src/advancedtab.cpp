@@ -73,6 +73,11 @@ bool AdvancedTab::RunPressed(void)
 	return true;
 }
 
+bool AdvancedTab::CanRun(void)
+{
+	return true;
+}
+
 bool kmp(const char * s, const char *match) 
 {
 	return (0 == strncmp(s, match, strlen(match)));

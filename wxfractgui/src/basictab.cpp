@@ -110,3 +110,9 @@ bool BasicTab::RunPressed(void)
 	comment->SaveFile(USER_COMMENT_FILE);
 	return true;
 }
+
+bool BasicTab::CanRun(void)
+{
+	return true;
+}
+

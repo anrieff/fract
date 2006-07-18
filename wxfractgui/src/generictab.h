@@ -35,6 +35,7 @@ public:
 	}
 	virtual void RefreshCmdLine(void) = 0;
 	virtual bool RunPressed(void) = 0;
+	virtual bool CanRun(void) = 0;
 };
 
 #endif

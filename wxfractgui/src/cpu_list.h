@@ -48,6 +48,11 @@ const char *cpu_list[] = {
 		"Xeon (Prestonia)",
 		"Xeon (Gallatin)",
 		"Xeon (Nocona)",
+		"Yonah (Core Solo)",
+		"Yonah (Core Duo)",
+		"Allendale (Core 2 Duo)",
+		"Conroe (Core 2 Duo)",
+		
 		
 		
 		"---AMD---",
@@ -75,6 +80,8 @@ const char *cpu_list[] = {
 		"Turion 64 (1024K",
 		"Athlon 64 X2 (512K)",
 		"Athlon 64 X2 (1024K)",
+		"Athlon 64 FX",
+		
 		
 		"-----Cyrix-----",
 		"Cx5x86",

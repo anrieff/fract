@@ -69,6 +69,7 @@ public:
 	void GenerateGUI(void);
 	void RefreshCmdLine(void);
 	bool RunPressed(void);
+	bool CanRun(void);
 	DECLARE_EVENT_TABLE()
 };
 
