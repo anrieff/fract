@@ -127,7 +127,7 @@ void FractConfig::finish(void)
 	fprintf(f, "credits_shown=%s\n", credits_shown);
 	fprintf(f, "install_id=%d\n", install_id);
 	fprintf(f, "last_mhz=%d\n", last_mhz);
-	fprintf(f, "last_fps=%.3f\n", last_fps);
+	fprintf(f, "last_fps=%.2f\n", last_fps);
 	if (last_resultfile[0]) fprintf(f, "last_resultfile=%s\n", last_resultfile);
 	fclose(f);
 }
