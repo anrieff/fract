@@ -24,16 +24,12 @@
 using namespace std;
 
 const int COLCNT = 5;
+FConfig cfg;
 
 BEGIN_EVENT_TABLE(ResultBrowser, GenericTab)
 	EVT_BUTTON(bSendResult, ResultBrowser:: OnBtnSendResult)
 END_EVENT_TABLE()
 
-
-
-void add_last_result(void)
-{
-}
 
 int file_count(const char *filter)
 {
@@ -47,7 +43,7 @@ int file_count(const char *filter)
 	return c;
 }
 
-int isleap(int year)
+static int isleap(int year)
 {
 	if (0 == year % 400) return 1;
 	if (0 == year % 100) return 0;
@@ -55,7 +51,7 @@ int isleap(int year)
 	return 0;
 }
 
-int monthlen(int mon, int year)
+static int monthlen(int mon, int year)
 {
 	const int mlen[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 	int r = mlen[mon];
@@ -63,7 +59,7 @@ int monthlen(int mon, int year)
 	return r;
 }
 
-int absdate(int year, int month, int day)
+static int absdate(int year, int month, int day)
 {
 	int r = 0;
 	for (int i = 1900; i < year; i++)
@@ -74,7 +70,7 @@ int absdate(int year, int month, int day)
 	return r;
 }
 
-int get_current_date(void)
+static int get_current_date(void)
 {
 	time_t t;
 	time(&t);
@@ -82,21 +78,45 @@ int get_current_date(void)
 	return absdate(tt->tm_year+1900, tt->tm_mon, tt->tm_mday);
 }
 
-int get_int(const wxString& s)
+static int get_int(const wxString& s)
 {
 	int r;
 	sscanf(s.c_str(), "%d", &r);
 	return r;
 }
 
-float get_float(const wxString& s)
+static float get_float(const wxString& s)
 {
 	float f;
 	sscanf(s.c_str(), "%f", &f);
 	return f;
 }
 
-wxString transform(wxString s)
+static wxString read_trim_file(wxString fn)
+{
+	wxString res;
+	char buff[1024];
+	FILE *f = fopen(fn.c_str(), "rt");
+	if (!f) return res;
+	while (fgets(buff, 1024, f)) {
+		for (unsigned i = 0; i < strlen(buff); i++)
+		{
+			switch (buff[i]) {
+				case '\t':
+				case '\n': res += ' '; break;
+				case '\r':
+					break;
+				default:
+					if (buff[i] >= 32)
+						res += buff[i];
+			}
+		}
+	}
+	fclose(f);
+	return res;
+}
+
+static wxString transform(wxString s)
 {
 	wxString r;
 	int acc = 0;
@@ -113,19 +133,47 @@ wxString transform(wxString s)
 }
 
 /**
+ * @class FConfig
+*/
+
+void FConfig::refresh(void)
+{
+	par.clear(); val.clear();
+	char buff[2048];
+	FILE *f = fopen("fract.cfg", "rt");
+	if (!f) return;
+	while (fgets(buff, 2048, f)) {
+		int i = strlen(buff)-1;
+		while (i && (buff[i] == '\n' || buff[i] == '\r')) buff[i--] = 0;
+		while (i > 0 && buff[i] != '=') i--;
+		buff[i++] = 0;
+		par.push_back(wxString(buff));
+		val.push_back(wxString(&buff[i]));
+	}
+	fclose(f);
+}
+
+const char* FConfig::operator [] (const wxString & x) const
+{
+	for (unsigned i = 0; i < par.size(); i++)
+		if (par[i] == x)
+			return val[i].c_str();
+	return NULL;
+}
+
+/**
  * @class ResultXml
 */
 ResultXml::ResultXml(wxString file_name)
 {
-	m_loaded = false;
 	m_fn = file_name;
 } 
 
 void ResultXml::load(void)
 {
-	if (!m_xml.Load(m_fn)) return;
-	m_loaded = true;
-	wxXmlNode *root = m_xml.GetRoot();
+	wxXmlDocument xml;
+	if (!xml.Load(m_fn)) return;
+	wxXmlNode *root = xml.GetRoot();
 	
 	wxXmlNode *p = root->GetChildren();
 	while (p) {
@@ -148,6 +196,9 @@ void ResultXml::load(void)
 						if (name == "mem_mhz") {
 							res.mem_mhz = get_int(t->GetChildren()->GetContent());
 						}
+						if (name == "res_file") {
+							res.res_file = t->GetChildren()->GetContent();
+						}
 						t = t->GetNext();
 					}
 					m_data.push_back(res);
@@ -159,11 +210,39 @@ void ResultXml::load(void)
 	}
 }
 
+static void addx(wxXmlNode *n, wxString caption, wxString data)
+{
+	wxXmlNode *p = new wxXmlNode(wxXML_ELEMENT_NODE, caption);
+	wxXmlNode *q = new wxXmlNode(wxXML_TEXT_NODE, "", data);
+	p->AddChild(q);
+	n->AddChild(p);
+}
+
+void ResultXml::save(void)
+{
+	wxXmlDocument xml;
+	wxXmlNode *results = new wxXmlNode(wxXML_ELEMENT_NODE, "results");
+	for (unsigned i = 0; i < m_data.size(); i++) {
+		wxXmlNode *result = new wxXmlNode(wxXML_ELEMENT_NODE, "result");
+		ResultNode& r = m_data[i];
+		addx(result, "description", r.sys_desc);
+		addx(result, "score", wxString::Format("%.2f", r.fps));
+		addx(result, "cpu_mhz", wxString::Format("%d", r.cpu_mhz));
+		addx(result, "mem_mhz", wxString::Format("%d", r.mem_mhz));
+		addx(result, "res_file", r.res_file);
+		results->AddChild(result);
+	}
+	wxXmlNode *root = new wxXmlNode(wxXML_ELEMENT_NODE, "FractDB");
+	root->AddChild(results);
+	xml.SetRoot(root);
+	xml.Save(m_fn);
+}
+
 int ResultXml::get_date(void)
 {
-	if (!m_loaded)
-		return 0;
-	wxXmlNode *root = m_xml.GetRoot();
+	wxXmlDocument xml;
+	if (!xml.Load(m_fn)) return 0;
+	wxXmlNode *root = xml.GetRoot();
 	
 	wxXmlNode *p = root->GetChildren();
 	while (p) {
@@ -186,9 +265,23 @@ int ResultXml::size() const
 	return m_data.size();
 }
 
-ResultNode ResultXml::operator [] (int index) const
+ResultNode& ResultXml::operator [] (int index)
 {
 	return m_data[index];
+}
+
+const ResultNode& ResultXml::operator [] (int index) const
+{
+	return m_data[index];
+}
+
+void ResultXml::add_entry(const ResultNode& rn)
+{
+	for (unsigned i = 0; i < m_data.size(); i++)
+		if (m_data[i].res_file == rn.res_file) return;
+	for (unsigned i = 0; i < m_data.size(); i++)
+		m_data[i].status = STATUS_MY;
+	m_data.push_back(rn);
 }
 
 /**
@@ -197,7 +290,17 @@ ResultNode ResultXml::operator [] (int index) const
 
 ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab(parent, cmdline)
 {
+	cfg.refresh();
 	m_sendbutton = new wxButton(this, bSendResult, "&Send Result", wxPoint(510, 50), wxSize(100, 30));
+	
+	wxStaticBox *sbLegend = new wxStaticBox(this, -1, "Legend", wxPoint(510, 200), wxSize(100, 120));
+	wxStaticText *stWhite = new wxStaticText(this, -1, "Stock", wxPoint(540, 230));
+	wxStaticText *stBlue = new wxStaticText(this, -1, "Your", wxPoint(540, 260));
+	wxStaticText *stRed = new wxStaticText(this, -1, "Last", wxPoint(540, 290));
+	sbLegend->Refresh(); stWhite->Refresh(); stBlue->Refresh(); stRed->Refresh();
+	CreateColorBox(wxPoint(515, 230), wxSize(20, 20), wxColour(0xffffff));
+	CreateColorBox(wxPoint(515, 260), wxSize(20, 20), wxColour(0xefdab2));
+	CreateColorBox(wxPoint(515, 290), wxSize(20, 20), wxColour(0xb2c3ef));
 	
 	builtin = my = NULL;
 	if (wxFileExists("db.xml"))
@@ -210,7 +313,11 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 		my = new ResultXml("my.xml");
 		
 	if (builtin) builtin->load();
-	if (my) my->load();
+	if (my) {
+		my->load();
+		for (int i = 0; i < my->size(); i++)
+			(*my)[i].status = STATUS_MY;
+	}
 	
 	if (builtin && get_current_date() - builtin->get_date() > 20) {
 		wxStaticText* old_warning = new wxStaticText(this, -1, 
@@ -224,7 +331,7 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 	m_grid->CreateGrid(0, COLCNT);
 	m_grid->SetSelectionMode(wxGrid::wxGridSelectRows);
 	m_grid->SetRowLabelSize(15);
-	m_grid->SetDefaultRowSize(46);
+	m_grid->SetDefaultRowSize(38);
 	m_grid->SetColSize(0, 180);
 	m_grid->SetColSize(1, 72);
 	m_grid->SetColSize(2, 76);
@@ -260,14 +367,15 @@ void ResultBrowser::DisplayResults(vector<ResultNode> & results)
 {
 	if (results.empty()) return;
 	sort(results.begin(), results.end());
+	m_grid->DeleteRows(0, m_grid->GetNumberRows());
 	m_grid->AppendRows(results.size());
 	
 	for (unsigned i = 0; i < results.size(); i++) {
 		ResultNode &r = results[i];
 		wxColour col;
 		if (r.status == STATUS_NORMAL) col = wxColour(0xffffff);
-		if (r.status == STATUS_MY) col = wxColour(0xb2daef);
-		if (r.status == STATUS_HOT) col = wxColour(0xefc3b2);
+		if (r.status == STATUS_MY) col = wxColour(0xefdab2);
+		if (r.status == STATUS_HOT) col = wxColour(0xb2c3ef);
 		for (int j = 0; j < COLCNT; j++) {
 			m_grid->SetCellBackgroundColour(i, j, col);
 			if (j != COLCNT - 1)
@@ -276,10 +384,54 @@ void ResultBrowser::DisplayResults(vector<ResultNode> & results)
 		m_grid->SetCellValue(i, 0, transform(r.sys_desc));
 		m_grid->SetCellValue(i, 1, wxString::Format("%.2f FPS", r.fps));
 		m_grid->SetCellValue(i, 2, wxString::Format("%d MHz", r.cpu_mhz));
-		m_grid->SetCellValue(i, 3, wxString::Format("%d MHz", r.mem_mhz));
+		m_grid->SetCellValue(i, 3, r.mem_mhz?wxString::Format("%d MHz", r.mem_mhz):"N/A");
 		m_grid->SetCellEditor(i, 4, new wxGridCellBoolEditor);
 		m_grid->SetRowLabelValue(i, "");
 	}
+}
+
+void ResultBrowser::CreateColorBox(wxPoint p, wxSize s, wxColour c)
+{
+	//wxStaticBitmap *b = new wxStaticBitmap(this, -1, "yo", p, s);
+	wxImage img(s.x, s.y);
+	for (int j = 0; j < s.y; j++)
+		for (int i = 0; i < s.x; i++) {
+			wxColour col;
+			if (i == 0 || j == 0 || i == s.x-1 || j == s.y-1) {
+				col = wxColour((unsigned long) 0);
+			}
+			else col = c;
+			img.SetRGB(i, j, col.Red(), col.Green(), col.Blue());
+		}
+	wxBitmap bmp(img);
+	//b->SetBitmap(bmp);
+	wxStaticBitmap *b = new wxStaticBitmap(this, -1, bmp, p, s);
+	b->Refresh();
+}
+
+void ResultBrowser::AddLastResult(void)
+{
+	cfg.refresh();
+	const char *fn = cfg["last_resultfile"];
+	if (!fn) return;
+	ResultNode rn;
+	rn.sys_desc = "My PC";
+	wxString bla = read_trim_file("comment.txt");
+	if (!bla.empty()) {
+		if (bla.length() > 30) { 
+			bla = bla.substr(0, 27);
+			bla += "...";
+		}
+		rn.sys_desc = rn.sys_desc + " (" + bla + ")";
+	}
+	rn.res_file = fn;
+	rn.fps = get_float(cfg["last_fps"]);
+	rn.cpu_mhz = get_int(cfg["last_mhz"]);
+	rn.mem_mhz = 0;
+	rn.status = STATUS_HOT;
+	if (!my) my = new ResultXml("my.xml");
+	my->add_entry(rn);
+	UpdateGrid();
 }
 
 void ResultBrowser::OnBtnSendResult(wxCommandEvent &)
@@ -300,5 +452,18 @@ bool ResultBrowser::RunPressed(void)
 bool ResultBrowser::CanRun(void)
 {
 	return false;
+}
+
+ResultBrowser::~ResultBrowser()
+{
+	if (builtin) {
+		delete builtin; 
+		builtin = NULL;
+	}
+	if (my) {
+		my->save(); 
+		delete my; 
+		my = NULL;
+	}
 }
 

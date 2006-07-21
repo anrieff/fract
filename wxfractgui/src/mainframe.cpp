@@ -158,7 +158,6 @@ void MainFrame::RunPressed(wxCommandEvent &)
 {
 	GenericTab *current = dynamic_cast<GenericTab*>(tabbed->GetCurrentPage());
 	if (!current->RunPressed()) return;
-	system("rm anrieff__35_38.result");
 	int rescount = file_count("*.result");
 	char cmd[1000];
 	strcpy(cmd,"");
@@ -172,7 +171,7 @@ void MainFrame::RunPressed(wxCommandEvent &)
 	strcat(cmd, run_line->GetValue().c_str());
 	system(cmd);
 	if (file_count("*.result") > rescount) {
-		add_last_result();
 		tabbed->SetSelection(2);
+		dynamic_cast<ResultBrowser*>(tabbed->GetCurrentPage())->AddLastResult();
 	}
 }

@@ -26,7 +26,6 @@
 #include <wx/grid.h>
 #include <vector>
 
-void add_last_result(void);
 int file_count(const char *filter);
 
 enum Status {
@@ -35,10 +34,21 @@ enum Status {
 	STATUS_HOT
 };
 
+class FConfig {
+	std::vector<wxString> par;
+	std::vector<wxString> val;
+public:
+	void refresh(void);
+	const char* operator [] (const wxString& s) const;
+};
+
+extern FConfig cfg;
+
 struct ResultNode {
 	ResultNode() { defaults(); }
 	void defaults(void) {
 		sys_desc = "";
+		res_file = "";
 		fps = 0.0;
 		cpu_mhz = 1;
 		mem_mhz = 0;
@@ -47,6 +57,7 @@ struct ResultNode {
 	
 	// the actual data:
 	wxString sys_desc;
+	wxString res_file;
 	float fps;
 	int cpu_mhz, mem_mhz;
 	Status status;
@@ -57,8 +68,6 @@ struct ResultNode {
 class ResultXml {
 	std::vector<ResultNode> m_data;
 	wxString m_fn;
-	wxXmlDocument m_xml;
-	bool m_loaded;
 public:
 	ResultXml(wxString file_name);
 	void load(void);
@@ -66,7 +75,8 @@ public:
 	void add_entry(const ResultNode &re);
 	int get_date(void);
 	
-	ResultNode operator [] (int index) const;
+	const ResultNode& operator [] (int index) const;
+	ResultNode& operator [] (int index);
 	int size() const;
 };
 
@@ -78,6 +88,9 @@ class ResultBrowser : public GenericTab {
 	void OnBtnSendResult(wxCommandEvent &);
 public:
 	ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline);
+	~ResultBrowser();
+	void CreateColorBox(wxPoint pos, wxSize size, wxColour color);
+	void AddLastResult(void);
 	void RefreshCmdLine(void);
 	bool RunPressed(void);
 	bool CanRun(void);
