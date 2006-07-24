@@ -22,6 +22,9 @@
     <run>
       <mainprogram>src/wxfractgui</mainprogram>
       <directoryradio>executable</directoryradio>
+      <runarguments>
+        <wxfractgui></wxfractgui>
+      </runarguments>
     </run>
     <configurations>
       <optimized>

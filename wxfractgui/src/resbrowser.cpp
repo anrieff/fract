@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include "resbrowser.h"
+#include "comparedlg.h"
 #include <time.h>
 #include <algorithm>
 using namespace std;
@@ -443,6 +444,22 @@ void ResultBrowser::OnBtnSendResult(wxCommandEvent &)
 
 void ResultBrowser::OnBtnCompare(wxCommandEvent &)
 {
+	vector<CompareInfo> ci;
+	for (int i = 0; i < m_grid->GetNumberRows(); i++) {
+		if (m_grid->GetCellValue(i, 4) == "1") {
+			CompareInfo info;
+			info.name = m_grid->GetCellValue(i, 0);
+			wxString fpss, mhzs;
+			fpss = m_grid->GetCellValue(i, 1);
+			mhzs = m_grid->GetCellValue(i, 2);
+			sscanf(fpss.c_str(), "%f", &info.fps);
+			sscanf(mhzs.c_str(), "%d", &info.mhz);
+			ci.push_back(info);
+		}
+	}
+	CompareDialog *dialog = new CompareDialog(&ci[0], ci.size());
+	dialog->ShowModal();
+	dialog->Destroy();
 }
 
 void ResultBrowser::OnGridClick(wxGridEvent &ev)
