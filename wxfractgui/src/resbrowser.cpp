@@ -28,6 +28,8 @@ FConfig cfg;
 
 BEGIN_EVENT_TABLE(ResultBrowser, GenericTab)
 	EVT_BUTTON(bSendResult, ResultBrowser:: OnBtnSendResult)
+	EVT_BUTTON(bCompare, ResultBrowser::OnBtnCompare)
+	EVT_GRID_CELL_LEFT_CLICK(ResultBrowser::OnGridClick)
 END_EVENT_TABLE()
 
 
@@ -292,6 +294,8 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 {
 	cfg.refresh();
 	m_sendbutton = new wxButton(this, bSendResult, "&Send Result", wxPoint(510, 50), wxSize(100, 30));
+	m_compare = new wxButton(this, bCompare, "&Compare Results", wxPoint(510, 90), wxSize(100, 30));
+	m_compare->Disable();
 	
 	wxStaticBox *sbLegend = new wxStaticBox(this, -1, "Legend", wxPoint(510, 200), wxSize(100, 120));
 	wxStaticText *stWhite = new wxStaticText(this, -1, "Stock", wxPoint(540, 230));
@@ -378,8 +382,7 @@ void ResultBrowser::DisplayResults(vector<ResultNode> & results)
 		if (r.status == STATUS_HOT) col = wxColour(0xb2c3ef);
 		for (int j = 0; j < COLCNT; j++) {
 			m_grid->SetCellBackgroundColour(i, j, col);
-			if (j != COLCNT - 1)
-				m_grid->SetReadOnly(i, j);
+			m_grid->SetReadOnly(i, j);
 		}
 		m_grid->SetCellValue(i, 0, transform(r.sys_desc));
 		m_grid->SetCellValue(i, 1, wxString::Format("%.2f FPS", r.fps));
@@ -436,7 +439,31 @@ void ResultBrowser::AddLastResult(void)
 
 void ResultBrowser::OnBtnSendResult(wxCommandEvent &)
 {
-	wxMessageBox("The result is being sent");
+}
+
+void ResultBrowser::OnBtnCompare(wxCommandEvent &)
+{
+}
+
+void ResultBrowser::OnGridClick(wxGridEvent &ev)
+{
+	if (ev.GetCol() == 4) {
+		int r = ev.GetRow();
+		wxString val = m_grid->GetCellValue(r, 4);
+		if (val == "1") val = "";
+			else val = "1";
+		m_grid->SetCellValue(r, 4, val);
+	}
+	int selected = 0;
+	for (int i = 0; i < m_grid->GetNumberRows(); i++) {
+		if (m_grid->GetCellValue(i, 4) == "1")
+			selected ++;
+	}
+	if (selected >= 2)
+		m_compare->Enable();
+	else
+		m_compare->Disable();
+	ev.Skip();
 }
 
 void ResultBrowser::RefreshCmdLine(void)

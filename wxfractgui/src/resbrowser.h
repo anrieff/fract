@@ -81,11 +81,13 @@ public:
 };
 
 class ResultBrowser : public GenericTab {
-	wxButton *m_sendbutton; 
+	wxButton *m_sendbutton, *m_compare; 
 	ResultXml *builtin, *my;
 	wxGrid *m_grid;
 	
 	void OnBtnSendResult(wxCommandEvent &);
+	void OnBtnCompare(wxCommandEvent &);
+	void OnGridClick(wxGridEvent &);
 public:
 	ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline);
 	~ResultBrowser();
@@ -103,6 +105,7 @@ public:
 
 enum {
 	bSendResult=100,
+	bCompare,
 	gGrid,
 };
 
