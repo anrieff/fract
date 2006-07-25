@@ -221,9 +221,7 @@ FractChart::FractChart(wxWindow *parent, int id, CompareInfo a[], int count, wxP
 		temp[i * 3 + 1] = (drawbuff[i] >> 8) & 0xff;
 		temp[i * 3 + 0] = (drawbuff[i] >>16) & 0xff;
 	}
-	delete [] drawbuff;
-	drawbuff = NULL;
-	wxImage img(xr, yr, (unsigned char*) temp);
+	wxImage img(xr, yr, temp);
 	if (!img.Ok()) return;
 	wxBitmap bmp(img);
 	if (!bmp.Ok()) return;
@@ -233,6 +231,8 @@ FractChart::FractChart(wxWindow *parent, int id, CompareInfo a[], int count, wxP
 
 FractChart::~FractChart()
 {
+	if (drawbuff) delete [] drawbuff;
+	drawbuff = NULL;
 }
 
 wxSize FractChart::get_needed_area(int how_many_results)
@@ -240,12 +240,29 @@ wxSize FractChart::get_needed_area(int how_many_results)
 	return wxSize(600, 150 + 2*how_many_results*PER_ENTRY);
 }
 
+bool FractChart::save_chart(wxString fn)
+{
+	static bool png_inited = false;
+	if (!png_inited) {
+		png_inited = true;
+		wxImage::AddHandler(new wxPNGHandler);
+	}
+	unsigned char *temp = (unsigned char*) malloc(xr*yr*3);
+	for (int i = 0; i < xr*yr; i++) {
+		temp[i * 3 + 2] = (drawbuff[i]     ) & 0xff;
+		temp[i * 3 + 1] = (drawbuff[i] >> 8) & 0xff;
+		temp[i * 3 + 0] = (drawbuff[i] >>16) & 0xff;
+	}
+	wxImage img(xr, yr, temp);
+	return img.SaveFile(fn);
+}
+
 /**
  * @class CompareDialog
 */ 
 
-CompareDialog::CompareDialog(CompareInfo a[], int count) :
-	wxDialog((wxDialog *)NULL, wxID_ANY, "Result comparison", 
+CompareDialog::CompareDialog(wxWindow* parent, CompareInfo a[], int count) :
+	wxDialog(parent, wxID_ANY, "Result comparison", 
 	wxDefaultPosition, wxSize(600, 600))
 {
 	wxSize sz = FractChart::get_needed_area(count);
@@ -253,12 +270,20 @@ CompareDialog::CompareDialog(CompareInfo a[], int count) :
 	fc = new FractChart(this, fcChart, a, count, wxPoint(15, 10), sz);
 	
 	wxButton *closebtn = new wxButton(this, wxID_OK, "&Close", 
-		wxPoint(250, 20 + sz.y), wxSize(100, 30));
+		wxPoint(195, 30 + sz.y), wxSize(100, 30));
 	closebtn->Refresh();
+	m_savebut = new wxButton(this, bSave, "&Save chart", 
+		wxPoint(305, 30 + sz.y), wxSize(100, 30));
 }
 
 void CompareDialog::OnSaveChart(wxCommandEvent&)
 {
+	wxString filename = wxFileSelector("Choose file name to save", ".", 
+		"Fract Chart.png", "png", "PNG files (*.png)|*.png", wxSAVE);
+	if (filename.empty()) return;
+	
+	if (!fc->save_chart(filename))
+		wxMessageBox("The chart cannot be saved (read-only media?)", "Error", wxICON_ERROR);
+	else
+		wxMessageBox("The chart has been saved to '" + filename + "'");
 }
-
-

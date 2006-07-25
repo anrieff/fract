@@ -84,6 +84,7 @@ class ResultBrowser : public GenericTab {
 	wxButton *m_sendbutton, *m_compare; 
 	ResultXml *builtin, *my;
 	wxGrid *m_grid;
+	std::vector<ResultNode> m_last_displayed_results;
 	
 	void OnBtnSendResult(wxCommandEvent &);
 	void OnBtnCompare(wxCommandEvent &);

@@ -18,46 +18,25 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef __COMPAREDLG_H__
-#define __COMPAREDLG_H__
+#ifndef __SENDDIALOG_H__
+#define __SENDDIALOG_H__
 
 #include <wx/wx.h>
-#include <wx/control.h>
-#include "fonts.h"
 
-struct CompareInfo {
-	wxString name;
-	float fps;
-	int mhz;
-};
-
-class FractChart {
-	int xr, yr;
-	unsigned *drawbuff, drawcol;
-	void draw_line(int,int,int,int);
-	void draw_chart(CompareInfo a[], int n, float (*fun) (CompareInfo&), int sx, int sy, int sizex, int sizey, FontMan &fm);
-	void render(CompareInfo a[], int n);
+class SendDialog : public wxDialog {
+	wxButton *m_sendbtn;
+	wxStaticText *m_text1, *m_text2;
+	wxString m_server, m_fn;
+	int m_port;
 public:
-	FractChart(wxWindow *parent, int id, CompareInfo *, int count, wxPoint pos, wxSize size);
-	~FractChart();
-	static wxSize get_needed_area(int how_many_results);
-	bool save_chart(wxString filename);
-};
-
-class CompareDialog : public wxDialog {
-	FractChart *fc;
-	wxButton *m_savebut;
-	
-	void OnSaveChart(wxCommandEvent &);
-public:
-	CompareDialog(wxWindow *parent, CompareInfo *, int count);
+	SendDialog (wxWindow *parent, wxString server, int port, wxString fn);
+	void OnSendBtnClick(wxCommandEvent&);
 	
 	DECLARE_EVENT_TABLE()
 };
 
 enum {
-	fcChart = 155,
-	bSave
+	bSendClick=161
 };
 
-#endif // __COMPAREDLG_H__
+#endif // __SENDDIALOG_H__

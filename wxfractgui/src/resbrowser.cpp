@@ -20,6 +20,7 @@
 
 #include "resbrowser.h"
 #include "comparedlg.h"
+#include "senddialog.h"
 #include <time.h>
 #include <algorithm>
 using namespace std;
@@ -360,6 +361,7 @@ void ResultBrowser::UpdateGrid(void)
 	if (builtin) AddResults(builtin, all);
 	if (my) AddResults(my, all);
 	DisplayResults(all);
+	m_last_displayed_results = all;
 }
 
 void ResultBrowser::AddResults(ResultXml *file, vector<ResultNode> & all)
@@ -440,6 +442,30 @@ void ResultBrowser::AddLastResult(void)
 
 void ResultBrowser::OnBtnSendResult(wxCommandEvent &)
 {
+	wxArrayInt r = m_grid->GetSelectedRows();
+	if (r.GetCount() == 0) {
+		wxMessageBox("Select a result before trying to submit it", "Error", wxICON_ERROR);
+		return ;
+	}
+	if (r.GetCount() > 1) {
+		wxMessageBox("Please, select a single result", "Error", wxICON_ERROR);
+		return ;
+	}
+	
+	unsigned idx = r[0];
+	if (idx >= m_last_displayed_results.size()) return;
+	ResultNode rn = m_last_displayed_results[idx];
+	
+	if (!wxFileExists(rn.res_file)) {
+		wxMessageBox("You can only submit your results", "Error", wxICON_ERROR);
+		return ;
+	}
+
+	wxString server = cfg["server"];
+	int server_port = get_int(cfg["server_port"]);
+	SendDialog *sdlg = new SendDialog(this, server, server_port, rn.res_file);
+	sdlg->ShowModal();
+	sdlg->Destroy();
 }
 
 void ResultBrowser::OnBtnCompare(wxCommandEvent &)
@@ -457,7 +483,7 @@ void ResultBrowser::OnBtnCompare(wxCommandEvent &)
 			ci.push_back(info);
 		}
 	}
-	CompareDialog *dialog = new CompareDialog(&ci[0], ci.size());
+	CompareDialog *dialog = new CompareDialog(this, &ci[0], ci.size());
 	dialog->ShowModal();
 	dialog->Destroy();
 }
