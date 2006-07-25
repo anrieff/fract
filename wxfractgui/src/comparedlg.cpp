@@ -18,45 +18,24 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
  
-#ifdef DEVBUILD
+ 
+#include "comparedlg.h"
 
-
-#include <SDL/SDL.h>
-#include <SDL/SDL_video.h>
-#include <iostream>
-#include <string>
 #include <math.h>
 using namespace std;
+		
+BEGIN_EVENT_TABLE(CompareDialog, wxDialog)
+	EVT_BUTTON(bSave, CompareDialog:: OnSaveChart)
+END_EVENT_TABLE()
 
-struct CompareInfo {
-	string name;
-	float fps;
-	int mhz;
-};
 
 const unsigned COLOR_GRID = 0xababab;
 const unsigned COLOR_GRID_LIGHT = 0xefefef;
-const int PER_ENTRY = 60;
+const int PER_ENTRY = 50;
 
-
-SDL_Surface *screen;
-int xres = 600, yres = 600;
-
-static bool should_exit(void)
-{
-	SDL_Event e;
-	while (SDL_PollEvent(&e)) {
-		if (e.type == SDL_QUIT) return true;
-		if (e.type == SDL_KEYDOWN) {
-			if (e.key.keysym.sym == SDLK_ESCAPE) return true;
-		}
-	}
-	return false;
-}
 
 static float fun_fps(CompareInfo & x) { return x.fps; }
-
-unsigned *drawbuff, drawcol;
+static float fun_eff(CompareInfo & x) { return x.fps / x.mhz; }
 
 static inline void decomp(unsigned x, float r[3])
 {
@@ -96,7 +75,11 @@ static void draw(unsigned *fb, int xr, int x, int y, unsigned color, double alph
 	p = recompose(src);
 }
 
-static void draw_line(int x1, int y1, int x2, int y2)
+/**
+ * @class FractChart
+*/ 
+
+void FractChart::draw_line(int x1, int y1, int x2, int y2)
 {
 	int xsteps, ysteps, steps;
 	unsigned color = drawcol, *fb = drawbuff;
@@ -110,18 +93,24 @@ static void draw_line(int x1, int y1, int x2, int y2)
 		int x = (int) xf;
 		int y = (int) yf;
 		if (xsteps > ysteps) {
-			draw(fb, xres, x, y, color, 1 - (yf - y));
-			draw(fb, xres, x, y + 1, color, (yf - y));
+			draw(fb, xr, x, y, color, 1 - (yf - y));
+			draw(fb, xr, x, y + 1, color, (yf - y));
 		} else {
-			draw(fb, xres, x, y, color, 1 - (xf - x));
-			draw(fb, xres, x + 1, y, color, (xf - x));
+			draw(fb, xr, x, y, color, 1 - (xf - x));
+			draw(fb, xr, x + 1, y, color, (xf - x));
 		}
 	}
 }
 
-float lift(float x) { return x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x*x; }
+static float pover(float x, int po)
+{
+	float r = 1.0f;
+	for (int i = 0; i < po; i++)
+		r *= x;
+	return r;
+}
 
-static void draw_chart(CompareInfo a[], int n, unsigned *p, float (*fun) (CompareInfo&), int sx, int sy, int sizex, int sizey)
+void FractChart::draw_chart(CompareInfo a[], int n, float (*fun) (CompareInfo&), int sx, int sy, int sizex, int sizey, FontMan &fm)
 {
 	float minval, maxval;
 	minval = fun(a[0]);
@@ -134,7 +123,6 @@ static void draw_chart(CompareInfo a[], int n, unsigned *p, float (*fun) (Compar
 
 	int mtick = (int) ceil(maxval/minval);
 	
-	drawbuff = p;
 	drawcol = COLOR_GRID_LIGHT;
 	if ((sizex - 20) / mtick > 20) {
 		for (int i = 1; i < mtick * 10; i++) if (i % 10) {
@@ -173,95 +161,104 @@ static void draw_chart(CompareInfo a[], int n, unsigned *p, float (*fun) (Compar
 	for (int i = 0; i < n; i++) {
 		float coeff = (fun(a[i]) - minval) / (maxval - minval);
 		unsigned mycolor = (int) (0xff * (1-coeff)) | (((int) (0xff0000 * coeff))&0xff0000);
-		/*int yy = i * (sizey-15) / n + 25;
-		int xx = sx + (int) ((fun(a[i]) / minval / mtick) * (sizex-20))+7;
-		for (int j = 0; j < per_entry; j++)
-			draw_line(sx+5, yy+j, xx, yy+j);
-			*/
-		for (float angle = 0.0f; angle < 2 * M_PI; angle += 0.01) {
+		for (float angle = 0.0f; angle < 2 * M_PI; angle += 0.02) {
 			int sgx = 10 + (int) ( 10.0f * sin(angle));
 			int sgy = i * (sizey-15) / n + per_entry/2 + 5 - (int) ( 15.0f * cos(angle));
 			float beta = fabs(angle - 5.12);
 			if (beta > M_PI) beta = 2 * M_PI - beta;
 			
-			float intensity = cos(beta); if (intensity < 0) intensity = 0;
-			intensity += 2.5f*lift(intensity);
+			float intensity = cos(beta); if (intensity < 0.40) intensity = 0.40;
+			intensity += pover(intensity, 65);
 			drawcol = mulcol(mycolor, intensity);
 			draw_line(sx + sgx, sy + sgy, sx + sgx + (int) ((sizex-20)*fun(a[i])/minval/mtick), sy + sgy);
 		}
+		fm.set_cursor(sx + 10, sy + i * (sizey-15) / n + per_entry/2 - 3);
+		fm.set_color(0xffffff);
+		fm.set_contrast(true);
+		fm.print("%s", a[i].name.c_str());
+		fm.set_contrast(false);
+		fm.set_cursor(sx+sizex+4, -1);
+		fm.set_color(0);
+		fm.print("%.2f", fun(a[i])/minval);
 	}
 	
 }
 
-void dowork(CompareInfo a[], int n, unsigned *p)
+void FractChart::render(CompareInfo a[], int n)
 {
-	memset(p, 0xff, xres*yres*4);
-	draw_chart(a, n, p, fun_fps, 5, 5, 550, n*PER_ENTRY);
+	unsigned *p = drawbuff;
+	for (int i = 0; i < yr; i++)
+		for (int j = 0; j < xr; j++) {
+			p[i*xr+j] = (255-(16*i/yr)-(16*j/xr)) << 16 |
+			            (255-( 8*i/yr)-( 8*j/yr)) << 8 | 0xff;
+			if (i == 0 || i == yr-1 || j == 0 || j == xr - 1)
+				p[i*xr+j] = 0;
+		}
+	FontMan fontman(p, xr, yr);
+	fontman.printxy(26, 2, "FPS chart");
+	fontman.printxy(26, 42 + n * PER_ENTRY + 15, "Effectivity chart (FPS/MHz)");
+	draw_chart(a, n, fun_fps, 5, 18, 550, n*PER_ENTRY + 15, fontman);
+	draw_chart(a, n, fun_eff, 5, 58 + n * PER_ENTRY + 15, 550, n * PER_ENTRY + 15, fontman);
+	
+	fontman.set_color(0x0);
+	fontman.printxy(10, 90 + 2*n*PER_ENTRY, "All scores are relative to the slowest system,");
+	fontman.printxy(10, 108 + 2*n*PER_ENTRY, "which is taken as a base (1.0)");
+	
+	fontman.set_color(0xaaccff);
+	fontman.printxy(xr - 200, yr-20, "Created with Fract 1.07a");
+	drawcol = 0;
 }
 
-int main(void)
-{	
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-		cout << "Cannot initialize SDL, beacuse " << SDL_GetError() << endl;
-		return 0;
+FractChart::FractChart(wxWindow *parent, int id, CompareInfo a[], int count, wxPoint pos, wxSize size)
+{
+	drawbuff = new unsigned[size.x*size.y];
+	xr = size.x;
+	yr = size.y;
+	render(a, count);
+	unsigned char *temp = (unsigned char*) malloc(xr*yr*3);
+	for (int i = 0; i < xr*yr; i++) {
+		temp[i * 3 + 2] = (drawbuff[i]     ) & 0xff;
+		temp[i * 3 + 1] = (drawbuff[i] >> 8) & 0xff;
+		temp[i * 3 + 0] = (drawbuff[i] >>16) & 0xff;
 	}
-	SDL_Surface *screen = SDL_SetVideoMode(xres, yres, 32, 0);
-	atexit(SDL_Quit);
-	
-	if (!screen) return 0;
-	
-	CompareInfo a[4];
-	a[0].name = "Opteron 165 (my PC, \nno O/C)";
-	a[0].fps = 27.23;
-	a[0].mhz = 1800;
-	a[1].name = "Opteron 165 (my PC, \nwith O/C)";
-	a[1].fps = 35.87;
-	a[1].mhz = 2253;
-	a[2].name = "Xeon Prestonia, 533,\n2 CPUs w/ HT";
-	a[2].fps = 21.05;
-	a[2].mhz = 2400;
-	a[3].name = "Athlon XP, 1.4GHz";
-	a[3].fps = 11.50;
-	a[3].mhz = 1402;
-	
-	
-	dowork(a, 4, (unsigned*) screen->pixels);
-	
-	SDL_Flip(screen);
-	while (!should_exit()) SDL_Delay(100);
-
-	return 0;
+	delete [] drawbuff;
+	drawbuff = NULL;
+	wxImage img(xr, yr, (unsigned char*) temp);
+	if (!img.Ok()) return;
+	wxBitmap bmp(img);
+	if (!bmp.Ok()) return;
+	wxStaticBitmap *sbmp = new wxStaticBitmap(parent, id, bmp, pos);
+	sbmp->Refresh();
 }
 
+FractChart::~FractChart()
+{
+}
 
+wxSize FractChart::get_needed_area(int how_many_results)
+{
+	return wxSize(600, 150 + 2*how_many_results*PER_ENTRY);
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#else
-
-#include "comparedlg.h"
-
+/**
+ * @class CompareDialog
+*/ 
 
 CompareDialog::CompareDialog(CompareInfo a[], int count) :
 	wxDialog((wxDialog *)NULL, wxID_ANY, "Result comparison", 
 	wxDefaultPosition, wxSize(600, 600))
 {
+	wxSize sz = FractChart::get_needed_area(count);
+	SetClientSize(sz.x + 30, sz.y + 80);
+	fc = new FractChart(this, fcChart, a, count, wxPoint(15, 10), sz);
+	
 	wxButton *closebtn = new wxButton(this, wxID_OK, "&Close", 
-		wxPoint(250, 550), wxSize(100, 30));
+		wxPoint(250, 20 + sz.y), wxSize(100, 30));
 	closebtn->Refresh();
 }
 
-#endif
+void CompareDialog::OnSaveChart(wxCommandEvent&)
+{
+}
+
+

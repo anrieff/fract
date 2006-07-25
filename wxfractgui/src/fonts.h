@@ -18,44 +18,37 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef __COMPAREDLG_H__
-#define __COMPAREDLG_H__
-
-#include <wx/wx.h>
-#include <wx/control.h>
-#include "fonts.h"
-
-struct CompareInfo {
-	wxString name;
-	float fps;
-	int mhz;
+struct FractFont {
+	int x, y, charwidth;
+	unsigned char *data;
+	virtual const char * get_name() const = 0;
 };
 
-class FractChart {
+struct LuxiFont : public FractFont {
+	LuxiFont();
+	const char *get_name() const;
+};
+
+class FontMan {
+	unsigned color, *buff;
 	int xr, yr;
-	unsigned *drawbuff, drawcol;
-	void draw_line(int,int,int,int);
-	void draw_chart(CompareInfo a[], int n, float (*fun) (CompareInfo&), int sx, int sy, int sizex, int sizey, FontMan &fm);
-	void render(CompareInfo a[], int n);
-public:
-	FractChart(wxWindow *parent, int id, CompareInfo *, int count, wxPoint pos, wxSize size);
-	~FractChart();
-	static wxSize get_needed_area(int how_many_results);
-};
-
-class CompareDialog : public wxDialog {
-	FractChart *fc;
+	FractFont * fontlist[5];
+	int fontcount, curfont;
+	int cx, cy;
+	bool contrast;
 	
-	void OnSaveChart(wxCommandEvent &);
+	void draw(int x, int y, unsigned char opacity);
 public:
-	CompareDialog(CompareInfo *, int count);
+	FontMan(unsigned *p, int resx, int resy);
+	~FontMan();
+	void set_font(const char *name);
+	void set_color(unsigned);
+	void set_cursor(int x, int y);
+	void set_contrast(bool on);
+	int get_x() const;
+	int get_y() const;
+	void print(const char *format, ...);
+	void printxy(int, int, const char *, ...);
+	void write(const char *buff);
 	
-	DECLARE_EVENT_TABLE()
 };
-
-enum {
-	fcChart = 155,
-	bSave
-};
-
-#endif // __COMPAREDLG_H__

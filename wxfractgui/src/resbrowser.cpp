@@ -295,7 +295,7 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 {
 	cfg.refresh();
 	m_sendbutton = new wxButton(this, bSendResult, "&Send Result", wxPoint(510, 50), wxSize(100, 30));
-	m_compare = new wxButton(this, bCompare, "&Compare Results", wxPoint(510, 90), wxSize(100, 30));
+	m_compare = new wxButton(this, bCompare, "&Compare", wxPoint(510, 90), wxSize(100, 30));
 	m_compare->Disable();
 	
 	wxStaticBox *sbLegend = new wxStaticBox(this, -1, "Legend", wxPoint(510, 200), wxSize(100, 120));
