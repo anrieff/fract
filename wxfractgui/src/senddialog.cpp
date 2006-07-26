@@ -35,7 +35,7 @@ BEGIN_EVENT_TABLE(SendDialog, wxDialog)
 END_EVENT_TABLE()
 
 SendDialog::SendDialog(wxWindow *parent, wxString server, int port, wxString fn)
-	: wxDialog(parent, -1, "Send result", wxDefaultPosition, wxSize(450, 250))
+	: wxDialog(parent, -1, "Send result", wxDefaultPosition, wxSize(480, 250))
 {
 	m_text1 = new wxStaticText(this, -1, 
 		"This will submit your result for participation in http://fbench.com/results/\n"
@@ -45,13 +45,13 @@ SendDialog::SendDialog(wxWindow *parent, wxString server, int port, wxString fn)
 		"Direct connection to the internet is required. The sending might fail\n"
 		"if you are behind a proxy, firewall or other type of non-transparent\n"
 		"network element. In such cases, you can mail your .result file\n"
-		"(plain attachment or .zip/.rar-ed) to the following address:\n\n"
+		"(plain attachment or zip/rar-ed) to the following address:\n\n"
 		"skalaren_alpinist@abv.bg",
 		wxPoint(10,  90));
-	m_sendbtn = new wxButton(this, bSendClick, "&Send", wxPoint(125, 210), 
+	m_sendbtn = new wxButton(this, bSendClick, "&Send", wxPoint(140, 210), 
 		wxSize(95, 30));
 	wxButton *cb = new wxButton(this, wxID_CANCEL, "&Cancel", 
-		wxPoint(230, 210), wxSize(95, 30));
+		wxPoint(245, 210), wxSize(95, 30));
 	cb->Refresh();
 	
 	m_server = server;
@@ -68,6 +68,16 @@ static int EndX(wxWindow * w)
 
 void SendDialog::OnSendBtnClick(wxCommandEvent & )
 {
+	
+	char fbuff[1024];
+	FILE *f = fopen(m_fn.c_str(), "rb");
+	int r = fread(fbuff, 1, 1024, f);
+	fclose(f);
+	if (r != 1024) {
+		wxMessageBox("The result file is incomplete or corrupted", "Error", wxICON_ERROR);
+		return;
+	}
+	
 	#define FAIL(x) { gauge->SetValue(5); ht2->SetLabel("Failed"); m_text2->SetLabel(x); m_text2->Show(); return; }
 	m_sendbtn->Disable();
 	m_text2->Hide();
@@ -102,6 +112,11 @@ void SendDialog::OnSendBtnClick(wxCommandEvent & )
 		m_server = buff;
 	}
 	
+	
+	//
+	// Step 2: Create a socket
+	//
+	
 	gauge->SetValue(2);
 	ht2->SetLabel("Connecting...");
 	
@@ -109,8 +124,43 @@ void SendDialog::OnSendBtnClick(wxCommandEvent & )
 	if (fd == -1)
 		FAIL("Cannot create socket");
 		
-	struct sockaddr sa;
+	//
+	// Step 3: connect()
+	//
 	
-	//int res = connect(fd, 
+	gauge->SetValue(3);
 	
+	struct sockaddr_in sa;
+	sa.sin_family = AF_INET;
+	sa.sin_port = htons(m_port);
+	sscanf(m_server.c_str(), "%d.%d.%d.%d", useless, useless+1, useless+2, useless+3);
+	unsigned x = useless[3] | (useless[2] << 8) | (useless[1] << 16) | (useless[0] << 24);
+	sa.sin_addr.s_addr = htonl(x);
+	
+	int res = connect(fd, (struct sockaddr *)&sa, sizeof(sa));
+	
+	if (res) 
+		FAIL("Cannot connect to the server; it may be busy or\ndown right now - try again later");
+	
+	gauge->SetValue(4);
+	ht2->SetLabel("Sending...");
+	
+	//
+	// Step 4: Send the result
+	//
+	
+	int i, tosend = 1024;
+	do {
+		int r = send(fd, fbuff+i, tosend, 0);
+		if (r == -1) 
+			FAIL("Sending failed; the server may be busy or\ndown right now - try again later");
+		i += r;
+		tosend -= r;
+	} while(tosend);
+	gauge->SetValue(5);
+	ht2->SetLabel("OK");
+	m_text2->Show();
+	m_text2->SetLabel(
+			"Your result was sent successfully. Please allow 15 minutes\n"
+			"for your score to appear on the site");
 }
