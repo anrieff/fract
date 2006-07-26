@@ -22,21 +22,51 @@
 #define __SENDDIALOG_H__
 
 #include <wx/wx.h>
+#include <wx/gauge.h>
+#include <wx/timer.h>
 
-class SendDialog : public wxDialog {
-	wxButton *m_sendbtn;
-	wxStaticText *m_text1, *m_text2;
-	wxString m_server, m_fn;
-	int m_port;
+class SendDialog;
+class SendThread: public wxThread {
+	SendDialog *dlg;
 public:
+	volatile bool want_to_quit;
+	SendThread(SendDialog *d) : dlg(d) { want_to_quit = false;}
+	void* Entry();
+	void DoWork(void);
+	void setv(wxString, int, wxString);
+};
+
+
+struct SendDialog : public wxDialog {
+	wxButton *m_sendbtn;
+	wxStaticText *m_text1, *m_text2, *ht1, *ht2;
+	wxGauge *gauge;
+	wxString m_server, m_fn;
+	wxTimer *m_timer;
+	wxMutex lock;
+	SendThread *trd;
+	
+	int m_port;
+	char fbuff[1024];
+	volatile int th_gval;
+	wxString th_ht2;
+	wxString th_text2;
+	volatile int th_finished;
+	
 	SendDialog (wxWindow *parent, wxString server, int port, wxString fn);
 	void OnSendBtnClick(wxCommandEvent&);
+	void OnCancelBtnClick(wxCommandEvent&);
+	void OnTimerTick(wxTimerEvent&);
+	void OnTryClose(wxCloseEvent&);
+	void Cleanup(void);
 	
 	DECLARE_EVENT_TABLE()
 };
 
 enum {
-	bSendClick=161
+	bSendClick=161,
+	bCancelClick,
+	tTimer,
 };
 
 #endif // __SENDDIALOG_H__

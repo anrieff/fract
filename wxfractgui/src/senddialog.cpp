@@ -20,6 +20,7 @@
 
 #include "senddialog.h"
 #include <wx/gauge.h>
+#include <wx/thread.h>
 
 #ifdef _WIN32
 #	include <Winsock2.h>
@@ -32,6 +33,9 @@
 
 BEGIN_EVENT_TABLE(SendDialog, wxDialog)
 	EVT_BUTTON(bSendClick, SendDialog:: OnSendBtnClick)
+	EVT_BUTTON(bCancelClick, SendDialog:: OnCancelBtnClick)
+	EVT_TIMER(tTimer, SendDialog::OnTimerTick)
+	EVT_CLOSE(SendDialog::OnTryClose)
 END_EVENT_TABLE()
 
 SendDialog::SendDialog(wxWindow *parent, wxString server, int port, wxString fn)
@@ -50,7 +54,7 @@ SendDialog::SendDialog(wxWindow *parent, wxString server, int port, wxString fn)
 		wxPoint(10,  90));
 	m_sendbtn = new wxButton(this, bSendClick, "&Send", wxPoint(140, 210), 
 		wxSize(95, 30));
-	wxButton *cb = new wxButton(this, wxID_CANCEL, "&Cancel", 
+	wxButton *cb = new wxButton(this, bCancelClick, "&Cancel", 
 		wxPoint(245, 210), wxSize(95, 30));
 	cb->Refresh();
 	
@@ -65,51 +69,35 @@ static int EndX(wxWindow * w)
 	return r.x + r.width;
 }
 
-
-void SendDialog::OnSendBtnClick(wxCommandEvent & )
+void SendThread::setv(wxString a, int b, wxString c)
 {
-	
-	char fbuff[1024];
-	FILE *f = fopen(m_fn.c_str(), "rb");
-	int r = fread(fbuff, 1, 1024, f);
-	fclose(f);
-	if (r != 1024) {
-		wxMessageBox("The result file is incomplete or corrupted", "Error", wxICON_ERROR);
-		return;
-	}
-	
-	#define FAIL(x) { gauge->SetValue(5); ht2->SetLabel("Failed"); m_text2->SetLabel(x); m_text2->Show(); return; }
-	m_sendbtn->Disable();
-	m_text2->Hide();
-	
-	wxStaticText *ht1 = new wxStaticText(this, -1, "Status:", wxPoint(15, 40));
-	wxFont txtFont = ht1->GetFont();
-	txtFont.SetWeight(wxFONTWEIGHT_BOLD);
-	ht1->SetFont(txtFont);
-	
-	wxStaticText *ht2 = new wxStaticText(this, -1, "Initializing...", wxPoint(EndX(ht1), 40));
-	ht2->Refresh();
-	
-	wxGauge *gauge = new wxGauge(this, -1, 5, wxPoint(10, 60), wxSize(420, 15));
-	
+	dlg->lock.Lock();
+	dlg->th_ht2 = a;
+	dlg->th_gval = b;
+	dlg->th_text2 = c;
+	dlg->lock.Unlock();
+}
+
+void SendThread::DoWork(void)
+{
+	#define FAIL(x) { setv("Failed", 5, x); return; }
 	//
 	// Step 1: Resolve IP address of server
 	//
 	
 	// is it an IP?
 	int useless[4];
-	if (4 != sscanf(m_server.c_str(), "%d.%d.%d.%d", useless, useless+1, useless+2, useless+3))
+	if (4 != sscanf(dlg->m_server.c_str(), "%d.%d.%d.%d", useless, useless+1, useless+2, useless+3))
 	{
-		ht2->SetLabel("Resolving IP Address...");
-		gauge->SetValue(1);
+		setv("Resolving IP Address...", 1, "");
 		//
-		struct hostent *he = gethostbyname(m_server.c_str());
+		struct hostent *he = gethostbyname(dlg->m_server.c_str());
 		if (he == NULL) 
 			FAIL("Cannot resolve IP Address");
 		unsigned x = ntohl(*(long*)he->h_addr_list[0]);
 		char buff[20];
 		sprintf(buff, "%u.%u.%u.%u", x >> 24, (x >> 16) & 0xff, (x >> 8) & 0xff, x & 0xff);
-		m_server = buff;
+		dlg->m_server = buff;
 	}
 	
 	
@@ -117,8 +105,9 @@ void SendDialog::OnSendBtnClick(wxCommandEvent & )
 	// Step 2: Create a socket
 	//
 	
-	gauge->SetValue(2);
-	ht2->SetLabel("Connecting...");
+	if (want_to_quit) return;
+	TestDestroy();
+	setv("Connecting...", 2, "");
 	
 	int fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (fd == -1)
@@ -128,12 +117,14 @@ void SendDialog::OnSendBtnClick(wxCommandEvent & )
 	// Step 3: connect()
 	//
 	
-	gauge->SetValue(3);
+	if (want_to_quit) return;
+	TestDestroy();
+	setv("Connecting...", 3, "");
 	
 	struct sockaddr_in sa;
 	sa.sin_family = AF_INET;
-	sa.sin_port = htons(m_port);
-	sscanf(m_server.c_str(), "%d.%d.%d.%d", useless, useless+1, useless+2, useless+3);
+	sa.sin_port = htons(dlg->m_port);
+	sscanf(dlg->m_server.c_str(), "%d.%d.%d.%d", useless, useless+1, useless+2, useless+3);
 	unsigned x = useless[3] | (useless[2] << 8) | (useless[1] << 16) | (useless[0] << 24);
 	sa.sin_addr.s_addr = htonl(x);
 	
@@ -142,8 +133,9 @@ void SendDialog::OnSendBtnClick(wxCommandEvent & )
 	if (res) 
 		FAIL("Cannot connect to the server; it may be busy or\ndown right now - try again later");
 	
-	gauge->SetValue(4);
-	ht2->SetLabel("Sending...");
+	if (want_to_quit) return;
+	TestDestroy();
+	setv("Sending...", 4, "");
 	
 	//
 	// Step 4: Send the result
@@ -151,16 +143,88 @@ void SendDialog::OnSendBtnClick(wxCommandEvent & )
 	
 	int i, tosend = 1024;
 	do {
-		int r = send(fd, fbuff+i, tosend, 0);
+		int r = send(fd, (dlg->fbuff)+i, tosend, 0);
 		if (r == -1) 
 			FAIL("Sending failed; the server may be busy or\ndown right now - try again later");
 		i += r;
 		tosend -= r;
+		if (want_to_quit) return;
+		TestDestroy();
 	} while(tosend);
-	gauge->SetValue(5);
-	ht2->SetLabel("OK");
-	m_text2->Show();
-	m_text2->SetLabel(
+	
+	setv("OK", 5, 
 			"Your result was sent successfully. Please allow 15 minutes\n"
 			"for your score to appear on the site");
+	dlg->th_finished = 1;
+	return;
+}
+
+void* SendThread::Entry()
+{
+	DoWork();
+	dlg->th_finished = 1;
+	return NULL;
+}
+
+void SendDialog::OnSendBtnClick(wxCommandEvent & )
+{
+	
+	//char fbuff[1024];
+	FILE *f = fopen(m_fn.c_str(), "rb");
+	int r = fread(fbuff, 1, 1024, f);
+	fclose(f);
+	if (r != 1024) {
+		wxMessageBox("The result file is incomplete or corrupted", "Error", wxICON_ERROR);
+		return;
+	}
+	
+	ht1 = new wxStaticText(this, -1, "Status:", wxPoint(15, 50));
+	wxFont txtFont = ht1->GetFont();
+	txtFont.SetWeight(wxFONTWEIGHT_BOLD);
+	ht1->SetFont(txtFont);
+	ht2 = new wxStaticText(this, -1, "Initializing...", wxPoint(EndX(ht1)+5, 50));
+	ht2->Refresh();
+	m_sendbtn->Disable();
+	m_text2->SetLabel("");
+	gauge = new wxGauge(this, -1, 5, wxPoint(10, 70), wxSize(420, 15));
+	
+	th_ht2 = "Initializing...";
+	th_text2 = "";
+	th_gval = 0;
+	th_finished = 0;
+	m_timer = new wxTimer(this, tTimer);
+	m_timer->Start(150);
+	
+	trd = new SendThread(this);
+	trd->Create();
+	trd->Run();
+}
+
+void SendDialog::OnCancelBtnClick(wxCommandEvent &)
+{
+	Cleanup();
+	EndModal(0);
+}
+
+void SendDialog::OnTimerTick(wxTimerEvent &)
+{
+	lock.Lock();
+	ht2->SetLabel(th_ht2);
+	m_text2->SetLabel(th_text2);
+	gauge->SetValue(th_gval);
+	lock.Unlock();
+}
+
+void SendDialog::Cleanup(void)
+{
+	if (!th_finished) {
+		trd->want_to_quit = true;
+	}
+	m_timer->Stop();
+	delete m_timer;
+}
+
+void SendDialog::OnTryClose(wxCloseEvent&)
+{
+	Cleanup();
 }
