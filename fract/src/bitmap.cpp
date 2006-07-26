@@ -271,7 +271,7 @@ bool RawImg:: load_bmp(const char *fn)
  * @returns true on success, false on *
  *  failure                           *
  **************************************/
-
+#define is_power_of_2(x) (0 == ((x)&(x-1)))
 bool RawImg:: load_fda(const char *fn)
 {FILE *f;
  FDAHeaDeR FDA;
@@ -284,8 +284,8 @@ bool RawImg:: load_fda(const char *fn)
 	fclose(f);
 	return false;
  }
- if (FDA.x_size <= 1 || power_of_2(FDA.x_size)==-1 ||
-     FDA.y_size <= 1 || power_of_2(FDA.y_size)==-1) {
+ if (FDA.x_size <= 1 || !is_power_of_2(FDA.x_size) ||
+     FDA.y_size <= 1 || !is_power_of_2(FDA.y_size)) {
      	printf("LoadFda: bad .FDA file (dimensions are incorrect (%d,%d))\n", FDA.x_size, FDA.y_size);
 	fclose(f);
 	return false;
