@@ -144,8 +144,11 @@ void SendThread::DoWork(void)
 	int i, tosend = 1024;
 	do {
 		int r = send(fd, (dlg->fbuff)+i, tosend, 0);
-		if (r == -1) 
+		printf("Successfully sent %d bytes\n", r);
+		if (r == -1) {
+			perror("send()");
 			FAIL("Sending failed; the server may be busy or\ndown right now - try again later");
+		}
 		i += r;
 		tosend -= r;
 		if (want_to_quit) return;
