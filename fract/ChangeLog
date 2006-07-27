@@ -1,41 +1,43 @@
 Differences from 1.06a to 1.07a
 --------------------------------
 
-   *	Loop options were broken in 1.06a, fixed;
+   *    New GUI, which features result browser, result compare and direct
+        result upload to the server
 
-   *	Added adaptive antialiasing, with several FSAA patterns defined;
+   *    Loop options were broken in 1.06a, fixed;
 
-   *	Added parallel view mode;
+   *    Added adaptive antialiasing, with several FSAA patterns defined;
 
-   *	Added realistic soft shadows;
+   *    Added parallel view mode;
 
-   *	Shadows are now cast on spheres, too. Meshes also cast shadows 
-	(currently only convex meshes are supported);
+   *    Added realistic soft shadows;
 
-   *	Better multithreading, shadow rendering is multithreaded, shaders
-	are multithreaded and speeded up;
+   *    Shadows are now cast on spheres, too. Meshes also cast shadows 
+        (currently only convex meshes are supported);
+
+   *    Better multithreading, shadow rendering is multithreaded, shaders
+        are multithreaded and speeded up;
 
 Differences from 1.05b to 1.06a
 --------------------------------
 
-   *	Advanced prefiller sphere mapping resulting in better smoothing of
-	sphere edges.
+   *    Advanced prefiller sphere mapping resulting in better smoothing of
+        sphere edges.
 
-   *	Added triangle rendering support. Currently the following features are
-   	implemented:
-		- Phong Shading
-		- Stochastic (perlin noise) intensity offset mapping
-		- Reflections (optimized)
-		- Texture mapping
-		- Normal mapping
+   *    Added triangle rendering support. Currently the following features are
+        implemented:
+                - Phong Shading
+                - Stochastic (perlin noise) intensity offset mapping
+                - Reflections (optimized)
+                - Texture mapping
+                - Normal mapping
 
-   *	Floor texture should now be smoother
+   *    Floor texture should now be smoother
 
-   *	Added proper mipmap selection for sphere and triangle reflections
+   *    Added proper mipmap selection for sphere and triangle reflections
 
-   *	Autodetecting number of CPUs
-   
-   *	Added "Object Glow" effect
+   *    Autodetecting number of CPUs
 
-   *	Fixed a string of minor bugs
-  
+   *    Added "Object Glow" effect
+
+   *    Fixed a string of minor bugs
