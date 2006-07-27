@@ -95,6 +95,12 @@ FractConfig::FractConfig()
 	defaults();
 }
 
+static void fixnl(char *s)
+{
+	int i = (int) strlen(s)-1;
+	while(i > 0 && (s[i]=='\n' || s[i] == '\r')) s[i--] = 0;
+}
+
 void FractConfig::init(void)
 {
 	FILE *f;
@@ -107,14 +113,22 @@ void FractConfig::init(void)
 		s1[i] = 0;
 		strcpy(a, s1);
 		strcpy(b, s1 + i + 1);
-		if (!strcmp(a, "credits_shown"))
+		if (!strcmp(a, "credits_shown")) {
 			strcpy(credits_shown, b);
+			fixnl(credits_shown);
+		}
 		if (!strcmp(a, "install_id"))
 			sscanf(b, "%d", &install_id);
 		if (!strcmp(a, "last_mhz"))
 			sscanf(b, "%d", &last_mhz);
 		if (!strcmp(a, "last_fps"))
 			sscanf(b, "%f", &last_fps);
+		if (!strcmp(a, "server")) {
+			strcpy(server, b);
+			fixnl(server);
+		}
+		if (!strcmp(a, "server_port"))
+			sscanf(b, "%d", &server_port);
 	}
 	fclose(f);
 }
@@ -129,6 +143,8 @@ void FractConfig::finish(void)
 	fprintf(f, "last_mhz=%d\n", last_mhz);
 	fprintf(f, "last_fps=%.2f\n", last_fps);
 	if (last_resultfile[0]) fprintf(f, "last_resultfile=%s\n", last_resultfile);
+	fprintf(f, "server=%s\n", server);
+	fprintf(f, "server_port=%d\n", server_port);
 	fclose(f);
 }
 
