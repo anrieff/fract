@@ -24,11 +24,15 @@
 
 #ifdef _WIN32
 #	include <Winsock2.h>
+#	define ALLSHUTDOWN SD_BOTH
+#	define close_socket closesocket
 #else
 #	include <netdb.h>
 #	include <sys/socket.h>
 #	include <netinet/in.h>
 #	include <netinet/tcp.h>
+#	define ALLSHUTDOWN SHUT_RDWR
+#	define close_socket close
 #endif
 
 BEGIN_EVENT_TABLE(SendDialog, wxDialog)
@@ -54,9 +58,8 @@ SendDialog::SendDialog(wxWindow *parent, wxString server, int port, wxString fn)
 		wxPoint(10,  90));
 	m_sendbtn = new wxButton(this, bSendClick, "&Send", wxPoint(140, 210), 
 		wxSize(95, 30));
-	wxButton *cb = new wxButton(this, bCancelClick, "&Cancel", 
+	m_cancelbtn = new wxButton(this, bCancelClick, "&Cancel", 
 		wxPoint(245, 210), wxSize(95, 30));
-	cb->Refresh();
 	
 	m_server = server;
 	m_port = port;
@@ -137,6 +140,8 @@ void SendThread::DoWork(void)
 	TestDestroy();
 	setv("Sending...", 4, "");
 	
+	wxSleep(3); //allow for the server to kick us if we're flooders
+	
 	//
 	// Step 4: Send the result
 	//
@@ -144,9 +149,7 @@ void SendThread::DoWork(void)
 	int i, tosend = 1024;
 	do {
 		int r = send(fd, (dlg->fbuff)+i, tosend, 0);
-		printf("Successfully sent %d bytes\n", r);
 		if (r == -1) {
-			perror("send()");
 			FAIL("Sending failed; the server may be busy or\ndown right now - try again later");
 		}
 		i += r;
@@ -155,10 +158,17 @@ void SendThread::DoWork(void)
 		TestDestroy();
 	} while(tosend);
 	
+	if (shutdown(fd, ALLSHUTDOWN))
+		FAIL("Final sending failed; the server may be busy or\ndown right now - try again later");
+	
+	if (close(fd))
+		FAIL("Connection finalization failed; the server may be busy or\ndown right now - try again later");
+	
 	setv("OK", 5, 
 			"Your result was sent successfully. Please allow 15 minutes\n"
 			"for your score to appear on the site");
 	dlg->th_finished = 1;
+	dlg->th_succ = 1;
 	return;
 }
 
@@ -194,6 +204,7 @@ void SendDialog::OnSendBtnClick(wxCommandEvent & )
 	th_ht2 = "Initializing...";
 	th_text2 = "";
 	th_gval = 0;
+	th_succ = 0;
 	th_finished = 0;
 	m_timer = new wxTimer(this, tTimer);
 	m_timer->Start(150);
@@ -215,6 +226,7 @@ void SendDialog::OnTimerTick(wxTimerEvent &)
 	ht2->SetLabel(th_ht2);
 	m_text2->SetLabel(th_text2);
 	gauge->SetValue(th_gval);
+	if (th_succ) m_cancelbtn->SetLabel("&OK");
 	lock.Unlock();
 }
 

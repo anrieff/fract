@@ -442,18 +442,23 @@ void ResultBrowser::AddLastResult(void)
 
 void ResultBrowser::OnBtnSendResult(wxCommandEvent &)
 {
-	wxArrayInt r = m_grid->GetSelectedRows();
-	if (r.GetCount() == 0) {
+	int idx = -1, count = 0;
+	for (int i = 0; i < m_grid->GetNumberRows(); i++) {
+		if (m_grid->GetCellValue(i, 4) == "1") {
+			count++;
+			idx = i;
+		}
+	}
+	if (count == 0) {
 		wxMessageBox("Select a result before trying to submit it", "Error", wxICON_ERROR);
 		return ;
 	}
-	if (r.GetCount() > 1) {
+	if (count > 1) {
 		wxMessageBox("Please, select a single result", "Error", wxICON_ERROR);
 		return ;
-	}
+	}	
 	
-	unsigned idx = r[0];
-	if (idx >= m_last_displayed_results.size()) return;
+	if (idx >= (int) m_last_displayed_results.size()) return;
 	ResultNode rn = m_last_displayed_results[idx];
 	
 	if (!wxFileExists(rn.res_file)) {

@@ -38,7 +38,7 @@ public:
 
 
 struct SendDialog : public wxDialog {
-	wxButton *m_sendbtn;
+	wxButton *m_sendbtn, *m_cancelbtn;
 	wxStaticText *m_text1, *m_text2, *ht1, *ht2;
 	wxGauge *gauge;
 	wxString m_server, m_fn;
@@ -51,7 +51,7 @@ struct SendDialog : public wxDialog {
 	volatile int th_gval;
 	wxString th_ht2;
 	wxString th_text2;
-	volatile int th_finished;
+	volatile int th_finished, th_succ;
 	
 	SendDialog (wxWindow *parent, wxString server, int port, wxString fn);
 	void OnSendBtnClick(wxCommandEvent&);
