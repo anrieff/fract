@@ -16,13 +16,20 @@ fract:
 	[***] Compile a realistic changelog
 	[***] Fix the loop options
 	[***] Don't output result file if ESC is pressed
+	[   ] Credits
 
 wxfractgui:
-	[   ] Browse the last result
-	[   ] Show my.xml and db.xml in the result browsing window
+	[***] Browse the last result
+	[***] Show my.xml and db.xml in the result browsing window
               (and suggest downloading newer db.xml)
-	[   ] Support uploading the result directly
-	[   ] Include instructions for uploading through mail
+	[***] Support uploading the result directly
+	[***] Include instructions for uploading through mail
+
+server-side:
+	[   ] Filter results by installation_id
+	[   ] Push some kool background
+	[   ] Catch SIGUSR1 and refresh on it
+	[   ] Output to log when refreshing
 
 MINOR:
 fract:
@@ -30,7 +37,7 @@ fract:
 	[   ] Light object, star like (w/ lens flare?)
 
 wxfractgui:
-	[   ] New processors
+	[***] New processors
 
 
 NICE_TO_HAVE:
