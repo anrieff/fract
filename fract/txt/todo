@@ -16,7 +16,7 @@ fract:
 	[***] Compile a realistic changelog
 	[***] Fix the loop options
 	[***] Don't output result file if ESC is pressed
-	[   ] Credits
+	[***] Credits
 
 wxfractgui:
 	[***] Browse the last result
@@ -28,8 +28,8 @@ wxfractgui:
 server-side:
 	[   ] Filter results by installation_id
 	[   ] Push some kool background
-	[   ] Catch SIGUSR1 and refresh on it
-	[   ] Output to log when refreshing
+	[***] Catch SIGUSR1 and refresh on it
+	[***] Output to log when refreshing
 
 MINOR:
 fract:
