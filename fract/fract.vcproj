@@ -207,6 +207,9 @@
 				RelativePath=".\src\cpu.cpp">
 			</File>
 			<File
+				RelativePath=".\src\credits.cpp">
+			</File>
+			<File
 				RelativePath=".\src\fract.cpp">
 			</File>
 			<File
@@ -306,6 +309,9 @@
 			</File>
 			<File
 				RelativePath=".\src\cpu.h">
+			</File>
+			<File
+				RelativePath=".\src\credits.h">
 			</File>
 			<File
 				RelativePath=".\src\cross_vars.h">
