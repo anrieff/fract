@@ -50,6 +50,8 @@ typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
  void intro_progress(SDL_Surface *p, double prog);
  void intro_progress_init(SDL_Surface *p, char * message);
  void printxy(SDL_Surface *p, Uint32 *a, const RawImg& font, int x, int y, Uint32 col, float opacity, const char *buf, ...);
+ void set_print_callback(void (*callback) (Uint32&, bool &, const char *));
+ int get_text_xlength(const char *);
 #endif
 
  int xres(void);

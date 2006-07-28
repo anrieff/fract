@@ -13,6 +13,7 @@
 #include "blur.h"
 #include "cmdline.h"
 #include "common.h"
+#include "credits.h"
 #include "cpu.h"
 #include "gfx.h"
 #include "mesh.h"
@@ -202,7 +203,6 @@ void close_program(void)
 	vectormath_close();
 	saveload_close();
 	shaders_close();
-	//render_close(); <- this has been moved to scene_close();
 	shadows_close();
 	scene_close();
 	triangle_close();
@@ -483,17 +483,16 @@ void commandline_parse(void)
 
 
 int main(int argc, char *argv[])
-{	
+{
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
 	commandline_parse();
 	init_program();
+	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }
 	for (int i = 0; i < scene_count && run_result == RUN_OK; i++) {
 		Scene scene(scenes[i]);
-		if (i == 0) {
-			scene.videoinit();
-		}
+		if (i == 0) Scene::videoinit();
 		scene.init();
 		run_result = scene.run(&stopwatch, outrocap);
 		scene.close();
@@ -506,6 +505,10 @@ int main(int argc, char *argv[])
 	       stopwatch.total_data() / stopwatch.total());
 	
 	if (developer || option_exists("--prof-stats")) prof_statistics();
+	if (!strcmp(config.credits_shown, "no")) {
+		show_credits();
+		strcpy(config.credits_shown, "yes");
+	}
 	close_program();
 	return 0;
 }

@@ -47,6 +47,15 @@ extern int camera_moved;
 extern int RowMin[], RowMax[];
 extern RawImg font0;
 
+static inline int inrange(int x, int y)
+{
+ return ((unsigned) x< (unsigned)Xres && (unsigned) y<(unsigned)Yres);
+}
+
+static inline int inrange2(int x, int y)
+{
+ return ((unsigned) x<(unsigned)Xres2 && (unsigned) y<(unsigned)Yres2);
+}
 
 // PreSC[i][j][0] = sin(j/i*2*pi)
 // PreSC[i][j][1] = cos(j/i*2*pi)
@@ -434,57 +443,95 @@ static inline Uint32 addrgb(Uint32 A, Uint32 B)
 }
 
 #ifdef ACTUALLYDISPLAY
+
+void (*printxy_callback) (Uint32&, bool&, const char *);
 // a printf-like procedure... prints a message at x,y with a color col and the given opacity
 void printxy(SDL_Surface *p, Uint32 *a, const RawImg &font, int x, int y, Uint32 col, float opacity, const char *buf, ...)
 {
- va_list arg;
- static char s[1024];
- int i, fx, x0, y0;
- int ampi, indeh;
- int *fontdata = (int*) font.get_data();
- double amp;
-
- va_start(arg, buf);
-#ifdef _MSC_VER
- _vsnprintf(s, 1024, buf, arg); // M$ sucks with those _names :)
-#else
- vsnprintf(s, 1024, buf, arg);
-#endif
- va_end(arg);
- i = 0;
- while (s[i] && i < 1024) {
-	if (s[i]>32 && s[i]<126) {
-		fx = (int) ((s[i]-33)*FONT_XSIZE);
-		for (x0=0;x0<FONT_XSIZE_FLOOR; x0++)
-			for (y0=0;y0<FONT_YSIZE;y0++) {
-				ampi= fontdata[fx+x0 + y0*font.get_x()] & 0xff;
-				amp = ampi / 255.0;
-				ampi<<=8;
-				if (amp>0.0005) {
-					ampi = (int) (ampi* opacity);
-					indeh = x + x0 + (y + y0)*Xres;
-					a[ indeh ] = addrgb	(
-									multiplycolor(a[ indeh ], 65535 - ampi),
-									multiplycolor(col, ampi)
-								);
+	va_list arg;
+	static char s[1024];
+	int i, fx, x0, y0;
+	int ampi, indeh;
+	int *fontdata = (int*) font.get_data();
+	double amp;
+	bool underline = false;
+	
+	va_start(arg, buf);
+	#ifdef _MSC_VER
+	_vsnprintf(s, 1024, buf, arg); // M$ sucks with those _names :)
+	#else
+	vsnprintf(s, 1024, buf, arg);
+	#endif
+	va_end(arg);
+	i = 0;
+	while (s[i] && i < 1024) {
+		if (printxy_callback && s[i] == '[') {
+			int j = i;
+			while (s[j] && s[j] != ']') j++;
+			if (!s[j]) break;
+			char temp[32];
+			s[j] = 0;
+			strcpy(temp, s + i + 1);
+			s[j] = ']';
+			printxy_callback(col, underline, temp);
+			i = j + 1;
+			if (!s[i]) break;
+		}
+		if (s[i]>32 && s[i]<126) {
+			fx = (int) ((s[i]-33)*FONT_XSIZE);
+			for (x0=0;x0<FONT_XSIZE_FLOOR; x0++) {
+				for (y0=0;y0<FONT_YSIZE;y0++) {
+					ampi= fontdata[fx+x0 + y0*font.get_x()] & 0xff;
+					amp = ampi / 255.0;
+					ampi<<=8;
+					if (amp>0.0005) {
+						ampi = (int) (ampi* opacity);
+						indeh = x + x0 + (y + y0)*Xres;
+						if (inrange(x + x0, y + y0)) {
+							a[ indeh ] = addrgb	(
+											multiplycolor(a[ indeh ], 65535 - ampi),
+											multiplycolor(col, ampi)
+										);
+						}
 					}
 				}
+				y0 = FONT_YSIZE;
+				if (underline) {
+					if (inrange(x + x0, y + y0))
+						a[x + x0 + (y + y0) * Xres] = col;
+					if (inrange(x + x0 + 1, y + y0))
+						a[x + x0 + 1 + (y + y0) * Xres] = col;
+				}
+			}
 		}
- 	i++; x+=FONT_XSIZE_CEIL;
-	if (x>=Xres-1- FONT_XSIZE_CEIL) break;
- 	}
+		i++; x+=FONT_XSIZE_CEIL;
+		if (x>=Xres-1- FONT_XSIZE_CEIL) break;
+	}
 }
+
+void set_print_callback(void (*callback) (Uint32&, bool &, const char *))
+{
+	printxy_callback = callback;
+}
+
+int get_text_xlength(const char *s)
+{
+	int res = 0;
+	int i = 0;
+	while (s[i] && i < 1024) {
+		if (printxy_callback && s[i] == '[') {
+			int j = i;
+			while (s[j] && s[j] != ']') j++;
+			if (!s[j]) break;
+			i = j + 1;
+			if (!s[i]) break;
+		}
+		i++; res += FONT_XSIZE_CEIL;
+	}
+	return res;
+}
+
 #endif
-
-static inline int inrange(int x, int y)
-{
- return ((unsigned) x< (unsigned)Xres && (unsigned) y<(unsigned)Yres);
-}
-
-static inline int inrange2(int x, int y)
-{
- return ((unsigned) x<(unsigned)Xres2 && (unsigned) y<(unsigned)Yres2);
-}
 
 /* calculates the needed number of "shell" 3D points needed for the pre-filler
 

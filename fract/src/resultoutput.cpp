@@ -152,6 +152,8 @@ void FractConfig::defaults(void)
 {
 	strcpy(credits_shown, "no");
 	strcpy(last_resultfile, "");
+	strcpy(server, "fbench.com");
+	server_port = 43576;
 	install_id = time(NULL);
 	last_mhz = 200;
 	last_fps = 0.01;
@@ -298,6 +300,7 @@ void generate_result_file(FPSWatch & watch)
 	strcpy(a.comment, comment);
 	strcpy(a.chipset, chipset);
 	float saved_fps = a.overall_fps;
+	a.install_id = config.install_id;
 	a.calculate_md5_sum((void*)a.md5sum);
 	aes_encrypt(&a, sizeof(a));
 	char fn[64];

@@ -184,7 +184,7 @@ public:
 	void init(void);
 	int run(FPSWatch * = NULL, OutroCapturer * = NULL);
 	void close(void);
-	void videoinit(void);
+	static void videoinit(void);
 	static void videoclose(void);
 	static void outro(int exit_code, Uint32 * framebuffer, FPSWatch&, OutroCapturer *);
 	~Scene();

@@ -74,7 +74,6 @@ unsigned char m0ving[MAX_SPHERES];
 
 
 
-#define InitMatrix(m) m[0][0]=a[0], m[1][0]=b[0], m[2][0]=-c[0], m[0][1]=0, m[1][1]=b[1], m[2][1]=-c[1], m[0][2]=a[2], m[1][2]=b[2], m[2][2]=-c[2]
 #define InitMatrix2(m) m[0][0]=xv[0], m[0][1]=xv[1], m[0][2]=xv[2], m[1][0]=yv[0], m[1][1]=yv[1], m[1][2]=yv[2], m[2][0]=zv[0], m[2][1]=zv[1], m[2][2]=zv[2]
 #define InitMatrix3(m) m[0][0]=a[0], m[0][1]=b[0], m[0][2]=-c[0], m[1][0]=a[1], m[1][1]=b[1], m[1][2]=-c[1], m[2][0]=a[2], m[2][1]=b[2], m[2][2]=-c[2]
 
@@ -112,6 +111,20 @@ void calc_grid_basics(const Vector &c, double alpha, double beta, Vector w[3])
  calc_grid_point(c, alpha-A_ALPHA_OFFSET*fov*FOV_CORRECTION, beta-A_BETA_OFFSET*fov*FOV_CORRECTION, alpha, w[2]);
 }
 
+void InitMatrix(double m[3][3], const Vector&a, const Vector &b, const Vector &c) 
+{
+	m[0][0]=a[0]; 
+	m[1][0]=b[0]; 
+	m[2][0]=-c[0];
+	m[0][1]=0;
+	m[1][1]=b[1];
+	m[2][1]=-c[1];
+	m[0][2]=a[2];
+	m[1][2]=b[2];
+	m[2][2]=-c[2];
+}
+
+
 // calculates the determinant of the 3*3 matrix M.
 double MatrixRoot(double M[3][3])
 {
@@ -135,7 +148,7 @@ int  project_sphere(Sphere *d, const Vector & cur, const Vector w[3], int *dx, i
  b = w[2] - w[0];
  c.make_vector(d->pos, cur);
 
- InitMatrix(m);
+ InitMatrix(m, a, b, c);
  Dcr = MatrixRoot(m);
  if (iabs(Dcr)<0.01) {
  	//printf("Negative Determinant - ");
@@ -146,10 +159,10 @@ int  project_sphere(Sphere *d, const Vector & cur, const Vector w[3], int *dx, i
  //InitMatrix(m);
  ReplaceCol(m, 0, h);
  beta = MatrixRoot(m) / Dcr;
- InitMatrix(m);
+ InitMatrix(m, a, b, c);
  ReplaceCol(m, 1, h);
  gamma = MatrixRoot(m) / Dcr;
- InitMatrix(m);
+ InitMatrix(m, a, b, c);
  ReplaceCol(m, 2, h);
  delta = MatrixRoot(m) / Dcr;
 
@@ -185,14 +198,17 @@ int  project_sphere(Sphere *d, const Vector & cur, const Vector w[3], int *dx, i
  * 4 - The point is behind the user
  * 2 - The point is outside the Y range
  * 1 - The point is outside the X range
- */ 
+ */
+#ifdef __GNUC__
+int  project_point(float *dx, float *dy, const  Vector & d, const Vector & cur, Vector w[3], int xres, int yres) __attribute__((noinline));
+#endif
 int  project_point(float *dx, float *dy, const  Vector & d, const Vector & cur, Vector w[3], int xres, int yres)
 {
 	Vector a, b, c, h;
 	double m[3][3];
 	double Dcr, rDcr;
 	double beta, gamma, delta;
-	
+		
 	*dx = 0.0f; *dy = 0.0f;
 	// init the a, b, c & h vectors
 	h = cur - w[0];
@@ -200,7 +216,7 @@ int  project_point(float *dx, float *dy, const  Vector & d, const Vector & cur, 
 	b = w[2] - w[0];
 	c.make_vector(d, cur);
 	
-	InitMatrix(m);
+	InitMatrix(m, a, b, c);
 	Dcr = MatrixRoot(m);
 	if (iabs(Dcr)<0.01) {
 		//printf("Negative Determinant - ");
@@ -211,10 +227,10 @@ int  project_point(float *dx, float *dy, const  Vector & d, const Vector & cur, 
 	//InitMatrix(m);
 	ReplaceCol(m, 0, h);
 	beta = MatrixRoot(m) * rDcr;
-	InitMatrix(m);
+	InitMatrix(m, a, b, c);
 	ReplaceCol(m, 1, h);
 	gamma = MatrixRoot(m) * rDcr;
-	InitMatrix(m);
+	InitMatrix(m, a, b, c);
 	ReplaceCol(m, 2, h);
 	delta = MatrixRoot(m) * rDcr;
 	

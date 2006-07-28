@@ -343,17 +343,6 @@ public:
 			return retval;
 		}
 	}
-	
-	/// Displays some "useless" stats
-	void stats()
-	{
-		int c1 = 0;
-		for (Uint32 i = 0; i < hs; i++) {
-			if (hash[i]) c1++;
-		}
-		printf("Total slots = %u\nSlots used  = %u\n# of elements = %u\n",
-		       hs, c1, _count);
-	}
 };
 
 
