@@ -18,6 +18,10 @@
 #  include <config.h>
 #endif
 #include <wx/wx.h>
+#ifndef _WIN32
+#include <stdlib.h>
+#include <unistd.h>
+#endif
 #include "mainframe.h"
 
 class MyApp : public wxApp
@@ -29,6 +33,14 @@ class MyApp : public wxApp
 IMPLEMENT_APP(MyApp);
 bool MyApp::OnInit()
 {
+#ifndef _WIN32
+	// change dir to the process's dir...
+	char *dir = strdup(getenv("_"));
+	int i = strlen(dir) - 1;
+	while (i && dir[i] != '/') i--;
+	dir[++i] = 0;
+	if (strcmp(dir, "./")) chdir(dir);
+#endif
 	MainFrame *main_frame = new MainFrame(
 			"Fract Launcher for Fract 1.07",
 			wxPoint(50, 50),
