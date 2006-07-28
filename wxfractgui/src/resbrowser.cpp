@@ -23,6 +23,7 @@
 #include "senddialog.h"
 #include <time.h>
 #include <algorithm>
+#include <wx/image.h>
 using namespace std;
 
 const int COLCNT = 5;
@@ -147,7 +148,7 @@ void FConfig::refresh(void)
 	FILE *f = fopen("fract.cfg", "rt");
 	if (!f) return;
 	while (fgets(buff, 2048, f)) {
-		int i = strlen(buff)-1;
+		int i = (int) strlen(buff)-1;
 		while (i && (buff[i] == '\n' || buff[i] == '\r')) buff[i--] = 0;
 		while (i > 0 && buff[i] != '=') i--;
 		buff[i++] = 0;
@@ -266,7 +267,7 @@ int ResultXml::get_date(void)
 
 int ResultXml::size() const 
 {
-	return m_data.size();
+	return (int) m_data.size();
 }
 
 ResultNode& ResultXml::operator [] (int index)
@@ -294,20 +295,31 @@ void ResultXml::add_entry(const ResultNode& rn)
 
 ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab(parent, cmdline)
 {
+	wxPanel *panel = new wxPanel(this);
+// an ugly hack to use no panel even under windoze :)
+	wxColour BGCol = panel->GetBackgroundColour();
+	panel->Destroy();
+	SetOwnBackgroundColour(BGCol);
+	SetBackgroundColour(BGCol);
+
+	int xoff = 0, yoff = 0;
+#ifdef _WIN32
+	xoff = -10; yoff = -0;
+#endif
 	cfg.refresh();
-	m_sendbutton = new wxButton(this, bSendResult, "&Send Result", wxPoint(510, 50), wxSize(100, 30));
-	m_compare = new wxButton(this, bCompare, "&Compare", wxPoint(510, 90), wxSize(100, 30));
+	m_sendbutton = new wxButton(this, bSendResult, "&Send Result", wxPoint(510+xoff, 50), wxSize(100, 30));
+	m_compare = new wxButton(this, bCompare, "&Compare", wxPoint(510+xoff, 90), wxSize(100, 30));
 	m_sendbutton->Disable();
 	m_compare->Disable();
 	
-	wxStaticBox *sbLegend = new wxStaticBox(this, -1, "Legend", wxPoint(510, 200), wxSize(100, 120));
-	wxStaticText *stWhite = new wxStaticText(this, -1, "Stock", wxPoint(540, 230));
-	wxStaticText *stBlue = new wxStaticText(this, -1, "Your", wxPoint(540, 260));
-	wxStaticText *stRed = new wxStaticText(this, -1, "Last", wxPoint(540, 290));
+	wxStaticBox *sbLegend = new wxStaticBox(this, -1, "Legend", wxPoint(510+xoff, 200+yoff), wxSize(100, 120));
+	wxStaticText *stWhite = new wxStaticText(this, -1, "Stock", wxPoint(540+xoff, 230+yoff));
+	wxStaticText *stBlue = new wxStaticText(this, -1, "Your", wxPoint(540+xoff, 260+yoff));
+	wxStaticText *stRed = new wxStaticText(this, -1, "Last", wxPoint(540+xoff, 290+yoff));
 	sbLegend->Refresh(); stWhite->Refresh(); stBlue->Refresh(); stRed->Refresh();
-	CreateColorBox(wxPoint(515, 230), wxSize(20, 20), wxColour(0xffffff));
-	CreateColorBox(wxPoint(515, 260), wxSize(20, 20), wxColour(0xefdab2));
-	CreateColorBox(wxPoint(515, 290), wxSize(20, 20), wxColour(0xb2c3ef));
+	CreateColorBox(wxPoint(515+xoff, 230+yoff), wxSize(20, 20), wxColour(0xffffff));
+	CreateColorBox(wxPoint(515+xoff, 260+yoff), wxSize(20, 20), wxColour(0xefdab2));
+	CreateColorBox(wxPoint(515+xoff, 290+yoff), wxSize(20, 20), wxColour(0xb2c3ef));
 	
 	builtin = my = NULL;
 	if (wxFileExists("db.xml"))
@@ -329,11 +341,11 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 	if (builtin && get_current_date() - builtin->get_date() > 20) {
 		wxStaticText* old_warning = new wxStaticText(this, -1, 
 		"Your result database (db.xml) is more than 20 days old\n"
-		"Get a fresh copy from http://fbench.com/", wxPoint(20, 325));
+		"Get a fresh copy from http://fbench.com/", wxPoint(20+xoff, 325+yoff));
 		old_warning->Refresh();
 	}
 	
-	m_grid = new wxGrid(this, gGrid, wxPoint(20, 20), wxSize(480, 300));
+	m_grid = new wxGrid(this, gGrid, wxPoint(20+xoff, 20+yoff), wxSize(480, 300));
 	
 	m_grid->CreateGrid(0, COLCNT);
 	m_grid->SetSelectionMode(wxGrid::wxGridSelectRows);
@@ -375,8 +387,8 @@ void ResultBrowser::DisplayResults(vector<ResultNode> & results)
 {
 	if (results.empty()) return;
 	sort(results.begin(), results.end());
-	m_grid->DeleteRows(0, m_grid->GetNumberRows());
-	m_grid->AppendRows(results.size());
+	if (m_grid->GetNumberRows()) m_grid->DeleteRows(0, m_grid->GetNumberRows());
+	m_grid->AppendRows((int)results.size());
 	
 	for (unsigned i = 0; i < results.size(); i++) {
 		ResultNode &r = results[i];
@@ -489,7 +501,7 @@ void ResultBrowser::OnBtnCompare(wxCommandEvent &)
 			ci.push_back(info);
 		}
 	}
-	CompareDialog *dialog = new CompareDialog(this, &ci[0], ci.size());
+	CompareDialog *dialog = new CompareDialog(this, &ci[0], (int) ci.size());
 	dialog->ShowModal();
 	dialog->Destroy();
 }

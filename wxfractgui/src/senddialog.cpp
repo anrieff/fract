@@ -23,8 +23,8 @@
 #include <wx/thread.h>
 
 #ifdef _WIN32
-#	include <Winsock2.h>
-#	define ALLSHUTDOWN SD_BOTH
+//#	include <Winsock2.h>
+#	define ALLSHUTDOWN 2
 #	define close_socket closesocket
 #else
 #	include <netdb.h>
@@ -56,14 +56,23 @@ SendDialog::SendDialog(wxWindow *parent, wxString server, int port, wxString fn)
 		"(plain attachment or zip/rar-ed) to the following address:\n\n"
 		"skalaren_alpinist@abv.bg",
 		wxPoint(10,  90));
-	m_sendbtn = new wxButton(this, bSendClick, "&Send", wxPoint(140, 210), 
+	int yoff = 0;
+#ifdef _WIN32
+	yoff = -35;
+#endif
+	m_sendbtn = new wxButton(this, bSendClick, "&Send", wxPoint(140, 210+yoff), 
 		wxSize(95, 30));
 	m_cancelbtn = new wxButton(this, bCancelClick, "&Cancel", 
-		wxPoint(245, 210), wxSize(95, 30));
+		wxPoint(245, 210+yoff), wxSize(95, 30));
 	
 	m_server = server;
 	m_port = port;
 	m_fn = fn;
+
+// if on windows, init the winsock stuff
+	WSAData wsadata;
+	WORD reqver = MAKEWORD(1, 0);
+	WSAStartup(reqver, &wsadata);
 }
 
 static int EndX(wxWindow * w)
@@ -146,7 +155,7 @@ void SendThread::DoWork(void)
 	// Step 4: Send the result
 	//
 	
-	int i, tosend = 1024;
+	int i = 0, tosend = 1024;
 	do {
 		int r = send(fd, (dlg->fbuff)+i, tosend, 0);
 		if (r == -1) {
@@ -184,7 +193,7 @@ void SendDialog::OnSendBtnClick(wxCommandEvent & )
 	
 	//char fbuff[1024];
 	FILE *f = fopen(m_fn.c_str(), "rb");
-	int r = fread(fbuff, 1, 1024, f);
+	int r = (int) fread(fbuff, 1, 1024, f);
 	fclose(f);
 	if (r != 1024) {
 		wxMessageBox("The result file is incomplete or corrupted", "Error", wxICON_ERROR);
@@ -237,6 +246,7 @@ void SendDialog::Cleanup(void)
 	}
 	m_timer->Stop();
 	delete m_timer;
+	WSACleanup();
 }
 
 void SendDialog::OnTryClose(wxCloseEvent&)

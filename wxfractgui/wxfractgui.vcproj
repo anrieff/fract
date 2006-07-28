@@ -33,10 +33,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="comctl32.lib rpcrt4.lib wxbase26d.lib wxmsw26d_core.lib"
+				AdditionalOptions="comctl32.lib rpcrt4.lib wxbase26d.lib wxmsw26d_core.lib wxmsw26d_adv.lib ws2_32.lib wxpngd.lib wxzlibd.lib wxbase26d_xml.lib wxexpatd.lib"
 				OutputFile="$(OutDir)/wxfractgui.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;k:\wxWidgets-2.6.1\contrib\lib&quot;;&quot;k:\wxWidgets-2.6.1\lib\vc_lib\mswd&quot;;&quot;k:\wxWidgets-2.6.1\lib\vc_lib&quot;"
+				AdditionalLibraryDirectories="&quot;L:\wxWidgets\contrib\lib&quot;;&quot;L:\wxWidgets\lib\vc_lib\mswd&quot;;&quot;L:\wxWidgets\lib\vc_lib&quot;"
 				IgnoreDefaultLibraryNames="msvcrt.lib;libc.lib;libcd.lib"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/wxfractgui.pdb"
@@ -83,7 +83,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="comctl32.lib rpcrt4.lib wxbase26.lib wxmsw26_core.lib"
+				AdditionalOptions="comctl32.lib rpcrt4.lib wxbase26.lib wxmsw26_core.lib wxmsw26_adv.lib ws2_32.lib wxpng.lib wxzlib.lib wxbase26_xml.lib wxexpat.lib"
 				OutputFile="$(OutDir)/wxfractgui.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;L:\wxWidgets\contrib\lib&quot;;&quot;L:\wxWidgets\lib\vc_lib\msw&quot;;&quot;L:\wxWidgets\lib\vc_lib&quot;"
@@ -129,10 +129,25 @@
 				RelativePath=".\src\basictab.cpp">
 			</File>
 			<File
+				RelativePath=".\src\comparedlg.cpp">
+			</File>
+			<File
+				RelativePath=".\src\fonts.cpp">
+			</File>
+			<File
 				RelativePath=".\src\fract_specific.cpp">
 			</File>
 			<File
+				RelativePath=".\src\luxi_font.cpp">
+			</File>
+			<File
 				RelativePath=".\src\mainframe.cpp">
+			</File>
+			<File
+				RelativePath=".\src\resbrowser.cpp">
+			</File>
+			<File
+				RelativePath=".\src\senddialog.cpp">
 			</File>
 			<File
 				RelativePath=".\src\wxfractgui.cpp">
@@ -149,10 +164,16 @@
 				RelativePath=".\src\basictab.h">
 			</File>
 			<File
+				RelativePath=".\src\comparedlg.h">
+			</File>
+			<File
 				RelativePath=".\src\countries_list.h">
 			</File>
 			<File
 				RelativePath=".\src\cpu_list.h">
+			</File>
+			<File
+				RelativePath=".\src\fonts.h">
 			</File>
 			<File
 				RelativePath=".\src\fract_specific.h">
@@ -164,7 +185,13 @@
 				RelativePath=".\src\mainframe.h">
 			</File>
 			<File
+				RelativePath=".\src\resbrowser.h">
+			</File>
+			<File
 				RelativePath=".\resource.h">
+			</File>
+			<File
+				RelativePath=".\src\senddialog.h">
 			</File>
 			<File
 				RelativePath=".\src\wxfractgui.h">

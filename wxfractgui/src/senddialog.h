@@ -25,7 +25,7 @@
 #include <wx/gauge.h>
 #include <wx/timer.h>
 
-class SendDialog;
+struct SendDialog;
 class SendThread: public wxThread {
 	SendDialog *dlg;
 public:

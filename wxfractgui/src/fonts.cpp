@@ -20,6 +20,10 @@
 
 extern unsigned char luxi_data[];
 
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#endif
+
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>

@@ -45,6 +45,13 @@ END_EVENT_TABLE()
 AdvancedTab::AdvancedTab(wxWindow *parent, wxTextCtrl *cmdline)
 	:GenericTab(parent, cmdline)
 {
+	wxPanel *panel = new wxPanel(this);
+// an ugly hack to use no panel even under windoze :)
+	wxColour BGCol = panel->GetBackgroundColour();
+	panel->Destroy();
+	SetOwnBackgroundColour(BGCol);
+	SetBackgroundColour(BGCol);
+
 	RebuildOK = false;
 	int cw, ch;
 	parent->GetClientSize(&cw, &ch);
@@ -465,6 +472,7 @@ void AdvancedTab::GenerateGUI(void)
 				      wxPoint(32, 158),
 				      wxSize(104, -1));
 	wxArrayString a_cmbNumCPU;
+	a_cmbNumCPU.Add("auto");
 	a_cmbNumCPU.Add("1");
 	a_cmbNumCPU.Add("2");
 	a_cmbNumCPU.Add("3");
@@ -476,7 +484,7 @@ void AdvancedTab::GenerateGUI(void)
 	a_cmbNumCPU.Add("16");
 	a_cmbNumCPU.Add("32");
 	a_cmbNumCPU.Add("64");
-	m_cmbNumCPU = new wxComboBox(this, cmbNumCPU, "1",
+	m_cmbNumCPU = new wxComboBox(this, cmbNumCPU, "auto",
 				     wxPoint(140, 154),
 				     wxSize(110, -1),
 					a_cmbNumCPU, wxCB_READONLY | wxCB_DROPDOWN);
@@ -548,7 +556,7 @@ void AdvancedTab::Rebuild(void)
 			a += "--no-sse ";
 		}
 	}
-	if (m_cmbNumCPU->GetValue() != "1") {
+	if (m_cmbNumCPU->GetValue() != "auto") {
 		a += "--cpus=" + m_cmbNumCPU->GetValue() + " ";
 	}
 	if (!m_cbShadows->GetValue() ) {

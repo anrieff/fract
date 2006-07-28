@@ -152,6 +152,7 @@ void MainFrame::TabChanged(wxNotebookEvent & event)
 		run_prog->Disable();
 	}
 	current->RefreshCmdLine();
+	event.Skip();
 }
 
 void MainFrame::RunPressed(wxCommandEvent &)

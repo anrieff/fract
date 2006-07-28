@@ -38,6 +38,13 @@ char *lck(char *s)
 BasicTab::BasicTab(wxWindow *parent, wxTextCtrl *cmdline)
 	:GenericTab(parent, cmdline)
 {
+	wxPanel *panel = new wxPanel(this);
+// an ugly hack to use no panel even under windoze :)
+	wxColour BGCol = panel->GetBackgroundColour();
+	panel->Destroy();
+	SetOwnBackgroundColour(BGCol);
+	SetBackgroundColour(BGCol);
+
 	int cw, ch;
 	parent->GetClientSize(&cw, &ch);
 	//

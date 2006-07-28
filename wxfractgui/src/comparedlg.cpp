@@ -21,7 +21,9 @@
  
 #include "comparedlg.h"
 
+#include <wx/image.h>
 #include <math.h>
+#include <algorithm>
 using namespace std;
 		
 BEGIN_EVENT_TABLE(CompareDialog, wxDialog)
@@ -161,13 +163,13 @@ void FractChart::draw_chart(CompareInfo a[], int n, float (*fun) (CompareInfo&),
 	for (int i = 0; i < n; i++) {
 		float coeff = (fun(a[i]) - minval) / (maxval - minval);
 		unsigned mycolor = (int) (0xff * (1-coeff)) | (((int) (0xff0000 * coeff))&0xff0000);
-		for (float angle = 0.0f; angle < 2 * M_PI; angle += 0.02) {
+		for (float angle = 0.0f; angle < 2 * M_PI; angle += 0.02f) {
 			int sgx = 10 + (int) ( 10.0f * sin(angle));
 			int sgy = i * (sizey-15) / n + per_entry/2 + 5 - (int) ( 15.0f * cos(angle));
 			float beta = fabs(angle - 5.12);
 			if (beta > M_PI) beta = 2 * M_PI - beta;
 			
-			float intensity = cos(beta); if (intensity < 0.40) intensity = 0.40;
+			float intensity = cos(beta); if (intensity < 0.40f) intensity = 0.40f;
 			intensity += pover(intensity, 65);
 			drawcol = mulcol(mycolor, intensity);
 			draw_line(sx + sgx, sy + sgy, sx + sgx + (int) ((sizex-20)*fun(a[i])/minval/mtick), sy + sgy);
