@@ -68,11 +68,15 @@ SendDialog::SendDialog(wxWindow *parent, wxString server, int port, wxString fn)
 	m_server = server;
 	m_port = port;
 	m_fn = fn;
-
+	th_finished = 0;
+	m_timer = NULL;
+	trd = NULL;
+#ifdef _WIN32
 // if on windows, init the winsock stuff
 	WSAData wsadata;
 	WORD reqver = MAKEWORD(1, 0);
 	WSAStartup(reqver, &wsadata);
+#endif
 }
 
 static int EndX(wxWindow * w)
@@ -241,12 +245,16 @@ void SendDialog::OnTimerTick(wxTimerEvent &)
 
 void SendDialog::Cleanup(void)
 {
-	if (!th_finished) {
+	if (!th_finished && trd) {
 		trd->want_to_quit = true;
 	}
-	m_timer->Stop();
-	delete m_timer;
+	if (m_timer) {
+		m_timer->Stop();
+		delete m_timer;
+	}
+#ifdef _WIN32
 	WSACleanup();
+#endif
 }
 
 void SendDialog::OnTryClose(wxCloseEvent&)
