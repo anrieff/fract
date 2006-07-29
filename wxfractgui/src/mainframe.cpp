@@ -145,11 +145,11 @@ void MainFrame::TabChanged(wxNotebookEvent & event)
 	if (current->CanRun()) {
 		run_button->Enable();
 		run_line->Enable();
-		run_prog->Enable();
+		if (run_prog) run_prog->Enable();
 	} else {
 		run_line->Disable();
 		run_button->Disable();
-		run_prog->Disable();
+		if (run_prog) run_prog->Disable();
 	}
 	current->RefreshCmdLine();
 	event.Skip();

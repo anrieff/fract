@@ -33,7 +33,6 @@ class MyApp : public wxApp
 IMPLEMENT_APP(MyApp);
 bool MyApp::OnInit()
 {
-	/*
 #ifndef _WIN32
 	// change dir to the process's dir...
 	char *dir = strdup(getenv("_"));
@@ -43,7 +42,6 @@ bool MyApp::OnInit()
 	if (strcmp(dir, "./")) chdir(dir);
 	free(dir);
 #endif
-	*/
 	MainFrame *main_frame = new MainFrame(
 			"Fract Launcher for Fract 1.07",
 			wxPoint(50, 50),
