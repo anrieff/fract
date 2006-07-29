@@ -174,8 +174,9 @@ void SendThread::DoWork(void)
 	if (shutdown(fd, ALLSHUTDOWN))
 		FAIL("Final sending failed; the server may be busy or\ndown right now - try again later");
 	
-	if (close(fd))
-		FAIL("Connection finalization failed; the server may be busy or\ndown right now - try again later");
+	/*if (close(fd))
+		FAIL("Connection finalization failed; the server may be busy or\ndown right now - try again later");*/
+	close(fd);
 	
 	setv("OK", 5, 
 			"Your result was sent successfully. Please allow 15 minutes\n"
