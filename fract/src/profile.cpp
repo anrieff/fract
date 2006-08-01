@@ -72,9 +72,8 @@ void prof_statistics(void)
 	}
 }
 
-
-// gets the CPU speed using RDTSC.
-int prof_get_cpu_speed(void)
+// gets the CPU speed using RDTSC. Defined on all systems
+int prof_get_cpu_speed_fallback(void)
 {
 	long long start, end;
 	Uint32 clk0, clk;
@@ -93,3 +92,58 @@ int prof_get_cpu_speed(void)
 	if (res < 0    ) res =     0;
 	return res;
 }
+
+
+#ifdef _WIN32
+#define GETCPUSPEED_DEFINED
+#include <windows.h>
+// gets the CPU speed using windows registry
+int prof_get_cpu_speed(void)
+{
+	HKEY key;
+	long err = RegOpenKeyEx(HKEY_LOCAL_MACHINE,
+				"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+				0,
+				KEY_READ,
+				&key);
+	if (err != ERROR_SUCCESS) return prof_get_cpu_speed_fallback();
+	DWORD res = _MAX_PATH, bufsize = _MAX_PATH;
+	RegQueryValueEx(key, "~MHz", NULL, NULL, (LPBYTE) &res, &bufsize);
+	return (int) res;
+}
+#endif
+
+#ifdef linux
+#define GETCPUSPEED_DEFINED
+// gets the CPU speed using /proc/cpuinfo
+int prof_get_cpu_speed(void)
+{
+	FILE *f = fopen("/proc/cpuinfo", "rt");
+	if (!f) return prof_get_cpu_speed_fallback();
+	char buff[256];
+	while (fgets(buff, 256, f)) {
+		if (strncasecmp(buff, "cpu mhz", 7) == 0) {
+			int i = 0;
+			while (buff[i] && (buff[i] < '0' || buff[i] > '9')) i++;
+			int res;
+			if (!buff[i]) res = prof_get_cpu_speed_fallback();
+			else {
+				sscanf(&buff[i], "%d", &res);
+			}
+			fclose(f);
+			return res;
+		}
+	}
+	fclose(f);
+	return prof_get_cpu_speed_fallback();
+}
+#endif
+
+
+#ifndef GETCPUSPEED_DEFINED
+// This is only for non-linux and non-windows systems:
+int prof_get_cpu_speed(void)
+{
+	return prof_get_cpu_speed_fallback();
+}
+#endif
