@@ -65,8 +65,7 @@ BasicTab::BasicTab(wxWindow *parent, wxTextCtrl *cmdline)
 	wxStaticText *cpusel = new wxStaticText(this, -1, "CPU:", wxPoint(16, 48));
 	cputype = new wxComboBox(this, -1, default_cpu,
 				 wxPoint(EndX(cpusel) + 5, 45),
-				 wxSize(200, -1), cpulist, wxCB_DROPDOWN |
-						 wxCB_READONLY);
+				 wxSize(200, -1), cpulist, wxCB_DROPDOWN);
 	wxStaticText *chiptxt = new wxStaticText(this, -1, "Chipset:",
 			wxPoint(EndX(cputype)+20, 48));
 	chipset = new wxTextCtrl(this, -1, "Unknown", wxPoint(EndX(chiptxt)+5, 45),

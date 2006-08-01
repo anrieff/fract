@@ -52,6 +52,7 @@ const char *cpu_list[] = {
 		"Yonah (Core Duo)",
 		"Allendale (Core 2 Duo)",
 		"Conroe (Core 2 Duo)",
+		"Kentsfield",
 		
 		
 		
