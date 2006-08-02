@@ -23,7 +23,6 @@
 #include "resultoutput.h"
 
 const char *allowed_args[] = { "--official", "--cpus", "--no-thread", "" };
-extern int saved_cpuspd;
 
 bool are_args_ok(void)
 {
@@ -281,10 +280,7 @@ void generate_result_file(FPSWatch & watch)
 	get_compiler_version(a.compiler);
 	a.cpu_count = cpu.count;
 	strcpy(a.cpu_type, cputype);
-	if (saved_cpuspd == -1) {
-		saved_cpuspd = cpu.speed();
-	}
-	a.cpu_mhz = saved_cpuspd;
+	a.cpu_mhz = cpu.speed();
 	a.res_x = xres();
 	a.res_y = yres();
 	a.overall_fps = (float) (watch.total_data() / watch.total());

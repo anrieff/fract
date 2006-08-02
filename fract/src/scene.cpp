@@ -475,7 +475,6 @@ void Scene::videoclose(void)
 #endif
 }
 
-int saved_cpuspd = -1;
 void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCapturer * outrocapturer)
 {
 #ifndef ACTUALLYDISPLAY
@@ -486,7 +485,6 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	int she = 0;
 #ifdef SHOW_CPU_SPEED
 	int cpuspd = cpu.speed();
-	saved_cpuspd = cpuspd;
 #endif
 #ifdef MAKE_CHECKSUM
 	Uint32 cksave;
