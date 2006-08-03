@@ -8,10 +8,11 @@
  *   (at your option) any later version.                                   *
  *-------------------------------------------------------------------------*
  *   Provides profiling routines                                           *
- *								           *
+ *                                                                         *
  ***************************************************************************/
 
 #include <stdio.h>
+#include <string.h>
 #include "MyTypes.h"
 #include "profile.h"
 #include "fract.h"
