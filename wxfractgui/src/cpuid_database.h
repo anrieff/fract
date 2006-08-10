@@ -18,23 +18,39 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef __BASIC_TAB_H__
-#define __BASIC_TAB_H__
-
-#include "generictab.h"
-
-class BasicTab: public GenericTab
-{
-	wxTextCtrl *username, *comment, *chipset;
-	wxTextCtrl *cputype;
-	wxComboBox *country;
-public:
-	BasicTab(wxWindow *parent, wxTextCtrl *cmdline);
-	void RefreshCmdLine(void);
-	bool RunPressed(void);
-	bool CanRun(void);
+ 
+struct MatchEntry {
+	int family, model, stepping, ext_family, ext_model;
+	char *name;
 };
 
-int EndX(wxWindow * w);
+const MatchEntry cpudb_intel[] = {
+	{ -1, -1, -1, -1, -1, "Unknown Intel CPU" },
+	
+	// i486
+	{ 4, -1, -1, -1, -1, "Unknown i486" },
+	{ 4,  0, -1, -1, -1, "i486 DX-25/33" },
+	{ 4,  1, -1, -1, -1, "i486 DX-50" },
+	{ 4,  2, -1, -1, -1, "i486 SX" },
+	{ 4,  3, -1, -1, -1, "i486 DX2" },
+	{ 4,  4, -1, -1, -1, "i486 SL" },
+	{ 4,  5, -1, -1, -1, "i486 SX2" },
+	{ 4,  7, -1, -1, -1, "i486 DX2 WriteBack" },
+	{ 4,  8, -1, -1, -1, "i486 DX4" },
+	{ 4,  9, -1, -1, -1, "i486 DX4 WriteBack" },
+	
+	// Pentia
+	{ 5, -1, -1, -1, -1, "Unknown Pentium" },
+	{ 5,  0, -1, -1, -1, "Pentium A-Step" },
+	{ 5,  1, -1, -1, -1, "Pentium 1 Classic" },
+	{ 5,  2, -1, -1, -1, "Pentium " },
+	{ 5,  3, -1, -1, -1, "Pentium " },
+	{ 5,  4, -1, -1, -1, "Pentium " },
+	{ 5,  7, -1, -1, -1, "Pentium " },
+	{ 5,  8, -1, -1, -1, "Pentium " },
 
-#endif // __BASIC_TAB_H__
+};
+
+const MatchEntry cpudb_amd[] = {
+	{ -1, -1, -1, -1, -1, "Unknown AMD CPU" },
+};
