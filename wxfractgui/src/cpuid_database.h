@@ -39,16 +39,29 @@ const MatchEntry cpudb_intel[] = {
 	{ 4,  8, -1, -1, -1, "i486 DX4" },
 	{ 4,  9, -1, -1, -1, "i486 DX4 WriteBack" },
 	
-	// Pentia
+	/* All Pentia: */
+	// Pentium 1
 	{ 5, -1, -1, -1, -1, "Unknown Pentium" },
 	{ 5,  0, -1, -1, -1, "Pentium A-Step" },
-	{ 5,  1, -1, -1, -1, "Pentium 1 Classic" },
-	{ 5,  2, -1, -1, -1, "Pentium " },
-	{ 5,  3, -1, -1, -1, "Pentium " },
-	{ 5,  4, -1, -1, -1, "Pentium " },
-	{ 5,  7, -1, -1, -1, "Pentium " },
-	{ 5,  8, -1, -1, -1, "Pentium " },
-
+	{ 5,  1, -1, -1, -1, "Pentium 1 (0.8u)" },
+	{ 5,  2, -1, -1, -1, "Pentium 1 (0.35u)" },
+	{ 5,  3, -1, -1, -1, "Pentium OverDrive" },
+	{ 5,  4, -1, -1, -1, "Pentium 1 (0.35u)" },
+	{ 5,  7, -1, -1, -1, "Pentium 1 (0.35u)" },
+	{ 5,  8, -1, -1, -1, "Pentium MMX (0.25u)" },
+	
+	// Pentium 2 / 3 / M / Conroe / whatsnext - all P6 based.
+	{ 6, -1, -1, -1, -1, "Unknown P6" },
+	{ 6,  0, -1, -1, -1, "Pentium 2 A-step" },
+	{ 6,  1, -1, -1, -1, "Pentium 2 (Klamath)" },
+	{ 6,  3, -1, -1, -1, "Pentium 2" },
+	{ 6,  5, -1, -1, -1, "Pentium 2 (Deschutes)" },
+	{ 6,  6, -1, -1, -1, "Pentium 2 (Dixon)" },
+	
+	{ 6,  7, -1, -1, -1, "Pentium 3 (Katmai)" },
+	{ 6,  8, -1, -1, -1, "Pentium 3 (Coppermine)" },
+	{ 6, 10, -1, -1, -1, "Pentium 3 (Coppermine)" },
+	{ 6, 11, -1, -1, -1, "Pentium 3 (Tualatin)" },
 };
 
 const MatchEntry cpudb_amd[] = {
