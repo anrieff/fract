@@ -40,6 +40,10 @@ static void full_info(void)
 	printf("CPU brand string is ");
 	if (brand) printf("\"%s\".\n", brand);
 		else printf("not supported.\n");
+	printf("Cache size is ");
+	int cache = get_cache_size();
+	if (cache == -1) printf("unknown.\n"); 
+		else printf("%dKB.\n", cache);
 }
 
 int main(int argc, char **argv)

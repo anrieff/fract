@@ -37,4 +37,11 @@ const char *identify_cpu(void);
 */ 
 const char *cpu_brand_string(void);
 
+/**
+ * get_cache_size
+ * @brief returns the L2 cache size in kilobytes
+ * @returns the amount of cache (if available) or -1 for unknown
+*/ 
+int get_cache_size(void);
+
 #endif // __CPUID_H__

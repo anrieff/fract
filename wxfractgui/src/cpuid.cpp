@@ -281,12 +281,12 @@ int get_cache_size(void)
 {
 	bool info[256];
 	fill_cache_info(info);
-	if (info[0x40])										return 0;
 	if (info[0x41] || info[0x79])								return 128;
 	if (info[0x3c] || info[0x42] || info[0x7a] || info[0x7e] || info[0x82])			return 256;
 	if (info[0x3e] || info[0x43] || info[0x7b] || info[0x7f] || info[0x83] || info[0x86])	return 512;
 	if (info[0x44] || info[0x78] || info[0x7c] || info[0x84] || info[0x87])			return 1024;
 	if (info[0x45] || info[0x85] || info[0x88])						return 2048;
+	if (info[0x40])										return 0;
 	return -1;
 }
 
