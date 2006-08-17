@@ -1,6 +1,30 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <FractDB>
 	<results>
+		<result>
+			<description>Opteron 165 (Dual-core), 400, nForce4</description>
+			<score>32.77</score>
+			<cpu_mhz>1800</cpu_mhz>
+			<mem_mhz>400</mem_mhz>
+		</result>
+		<result>
+			<description>Mac Mini, CPU: Core Duo 1.66Ghz (2MB L2)</description>
+			<score>29.81</score>
+			<cpu_mhz>1666</cpu_mhz>
+			<mem_mhz>667</mem_mhz>
+		</result>
+		<result>
+			<description>Athlon64, 512K L2, nForce 3</description>
+			<score>26.43</score>
+			<cpu_mhz>2500</cpu_mhz>
+			<mem_mhz>454</mem_mhz>
+		</result>
+		<result>
+			<description>AM2 Sempron, 256K L2, nForce 570</description>
+			<score>22.65</score>
+			<cpu_mhz>2240</cpu_mhz>
+			<mem_mhz>667</mem_mhz>
+		</result>
 		<result>
 			<description>Xeon Prestonia, 533 FSB, i7505, 2.4 GHz, 2 CPUs w/ HT</description>
 			<score>21.78</score>
@@ -8,10 +32,10 @@
 			<mem_mhz>400</mem_mhz>
 		</result>
 		<result>
-			<description>Opteron 165 (Dual-core), 400, nForce4</description>
-			<score>32.77</score>
-			<cpu_mhz>1800</cpu_mhz>
-			<mem_mhz>400</mem_mhz>
+			<description>Pentium M (Dothan), 400 FSB, i855PM</description>
+			<score>16.27</score>
+			<cpu_mhz>1700</cpu_mhz>
+			<mem_mhz>333</mem_mhz>
 		</result>
 		<result>
 			<description>AthlonXP 1700+ (256K), VIA KT400, DDR333</description>
@@ -20,17 +44,17 @@
 			<mem_mhz>333</mem_mhz>
 		</result>
 		<result>
-			<description>Dell Lat. C800, PC100 mem, i815</description>
-			<score>5.20</score>
-			<cpu_mhz>850</cpu_mhz>
-			<mem_mhz>100</mem_mhz>
-		</result>
-		<result>
 			<description>2x PentiumIII, Appolo Pro133 chipset</description>
 			<score>9.68</score>
 			<cpu_mhz>929</cpu_mhz>
 			<mem_mhz>133</mem_mhz>
 		</result>
+		<result>
+			<description>Dell Lat. C800, PC100 mem, i815</description>
+			<score>5.20</score>
+			<cpu_mhz>850</cpu_mhz>
+			<mem_mhz>100</mem_mhz>
+		</result>
 	</results>
-	<date>2006-07-28</date>
+	<date>2006-08-18</date>
 </FractDB>
