@@ -29,16 +29,23 @@ bool have_SSE2(void)
 {
 	int CPUZ=0, CPUEXT=0, ECS=0;
  	__asm __volatile (
+	
+		 "			push	%%ebx\n"
 		 "          mov     $1,    %%eax \n"
 		 "          cpuid \n"
+		 "			pop		%%ebx\n"
+		 "			push	%%ebx\n"
 		 "          mov     %%edx,  %0\n"
-		 "	    mov     $0x80000000, %%eax\n"
+		 "			mov     $0x80000000, %%eax\n"
 		 "          cpuid\n"
+		 "			pop		%%ebx\n"
+		 "			push	%%ebx\n"
 		 "          cmp     $0x80000001, %%eax\n"
 		 "          jb      not_supported\n"
 
 		 "          mov     $0x80000001, %%eax\n"
 		 "          cpuid\n"
+		 "			pop		%%ebx\n"
 		 "          mov     %%edx,       %1\n"
 		 "          movl     $1,          %2\n"
 		 "          jmp     ende\n"
@@ -48,7 +55,7 @@ bool have_SSE2(void)
 		 "          ende:\n"
 	:"=m"(CPUZ), "=m"(CPUEXT), "=m"(ECS)
 	:
-	:"eax", "ebx", "ecx", "edx"
+	:"eax", "ecx", "edx"
 		  );
 
 	return (CPUZ&SSE2_MASK?true:false);

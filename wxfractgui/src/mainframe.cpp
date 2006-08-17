@@ -134,7 +134,7 @@ Tabbed::Tabbed(wxWindow * parent, int id, const wxPoint & p, const wxSize & s, w
 
 void MainFrame::TabChanged(wxNotebookEvent & event)
 {
-#ifdef __WIN32__
+#if defined __WIN32__ || defined __APPLE__
 	static bool firstchange = true;
 	if (firstchange) {
 		firstchange = false;
