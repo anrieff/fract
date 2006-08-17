@@ -3240,7 +3240,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 			"	movq	%4,	%%mm7\n"
 			"	movq	%5,	%%mm6\n"
 			
-			".balign	16\n"
+			XALIGN
 			"yyloop:\n"
 			"	mov	%%esi,	%%edi\n"
 			"	add	%3,	%%esi\n"
@@ -3250,7 +3250,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 			"	mov	%6,	%%ecx\n"
 			"	mov	%2,	%%eax\n"
 			
-			".balign	16\n"
+			XALIGN
 			"xxloop:\n"
 			"	movq	(%%edi),	%%mm0\n"
 			"	movq	%%mm0,	%%mm1\n"
@@ -3265,7 +3265,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 			"	dec	%%eax\n"
 			"	jnz	xxloop\n"
 			
-			".balign	16\n"
+			XALIGN
 			"skip_row:\n"
 			"	dec	%%edx\n"
 			"	jnz	yyloop\n"

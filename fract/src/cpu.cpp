@@ -13,23 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// system dependent stuff
-#if defined linux
-#include <sys/sysinfo.h>
-#include <unistd.h>
-#else
-#ifdef _WIN32
-#include <windows.h>
-#endif
-#endif
-
-#ifdef __APPLE__
-#include <unistd.h>
-#include <mach/clock_types.h>
-#include <mach/clock.h>
-#include <mach/mach.h>
-#endif
-
 // my headers
 #include "asmconfig.h"
 #include "cmdline.h"
@@ -71,33 +54,7 @@ void CPU::init()
 	/**************************************
 	 Get the processor count
 	**************************************/
-#ifdef linux
-	//this is how we get the number of CPUs under Linux
-	count = sysconf(_SC_NPROCESSORS_ONLN);
-#else
-#ifdef _MSC_VER
-	// and this is under Win32
-	SYSTEM_INFO system_info;
-	GetSystemInfo(&system_info);
-	count = system_info.dwNumberOfProcessors;
-#else
-#ifdef __APPLE__
-	// ... and yet this is under Mac OS X
-	kern_return_t kr;
-	host_basic_info_data_t basic_info;
-	host_info_t info = (host_info_t)&basic_info;
-	host_flavor_t flavor = HOST_BASIC_INFO;
-	mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
-	kr = host_info(mach_host_self(), flavor, info, &count);
-	if (kr != KERN_SUCCESS) count = 1;
-	count = basic_info.avail_cpus;
-#else
-#warning Getting the processor count under MinGW32 is not implemented!
-	count = 1;
-#endif // __APPLE__
-#endif // _MSC_VER
-#endif // linux
-
+    count = get_processor_count();
 	/****************************************
 	 Seek for processor features
 	****************************************/
