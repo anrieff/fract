@@ -34,7 +34,7 @@ const char *cpu_list[] = {
 		"Pentium III-S",
 		"P-III Celeron",
 		"P-III Xeon",
-		"Pentium 4 (Willamate)",
+		"Pentium 4 (Willamette)",
 		"P-4 Celeron (128K)" ,
 		"Pentium 4 (Northwood)",
 		"Pentium 4 (Prescott)",

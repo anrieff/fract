@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2006 by Veselin Georgiev                                *
+ *   Copyright (C) 2005 by Veselin Georgiev                                *
  *   vesko@ChaosGroup.com                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,23 +18,50 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef __CPUID_H__
-#define __CPUID_H__
+#include <stdio.h>
+#include <string.h>
+#include "cpuid.h"
 
-/**
- * identify_cpu
- * @brief  Returns some (basic) CPU identifier, e.g. "Pentium III (Katmai)"
- * NOTE: Always returns some valid string, even if CPU is not known
- *       (in such cases it will be, e.g. "Unknown Intel CPU")
-*/ 
-const char *identify_cpu(void);
+static void show_help(void)
+{
+	printf("showcpu -- identifies your CPU.\n\n");
+	printf("Usage: showcpu [--full]\n");
+	printf("\t--full   - Display CPU Brand String (if supported)\n\n");
+}
 
-/**
- * cpu_brand_string
- * @brief  Returns CPU brand string (CPUID FNs 0x8000000[234]) (if supported)
- * @returns If the operation is supported, a pointer to the CPU brand string.
- *          If it is not, the function returns NULL.
-*/ 
-const char *cpu_brand_string(void);
+static void basic_info(void)
+{
+	printf("%s\n", identify_cpu());
+}
 
-#endif // __CPUID_H__
+static void full_info(void)
+{
+	const char *brand = cpu_brand_string();
+	printf("CPU brand string is ");
+	if (brand) printf("\"%s\".\n", brand);
+		else printf("not supported.\n");
+}
+
+int main(int argc, char **argv)
+{
+	switch (argc) {
+		case 1: basic_info(); break;
+		case 2: 
+		{
+			if (!strcmp(argv[1], "--help")) {
+				show_help();
+				break;
+			}
+			if (!strcmp(argv[1], "--full")) {
+				basic_info();
+				full_info();
+				break;
+			}
+		}
+		default:
+			printf("Invalid argument(s)!\n");
+			show_help();
+			break;
+	}
+	return 0;
+}
