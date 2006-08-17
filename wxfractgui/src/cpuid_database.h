@@ -238,4 +238,61 @@ const MatchEntry cpudb_intel[] = {
 
 const MatchEntry cpudb_amd[] = {
 	{ -1, -1, -1, -1, -1, NS, "Unknown AMD CPU" },
+	
+	// 486 and the likes
+	{  4, -1, -1, -1, -1, NS, "Unknown AMD 486" },
+	{  4,  3, -1, -1, -1, NS, "AMD 486DX2" },
+	{  4,  7, -1, -1, -1, NS, "AMD 486DX2WB" },
+	{  4,  8, -1, -1, -1, NS, "AMD 486DX4" },
+	{  4,  9, -1, -1, -1, NS, "AMD 486DX4WB" },
+	
+	{  5, -1, -1, -1, -1, NS, "Unknown AMD 586" },
+	{  5,  0, -1, -1, -1, NS, "K5" },
+	{  5,  1, -1, -1, -1, NS, "K5" },
+	{  5,  2, -1, -1, -1, NS, "K5" },
+	{  5,  3, -1, -1, -1, NS, "K5" },
+	
+	{  5,  6, -1, -1, -1, NS, "K6" },
+	{  5,  7, -1, -1, -1, NS, "K6" },
+	
+	{  5,  8, -1, -1, -1, NS, "K6-2" },
+	{  5,  9, -1, -1, -1, NS, "K6-III" },
+	{  5, 13, -1, -1, -1, NS, "K6-2+" },
+	
+	{  6,  1, -1, -1, -1, NS, "Athlon (Slot-A)" },
+	{  6,  2, -1, -1, -1, NS, "Athlon (Slot-A)" },
+	{  6,  3, -1, -1, -1, NS, "Duron (Spitfire)" },
+	{  6,  4, -1, -1, -1, NS, "Athlon (ThunderBird)" },
+	
+	{  6,  6, -1, -1, -1, NS, "Unknown Athlon" },
+	{  6,  6, -1, -1, -1, dA, "Athlon (Palomino)" },
+	{  6,  6, -1, -1, -1, sA, "Athlon MP (Palomino)" },
+	{  6,  6, -1, -1, -1, dD, "Duron (Palomino)" },
+	{  6,  6, -1, -1, -1, dX, "Athlon XP" },
+	
+	{  6,  7, -1, -1, -1, NS, "Unknown Athlon XP" },
+	{  6,  7, -1, -1, -1, dD, "Duron (Morgan)" },
+	
+	{  6,  8, -1, -1, -1, NS, "Athlon XP" },
+	{  6,  8, -1, -1, -1, dA, "Athlon XP" },
+	{  6,  8, -1, -1, -1, dX, "Athlon XP" },
+	{  6,  8, -1, -1, -1, dD, "Duron (Applebred)" },
+	{  6,  8, -1, -1, -1, dS, "Sempron (Thoroughbred)" },
+	{  6,  8, -1, -1, -1, sA, "Athlon MP (Thoroughbred)" },
+	{  6,  8, -1, -1, -1, MX, "Mobile Athlon (Thorough.)" },
+	{  6,  8, -1, -1, -1, ML, "Mobile Athlon (Thorough.)" },
+	
+	{  6, 10, -1, -1, -1, NS, "Athlon XP (Barton)" },
+	{  6, 10, -1, -1, -1, dA, "Athlon XP (Barton)" },
+	{  6, 10, -1, -1, -1, dX, "Athlon XP (Barton)" },
+	{  6, 10, -1, -1, -1, dS, "Sempron (Barton)" },
+	{  6, 10, -1, -1, -1, dt, "Athlon XP" }, 
+	{  6, 10, -1, -1, -1, sA, "Athlon MP (Barton)" },
+	{  6, 10, -1, -1, -1, MX, "Mobile Athlon (Barton)" },
+	{  6, 10, -1, -1, -1, ML, "Mobile Athlon (Barton)" },
+	// ^^ Actually, Thorton, but it's equivallent to Thoroughbred
+	
+	
+	
+	
 };

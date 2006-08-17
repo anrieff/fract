@@ -68,6 +68,7 @@ const char *cpu_list[] = {
 		"Duron (Spitfire)",
 		"Duron (Morgan)",
 		"Duron (Applebred)",
+		"Athlon MP",
 		"Athlon XP",
 		"Athlon XP (Barton)",
 		"Sempron (Thoroughbred)",
