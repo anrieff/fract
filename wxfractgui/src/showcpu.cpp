@@ -44,6 +44,7 @@ static void full_info(void)
 	int cache = get_cache_size();
 	if (cache == -1) printf("unknown.\n"); 
 		else printf("%dKB.\n", cache);
+	printf("CPU-specific code is %d\n", get_code());
 }
 
 int main(int argc, char **argv)

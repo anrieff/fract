@@ -413,3 +413,12 @@ const char *identify_cpu(void)
 	
 	return cpudb[bestindex].name;
 }
+
+int get_code(void)
+{
+	int vendor = cpu_vendor();
+	if (vendor == VENDOR_INTEL || vendor == VENDOR_AMD)
+		return (int) get_cpu_code(vendor);
+	return -2;
+}
+

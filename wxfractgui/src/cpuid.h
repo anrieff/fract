@@ -44,4 +44,6 @@ const char *cpu_brand_string(void);
 */ 
 int get_cache_size(void);
 
+int get_code(void);
+
 #endif // __CPUID_H__
