@@ -351,7 +351,7 @@ static code_t get_cpu_code_phase2(int vendor, code_t code)
 	
 	// Specialize AMDs:
 	if (code == dA && cache_size == 512) code = dm; // recognize Manchester E6<->Toledo
-	if (code == dX && cache_size == 256) code = dt; // recognize Barton<->Thorton
+	if (code == dX && cache_size == 512) code = dB; // recognize Barton<->Thorton
 	if (code == A64_0 && cache_size > 512) code = A64_1; // recognize A64s with > 512K cache
 	if (code == S64_0 && cache_size > 128) code = S64_1; // recognize A64 semprons with > 128K cache
 	if (code == T64_0 && cache_size > 512) code = T64_1; // recognize Turions with > 512K cache

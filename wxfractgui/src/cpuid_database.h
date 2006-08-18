@@ -53,6 +53,8 @@
 ** ?O = think Opteron
 ** ?T = think Turion
 */
+
+
 enum code_t {
        /* ==========Intel==========  ============AMD========================= */
    NS, /*        Not-specified                                                */
@@ -76,7 +78,7 @@ enum code_t {
    dO, /*                                      Opteron                        */
    d8, /*                                      Opteron (8xx)                  */
    dX, /*                                      Athlon XP                      */
-   dt, /*                                      Athlon XP (Thorton)            */
+   dB, /*                                      Athlon XP (Barton)             */
    MX, /*                            mobile    Athlon XP-M                    */
    ML, /*                            mobile    Athlon XP-M (LV)               */
    dA, /*                                      Athlon(64)                     */
@@ -296,10 +298,10 @@ const MatchEntry cpudb_amd[] = {
 	
 	{  6, 10, -1, -1, -1, NS, "Athlon XP (Barton)" },
 	{  6, 10, -1, -1, -1, dA, "Athlon XP (Barton)" },
-	{  6, 10, -1, -1, -1, dX, "Athlon XP (Barton)" },
+	{  6, 10, -1, -1, -1, dB, "Athlon XP (Barton)" },
 	{  6, 10, -1, -1, -1, dS, "Sempron (Barton)" },
 	{  6, 10, -1, -1, -1, S64_1, "Sempron (Barton)" },
-	{  6, 10, -1, -1, -1, dt, "Athlon XP" }, 
+	{  6, 10, -1, -1, -1, dX, "Athlon XP" }, 
 	// ^^ Actually, Thorton, but it's equivallent to Thoroughbred
 	{  6, 10, -1, -1, -1, sA, "Athlon MP (Barton)" },
 	{  6, 10, -1, -1, -1, MX, "Mobile Athlon (Barton)" },
