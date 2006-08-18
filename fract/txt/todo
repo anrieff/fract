@@ -1,69 +1,13 @@
-For the new release:
+For 1.07b:
 
-GENERAL:
 fract:
-	[***] Working shadows (+eventual speedup)
-	[***] Remove the STL, add generic sort, add hashing instead of the std::map
-	[***] Better multithreading
-	[***] multithreaded shadows
-	[***] multithreaded antibuffer init
-	[***] Change the sphere-holding thingy in oldbench.fsv
-	[***] Vectorize shaders
-	[***] Include an installation ID in the result fmt (maybe time_t?)
-	[   ] Readd SSE2 and SSE3 implementations of vector3
-	[***] Try compile with VC 8.0
-	[***] Output to temp.txt (FPS & CPU MHz atleast)
-	[***] Compile a realistic changelog
-	[***] Fix the loop options
-	[***] Don't output result file if ESC is pressed
-	[***] Credits
+
+	[   ] CPU speed detection - triple checked.
+	[   ] Fix the sphere bug.
 
 wxfractgui:
-	[***] Browse the last result
-	[***] Show my.xml and db.xml in the result browsing window
-              (and suggest downloading newer db.xml)
-	[***] Support uploading the result directly
-	[***] Include instructions for uploading through mail
 
-server-side:
-	[   ] Filter results by installation_id
-	[   ] Push some kool background
-	[***] Catch SIGUSR1 and refresh on it
-	[***] Output to log when refreshing
+	[   ] Test the CPU detection engine
+	[   ] Add a "red button" if autodetection fails
+	[   ] Fix window size of the sending dialog
 
-MINOR:
-fract:
-	[   ] Fix for RDTSC on multicpu systems (win2k3 bug?)
-	[   ] Light object, star like (w/ lens flare?)
-
-wxfractgui:
-	[***] New processors
-
-
-NICE_TO_HAVE:
-fract:
-	[   ] "Toto" scene
-
-
-
-
-
-
-
-
-
-
-
-//////// old / obsolete
- - [***] Add mesh bounding box & related optimizations
- - [   ] Add mesh refraction
- - [   ] Add mesh refraction SSS
- - [***] Add difference buffer to apply edge AA
- - [***] Add two or three AA patterns
- - [***] Make mesh reflections and refractions floor mipmap aware
- - [***] Add texture mapping
- - [***] Add necessary parsing options to the FSV format
- - [** ] If loading data/scene.fsv and it includes "blah.bmp", then load "data/blah.bmp"
- - [** ] Add (OBJ) 3d format parser
- - [***] Update the ChangeLog more frequently:)
- 
