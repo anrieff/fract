@@ -168,9 +168,14 @@ static const char *get_OS(void)
 {
 #if defined __linux__ || defined linux
 	return "Linux";
-#else
+#endif
+#ifdef _WIN32
 	return "Windows";
 #endif
+#ifdef __APPLE__
+	return "Mac OS X";
+#endif
+	return "Unknown OS";
 }
 
 static void get_compiler_version(char *out)

@@ -20,6 +20,11 @@
 #include "profile.h"
 #include "threads.h"
 
+#if defined __linux__ || defined linux
+#include <unistd.h>
+#include <sys/sysinfo.h>
+#endif
+
 
 // GLOBAL VARIABLEs
 CPU cpu;
