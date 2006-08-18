@@ -288,6 +288,8 @@ const MatchEntry cpudb_amd[] = {
 	{  6,  8, -1, -1, -1, dX, "Athlon XP" },
 	{  6,  8, -1, -1, -1, dD, "Duron (Applebred)" },
 	{  6,  8, -1, -1, -1, dS, "Sempron (Thoroughbred)" },
+	{  6,  8, -1, -1, -1, S64_0, "Sempron (Thoroughbred)" },
+	{  6,  8, -1, -1, -1, S64_1, "Sempron (Thoroughbred)" },
 	{  6,  8, -1, -1, -1, sA, "Athlon MP (Thoroughbred)" },
 	{  6,  8, -1, -1, -1, MX, "Mobile Athlon (Thorough.)" },
 	{  6,  8, -1, -1, -1, ML, "Mobile Athlon (Thorough.)" },
@@ -296,6 +298,7 @@ const MatchEntry cpudb_amd[] = {
 	{  6, 10, -1, -1, -1, dA, "Athlon XP (Barton)" },
 	{  6, 10, -1, -1, -1, dX, "Athlon XP (Barton)" },
 	{  6, 10, -1, -1, -1, dS, "Sempron (Barton)" },
+	{  6, 10, -1, -1, -1, S64_1, "Sempron (Barton)" },
 	{  6, 10, -1, -1, -1, dt, "Athlon XP" }, 
 	// ^^ Actually, Thorton, but it's equivallent to Thoroughbred
 	{  6, 10, -1, -1, -1, sA, "Athlon MP (Barton)" },

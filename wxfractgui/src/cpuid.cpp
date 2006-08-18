@@ -229,18 +229,6 @@ static code_t get_cpu_code_phase1(int vendor)
 		}
 		case VENDOR_AMD:
 		{
-			if (strstr(brand, "mobile") || strstr(brand, "Mobile")) {
-				if (strstr(brand, "Athlon(tm) XP-M (LV)")) return ML;
-				if (strstr(brand, "Athlon(tm) XP")) return MX;
-				if (strstr(brand, "Athlon")) return MA;
-				if (strstr(brand, "Duron")) return MD;
-			} else {
-				if (strstr(brand, "Athlon(tm) XP")) return dX;
-				if (strstr(brand, "Athlon(tm) MP")) return sA;
-				if (strstr(brand, "Duron")) return dD;
-				if (strstr(brand, "Athlon")) return dA;
-			}
-			
 			if (strstr(brand, "Opteron")) {
 				if (strstr(brand, "Dual Core")) return OptiD;
 				return OptiS;
@@ -254,6 +242,18 @@ static code_t get_cpu_code_phase1(int vendor)
 			}
 			if (strstr(brand, "Turion(tm)")) return T64_0;
 			if (strstr(brand, "Sempron(tm)")) return S64_0;
+			
+			if (strstr(brand, "mobile") || strstr(brand, "Mobile")) {
+				if (strstr(brand, "Athlon(tm) XP-M (LV)")) return ML;
+				if (strstr(brand, "Athlon(tm) XP")) return MX;
+				if (strstr(brand, "Athlon")) return MA;
+				if (strstr(brand, "Duron")) return MD;
+			} else {
+				if (strstr(brand, "Athlon(tm) XP")) return dX;
+				if (strstr(brand, "Athlon(tm) MP")) return sA;
+				if (strstr(brand, "Duron")) return dD;
+				if (strstr(brand, "Athlon")) return dA;
+			}
 			
 			return UN;
 		}
