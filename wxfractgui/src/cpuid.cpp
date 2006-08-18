@@ -229,48 +229,32 @@ static code_t get_cpu_code_phase1(int vendor)
 		}
 		case VENDOR_AMD:
 		{
-			if (strstr(brand, "mobile") != NULL) {
-				if (strstr(brand, "Athlon(tm) XP-M (LV)") != NULL) {
-					return ML;
-				} else if (strstr(brand, "Athlon(tm) XP-M") != NULL) {
-					return MX;
-				} else if (strstr(brand, "Duron") != NULL) {
-					return MD;
-				} else if (strstr(brand, "Athlon") != NULL) {
-					return MA;
-				}
-			} else if (strstr(brand, "Mobile") != NULL) {
-				if (strstr(brand, "Athlon(tm) XP") != NULL) {
-					return MX;
-				} else if (strstr(brand, "Athlon(tm) 64") != NULL) {
-					return MA;
-				} else if (strstr(brand, "Sempron") != NULL) {
-					return MS;
-				}
+			if (strstr(brand, "mobile") || strstr(brand, "Mobile")) {
+				if (strstr(brand, "Athlon(tm) XP-M (LV)")) return ML;
+				if (strstr(brand, "Athlon(tm) XP")) return MX;
+				if (strstr(brand, "Athlon")) return MA;
+				if (strstr(brand, "Duron")) return MD;
 			} else {
-				if (strstr(brand, "Dual Core") != NULL) {
-					return DO;
-				} else if (strstr(brand, "Athlon(tm) XP") != NULL
-					|| strstr(brand, "Athlon(TM) XP") != NULL) {
-					return dX;
-				} else if (strstr(brand, "Athlon(tm) 64 FX") != NULL) {
-					return dF;
-				} else if (strstr(brand, "Athlon(tm) MP") != NULL) {
-					return sA;
-				} else if (strstr(brand, "Duron(tm) MP") != NULL) {
-					return sD;
-				} else if (strstr(brand, "Duron") != NULL) {
-					return dD;
-				} else if (strstr(brand, "Athlon") != NULL) {
-					return dA;
-				} else if (strstr(brand, "Sempron") != NULL) {
-					return dS;
-				} else if (strstr(brand, "Opteron") != NULL) {
-					return dO;
-				} else if (strstr(brand, "Turion") != NULL) {
-					return MT;
-				}
+				if (strstr(brand, "Athlon(tm) XP")) return dX;
+				if (strstr(brand, "Athlon(tm) MP")) return sA;
+				if (strstr(brand, "Duron")) return dD;
+				if (strstr(brand, "Athlon")) return dA;
 			}
+			
+			if (strstr(brand, "Opteron")) {
+				if (strstr(brand, "Dual Core")) return OptiD;
+				return OptiS;
+			}
+			if (strstr(brand, "Athlon(tm) 64 FX")) return A64FX;
+			if (strstr(brand, "Athlon(tm) FX")) return AFX;
+			if (strstr(brand, "Athlon(tm) 64 FX")) return A64FX;
+			if (strstr(brand, "Athlon(tm) 64")) {
+				if (strstr(brand, "Dual Core")) return AX2_0;
+				return A64_0;
+			}
+			if (strstr(brand, "Turion(tm)")) return T64_0;
+			if (strstr(brand, "Sempron(tm)")) return S64_0;
+			
 			return UN;
 		}
 		default: return UN;
@@ -279,14 +263,25 @@ static code_t get_cpu_code_phase1(int vendor)
 
 int get_cache_size(void)
 {
-	bool info[256];
-	fill_cache_info(info);
-	if (info[0x41] || info[0x79])								return 128;
-	if (info[0x3c] || info[0x42] || info[0x7a] || info[0x7e] || info[0x82])			return 256;
-	if (info[0x3e] || info[0x43] || info[0x7b] || info[0x7f] || info[0x83] || info[0x86])	return 512;
-	if (info[0x44] || info[0x78] || info[0x7c] || info[0x84] || info[0x87])			return 1024;
-	if (info[0x45] || info[0x85] || info[0x88])						return 2048;
-	if (info[0x40])										return 0;
+	int vendor = cpu_vendor();
+	if (vendor == VENDOR_INTEL) {
+		bool info[256];
+		fill_cache_info(info);
+		if (info[0x41] || info[0x79])								return 128;
+		if (info[0x3c] || info[0x42] || info[0x7a] || info[0x7e] || info[0x82])			return 256;
+		if (info[0x3e] || info[0x43] || info[0x7b] || info[0x7f] || info[0x83] || info[0x86])	return 512;
+		if (info[0x44] || info[0x78] || info[0x7c] || info[0x84] || info[0x87])			return 1024;
+		if (info[0x45] || info[0x85] || info[0x88])						return 2048;
+		if (info[0x40])										return 0;
+	}
+	if (vendor == VENDOR_AMD) {
+		int r[4];
+		CPUID(0x80000000, r);
+		if ((unsigned) r[0] >= 0x80000006) {
+			CPUID(0x80000006, r);
+			return (r[2] >> 16) & 0xff;
+		}
+	}
 	return -1;
 }
 
@@ -355,7 +350,12 @@ static code_t get_cpu_code_phase2(int vendor, code_t code)
 	if (code == Dc && cache_size == 2048) code = Da; // recognize Conroe<->Allendale
 	
 	// Specialize AMDs:
-	if (code == dA && cache_size == 512) code = dm;
+	if (code == dA && cache_size == 512) code = dm; // recognize Manchester E6<->Toledo
+	if (code == dX && cache_size == 256) code = dt; // recognize Barton<->Thorton
+	if (code == A64_0 && cache_size > 512) code = A64_1; // recognize A64s with > 512K cache
+	if (code == S64_0 && cache_size > 128) code = S64_1; // recognize A64 semprons with > 128K cache
+	if (code == T64_0 && cache_size > 512) code = T64_1; // recognize Turions with > 512K cache
+	if (code == AX2_0 && cache_size > 512) code = AX2_1; // recognize A64 X2s with > 512K cache
 	
 	return code;
 }

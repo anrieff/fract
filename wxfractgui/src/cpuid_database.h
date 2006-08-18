@@ -54,7 +54,7 @@
 ** ?T = think Turion
 */
 enum code_t {
-       /* ==========Intel==========  ============AMD============    Transmeta */
+       /* ==========Intel==========  ============AMD========================= */
    NS, /*        Not-specified                                                */
    UN, /*        Unknown                                                      */
    dP, /*        Pentium                                                      */
@@ -92,11 +92,18 @@ enum code_t {
    DO, /*                            Dual Core Opteron                        */
    D8, /*                            Dual Core Opteron (8xx)                  */
    MT, /*                            mobile    Turion                         */
-   t2, /*                                                           TMx200    */
-   t4, /*                                                           TMx400    */
-   t5, /*                                                           TMx500    */
-   t6, /*                                                           TMx600    */
-   t8, /*                                                           TMx800    */
+   OptiS, /*                                   Opteron                        */
+   OptiD, /*                                   Opteron Dual Core              */
+   A64_0, /*                                   Athlon 64 (512K)               */
+   A64_1, /*                                   Athlon 64 (1024K)              */
+   AX2_0, /*                                   Athlon 64 X2 (512K)            */
+   AX2_1, /*                                   Athlon 64 X2 (1024K)           */
+   AFX,   /*                                   Athlon FX                      */
+   A64FX, /*                                   Athlon 64 FX                   */
+   T64_0, /*                                   Turion 64 (512K)               */
+   T64_1, /*                                   Turion 64 (1024K)              */
+   S64_0, /*                                   Sempron 64 (128K)              */
+   S64_1, /*                                   Sempron 64 (256K)              */
 };
 
  
@@ -290,41 +297,29 @@ const MatchEntry cpudb_amd[] = {
 	{  6, 10, -1, -1, -1, dX, "Athlon XP (Barton)" },
 	{  6, 10, -1, -1, -1, dS, "Sempron (Barton)" },
 	{  6, 10, -1, -1, -1, dt, "Athlon XP" }, 
+	// ^^ Actually, Thorton, but it's equivallent to Thoroughbred
 	{  6, 10, -1, -1, -1, sA, "Athlon MP (Barton)" },
 	{  6, 10, -1, -1, -1, MX, "Mobile Athlon (Barton)" },
 	{  6, 10, -1, -1, -1, ML, "Mobile Athlon (Barton)" },
-	// ^^ Actually, Thorton, but it's equivallent to Thoroughbred
+	
 	
 	// K8 Arch
 	{ 15, -1, -1,  0, -1, NS, "Unknown K8" },
 	{ 15, -1, -1,  1, -1, NS, "Unknown K9" },
 	
-	{ 15, -1, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
-	{ 15,  0, -1,  0,  0, NS, "" },
+	{ 15, -1, -1,  0,  0, NS,    "Unknown A64" },
+	{ 15, -1, -1,  0,  0, OptiS, "Opteron" },
+	{ 15, -1, -1,  0,  0, OptiD, "Opteron (Dual Core)" },
+	{ 15, -1, -1,  0,  0, A64_0, "Athlon 64 (512K)" },
+	{ 15, -1, -1,  0,  0, A64_1, "Athlon 64 (1024K)" },
+	{ 15, -1, -1,  0,  0, AX2_0, "Athlon 64 X2 (512K)" },
+	{ 15, -1, -1,  0,  0, AX2_1, "Athlon 64 X2 (1024K)" },
+	{ 15, -1, -1,  0,  0, AFX  , "Athlon FX" },
+	{ 15, -1, -1,  0,  0, A64FX, "Athlon 64 FX" },
+	{ 15, -1, -1,  0,  0, T64_0, "Turion 64 (512K)" },
+	{ 15, -1, -1,  0,  0, T64_1, "Turion 64 (1024K)" },
+	{ 15, -1, -1,  0,  0, S64_0, "A64 Sempron (128K)" },
+	{ 15, -1, -1,  0,  0, S64_1, "A64 Sempron (256K)" },
 	
+		
 };
