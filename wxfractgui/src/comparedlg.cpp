@@ -207,7 +207,7 @@ void FractChart::render(CompareInfo a[], int n)
 	fontman.printxy(10, 108 + 2*n*PER_ENTRY, "which is taken as a base (1.0)");
 	
 	fontman.set_color(0xaaccff);
-	fontman.printxy(xr - 200, yr-20, "Created with Fract 1.07a");
+	fontman.printxy(xr - 200, yr-20, "Created with Fract 1.07b");
 	drawcol = 0;
 }
 
