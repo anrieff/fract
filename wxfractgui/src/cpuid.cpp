@@ -410,7 +410,6 @@ const char *identify_cpu(void)
 			bestindex = i;
 		}
 	}
-	
 	return cpudb[bestindex].name;
 }
 
@@ -421,4 +420,3 @@ int get_code(void)
 		return (int) get_cpu_code(vendor);
 	return -2;
 }
-

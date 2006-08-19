@@ -18,29 +18,37 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef __BASIC_TAB_H__
-#define __BASIC_TAB_H__
+#include "basictab.h"
+#include "cpulistdlg.h"
+#include "cpuid.h"
+#include "cpu_list.h"
 
-#include "generictab.h"
-
-class BasicTab: public GenericTab
+CPUListDlg::CPUListDlg(wxWindow *parent)
+	: wxDialog(parent, -1, "CPU Selection", wxDefaultPosition, wxSize(500, 160))
 {
-	wxTextCtrl *username, *comment, *chipset;
-	wxTextCtrl *cputype;
-	wxComboBox *country;
-public:
-	BasicTab(wxWindow *parent, wxTextCtrl *cmdline);
-	void RefreshCmdLine(void);
-	void OpenCPUSelectionDialog(wxCommandEvent&);
-	bool RunPressed(void);
-	bool CanRun(void);
-	DECLARE_EVENT_TABLE()
-};
-
-enum {
-	btCPUSelButton = 505,
-};
-
-int EndX(wxWindow * w);
-
-#endif // __BASIC_TAB_H__
+	wxStaticText *txt1 = new wxStaticText(this, -1, 
+		"Select your CPU (if unsure, use CPU-Z (www.cpuid.com/cpu-z))",
+		wxPoint(6, 6));
+	txt1->Refresh();
+	const char *brand = cpu_brand_string();
+	if (brand) {
+		wxStaticText *txt2 = new wxStaticText(this, -1, 
+			wxString::Format("Hint: Your CPU brand string is \"%s\"", brand),
+			wxPoint(6, 26));
+		txt2->Refresh();
+	}
+	
+	wxStaticText *txt3 = new wxStaticText(this, -1, "CPU:", wxPoint(6, 66));
+	wxArrayString cpus(cpu_list_size(), cpu_list);
+	cpulist = new wxComboBox(this, -1, default_cpu, wxPoint(EndX(txt3) + 3, 64), 
+				 wxSize(200,-1), cpus, wxCB_DROPDOWN);
+	
+	wxButton *okb = new wxButton(this, wxID_OK, "", wxPoint(150, 105), wxSize(90, 35));
+	wxButton *cab = new wxButton(this, wxID_CANCEL, "", wxPoint(260, 105), wxSize(90, 35));
+	int xx, yy;
+	this->GetClientSize(&xx,&yy);
+	yy -= okb->GetRect().height + 9;
+	
+	okb->SetSize(-1, yy, -1, -1, wxSIZE_USE_EXISTING);
+	cab->SetSize(-1, yy, -1, -1, wxSIZE_USE_EXISTING);
+}

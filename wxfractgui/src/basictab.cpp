@@ -20,9 +20,15 @@
 
 #include "basictab.h"
 #include "countries_list.h"
-#include "cpu_list.h"
 #include "cpuid.h"
 #include "global.h"
+#include "cpulistdlg.h"
+
+#include <wx/utils.h>
+
+BEGIN_EVENT_TABLE(BasicTab, GenericTab)
+	EVT_BUTTON(btCPUSelButton, BasicTab::OpenCPUSelectionDialog)
+END_EVENT_TABLE()
 
 void BasicTab::RefreshCmdLine(void)
 {
@@ -62,13 +68,16 @@ BasicTab::BasicTab(wxWindow *parent, wxTextCtrl *cmdline)
 				 wxSize(200, -1), clist, wxCB_DROPDOWN | 
 				wxCB_READONLY | wxCB_SORT);
 	
-	wxArrayString cpulist(cpu_list_size(), cpu_list);
+	
 	wxStaticText *cpusel = new wxStaticText(this, -1, "CPU:", wxPoint(16, 48));
 	cputype = new wxTextCtrl(this, -1, identify_cpu(),
 				 wxPoint(EndX(cpusel) + 5, 45),
 				 wxSize(200, -1));
+	cputype->SetMaxLength(31);
+	wxButton *cpu_sel_button = new wxButton(this, btCPUSelButton, "...",
+			wxPoint(EndX(cputype) + 3, 45), wxSize(30, cputype->GetRect().height));
 	wxStaticText *chiptxt = new wxStaticText(this, -1, "Chipset:",
-			wxPoint(EndX(cputype)+20, 48));
+			wxPoint(EndX(cpu_sel_button)+20, 48));
 	chipset = new wxTextCtrl(this, -1, "Unknown", wxPoint(EndX(chiptxt)+5, 45),
 				 wxSize(110,-1));
 	wxStaticText *comtxt = new wxStaticText(this, -1, "Comment:",
@@ -98,6 +107,14 @@ BasicTab::BasicTab(wxWindow *parent, wxTextCtrl *cmdline)
 		chipset->SetValue(lck(line));
 		
 		fclose(f);
+	} else {
+		if (strstr(cputype->GetValue().c_str(), "Unknown")) {
+			wxMessageBox(
+				"Your CPU was not detected successfully :(\n"
+				"This means that either you CPU is very new, or there is a bug in the program.\n"
+				"You can still enter your CPU in the provided box, or you can choose it from\n"
+				"the list (click on the \"...\" button for that)\n\n", "Warning", wxICON_INFORMATION);
+		}
 	}
 }
 
@@ -123,3 +140,12 @@ bool BasicTab::CanRun(void)
 	return true;
 }
 
+void BasicTab::OpenCPUSelectionDialog(wxCommandEvent&)
+{
+	CPUListDlg *dlg = new CPUListDlg(this);
+	if (wxID_OK == dlg->ShowModal() )
+	{
+		cputype->SetValue(dlg->cpulist->GetValue());
+	}
+	dlg->Destroy();
+}

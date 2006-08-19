@@ -18,29 +18,15 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef __BASIC_TAB_H__
-#define __BASIC_TAB_H__
+#ifndef __CPULISTDLG_H__
+#define __CPULISTDLG_H__
 
-#include "generictab.h"
+#include <wx/wx.h>
 
-class BasicTab: public GenericTab
-{
-	wxTextCtrl *username, *comment, *chipset;
-	wxTextCtrl *cputype;
-	wxComboBox *country;
+class CPUListDlg : public wxDialog {
 public:
-	BasicTab(wxWindow *parent, wxTextCtrl *cmdline);
-	void RefreshCmdLine(void);
-	void OpenCPUSelectionDialog(wxCommandEvent&);
-	bool RunPressed(void);
-	bool CanRun(void);
-	DECLARE_EVENT_TABLE()
+	CPUListDlg(wxWindow *parent);
+	wxComboBox *cpulist;
 };
 
-enum {
-	btCPUSelButton = 505,
-};
-
-int EndX(wxWindow * w);
-
-#endif // __BASIC_TAB_H__
+#endif // __CPULISTDLG_H__
