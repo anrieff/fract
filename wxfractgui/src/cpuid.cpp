@@ -279,7 +279,7 @@ int get_cache_size(void)
 		CPUID(0x80000000, r);
 		if ((unsigned) r[0] >= 0x80000006) {
 			CPUID(0x80000006, r);
-			return (r[2] >> 16) & 0xff;
+			return (r[2] >> 16) & 0xffff;
 		}
 	}
 	return -1;
