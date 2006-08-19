@@ -73,8 +73,8 @@ void prof_statistics(void)
 	}
 }
 
-// gets the CPU speed using RDTSC. Defined on all systems
-int prof_get_cpu_speed_fallback(void)
+// gets the CPU speed using RDTSC.
+int prof_get_cpu_speed_once(void)
 {
 	long long start, end;
 	Uint32 clk0, clk;
@@ -94,57 +94,29 @@ int prof_get_cpu_speed_fallback(void)
 	return res;
 }
 
-
-#ifdef _WIN32
-#define GETCPUSPEED_DEFINED
-#include <windows.h>
-// gets the CPU speed using windows registry
+/*
+** Gets the CPU speed, triple checked, in order to ensure result correctness
+**
+** The algorithm is as follows: 
+** 1. prof_get_cpu_speed_once() is called three times unconditionally;
+** 2. Two results are selected: the minimally different by absolute value (assumed to be "correct");
+** 3. The mean of the selected values is returned as a final result.
+*/
 int prof_get_cpu_speed(void)
 {
-	HKEY key;
-	long err = RegOpenKeyEx(HKEY_LOCAL_MACHINE,
-				"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
-				0,
-				KEY_READ,
-				&key);
-	if (err != ERROR_SUCCESS) return prof_get_cpu_speed_fallback();
-	DWORD res = _MAX_PATH, bufsize = _MAX_PATH;
-	RegQueryValueEx(key, "~MHz", NULL, NULL, (LPBYTE) &res, &bufsize);
-	return (int) res;
-}
-#endif
-
-#ifdef linux
-#define GETCPUSPEED_DEFINED
-// gets the CPU speed using /proc/cpuinfo
-int prof_get_cpu_speed(void)
-{
-	FILE *f = fopen("/proc/cpuinfo", "rt");
-	if (!f) return prof_get_cpu_speed_fallback();
-	char buff[256];
-	while (fgets(buff, 256, f)) {
-		if (strncasecmp(buff, "cpu mhz", 7) == 0) {
-			int i = 0;
-			while (buff[i] && (buff[i] < '0' || buff[i] > '9')) i++;
-			int res;
-			if (!buff[i]) res = prof_get_cpu_speed_fallback();
-			else {
-				sscanf(&buff[i], "%d", &res);
+	int res[3];
+	for (int i = 0; i < 3; i++)
+		res[i] = prof_get_cpu_speed_once();
+	
+	int answer = 0, bestabs = 0x7fffffff;
+	for (int i = 0; i < 3; i++) {
+		for (int j = i + 1; j < 3; j++) {
+			int diff = res[i]-res[j]; if (diff < 0) diff = -diff;
+			if (diff < bestabs) {
+				bestabs = diff;
+				answer = (res[i] + res[j]) / 2;
 			}
-			fclose(f);
-			return res;
 		}
 	}
-	fclose(f);
-	return prof_get_cpu_speed_fallback();
+	return answer;
 }
-#endif
-
-
-#ifndef GETCPUSPEED_DEFINED
-// This is only for non-linux and non-windows systems:
-int prof_get_cpu_speed(void)
-{
-	return prof_get_cpu_speed_fallback();
-}
-#endif
