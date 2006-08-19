@@ -11,7 +11,7 @@
 #ifndef MYGLOBAL_H
 #define MYGLOBAL_H
 
-#define Fract_Version "v. 1.07a"
+#define Fract_Version "v. 1.07b"
 #ifdef __SSE3__
 #define Mod_Instruction_Set "SSE3"
 #else
