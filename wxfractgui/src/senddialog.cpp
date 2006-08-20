@@ -43,7 +43,7 @@ BEGIN_EVENT_TABLE(SendDialog, wxDialog)
 END_EVENT_TABLE()
 
 SendDialog::SendDialog(wxWindow *parent, wxString server, int port, wxString fn)
-	: wxDialog(parent, -1, "Send result", wxDefaultPosition, wxSize(480, 250))
+	: wxDialog(parent, -1, "Send result", wxDefaultPosition, wxSize(480, 290))
 {
 	m_text1 = new wxStaticText(this, -1, 
 		"This will submit your result for participation in http://fbench.com/results/\n"
