@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <FractDB>
 	<results>
 		<result>
@@ -14,7 +14,7 @@
 			<mem_mhz>667</mem_mhz>
 		</result>
 		<result>
-			<description>Athlon64, 512K L2, nForce 3</description>
+			<description>Athlon 64, 512K L2 cache, nForce 3</description>
 			<score>26.43</score>
 			<cpu_mhz>2500</cpu_mhz>
 			<mem_mhz>454</mem_mhz>
@@ -26,7 +26,7 @@
 			<mem_mhz>667</mem_mhz>
 		</result>
 		<result>
-			<description>Xeon Prestonia, 533 FSB, i7505, 2.4 GHz, 2 CPUs w/ HT</description>
+			<description>Xeon Prestonia, 533 FSB, i7505, 2 CPUs w/ HT</description>
 			<score>21.78</score>
 			<cpu_mhz>2400</cpu_mhz>
 			<mem_mhz>400</mem_mhz>
@@ -56,5 +56,5 @@
 			<mem_mhz>100</mem_mhz>
 		</result>
 	</results>
-	<date>2006-08-18</date>
+	<date>2006-08-30</date>
 </FractDB>

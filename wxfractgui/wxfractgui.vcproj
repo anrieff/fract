@@ -132,6 +132,12 @@
 				RelativePath=".\src\comparedlg.cpp">
 			</File>
 			<File
+				RelativePath=".\src\cpuid.cpp">
+			</File>
+			<File
+				RelativePath=".\src\cpulistdlg.cpp">
+			</File>
+			<File
 				RelativePath=".\src\fonts.cpp">
 			</File>
 			<File
@@ -171,6 +177,15 @@
 			</File>
 			<File
 				RelativePath=".\src\cpu_list.h">
+			</File>
+			<File
+				RelativePath=".\src\cpuid.h">
+			</File>
+			<File
+				RelativePath=".\src\cpuid_database.h">
+			</File>
+			<File
+				RelativePath=".\src\cpulistdlg.h">
 			</File>
 			<File
 				RelativePath=".\src\fonts.h">

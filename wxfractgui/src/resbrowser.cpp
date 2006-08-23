@@ -127,7 +127,7 @@ static wxString transform(wxString s)
 	int acc = 0;
 	for (unsigned i = 0; i < s.length(); i++) {
 		r += s[i];
-		if (acc > 19 && s[i] == ' ') {
+		if (acc > 20 && s[i] == ' ') {
 			r += '\n';
 			acc = 0;
 		}
@@ -340,8 +340,8 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 	
 	if (builtin && get_current_date() - builtin->get_date() > 20) {
 		wxStaticText* old_warning = new wxStaticText(this, -1, 
-		"Your result database (db.xml) is more than 20 days old\n"
-		"Get a fresh copy from http://fbench.com/", wxPoint(20+xoff, 325+yoff));
+		"Your result database (db.xml) is more than 20 days old, "
+		"get a fresh copy from http://fbench.com/", wxPoint(20+xoff, 325+yoff));
 		old_warning->Refresh();
 	}
 	
@@ -350,8 +350,8 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 	m_grid->CreateGrid(0, COLCNT);
 	m_grid->SetSelectionMode(wxGrid::wxGridSelectRows);
 	m_grid->SetRowLabelSize(15);
-	m_grid->SetDefaultRowSize(38);
-	m_grid->SetColSize(0, 180);
+	m_grid->SetDefaultRowSize(30);
+	m_grid->SetColSize(0, 165);
 	m_grid->SetColSize(1, 72);
 	m_grid->SetColSize(2, 76);
 	m_grid->SetColSize(3, 72);
@@ -363,6 +363,10 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 	m_grid->SetColLabelValue(3, "Memory");
 	m_grid->SetColLabelValue(4, "Select");
 	m_grid->SetColFormatBool(4);
+
+	wxFont font = m_grid->GetDefaultCellFont();
+	font.SetPointSize(font.GetPointSize()-1);
+	m_grid->SetDefaultCellFont(font);
 	
 	UpdateGrid();
 }
