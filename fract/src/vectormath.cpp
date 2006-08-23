@@ -615,8 +615,11 @@ double get_hit_time(double a, double b, double c)
 void advance(Sphere *a, double t)
 {double ytoadd, x, rtime = t - a->time;
  int bModif = 0;
+ if (rtime == 0) return;
+
  a->pos.v[0] += a->mov[0] * rtime;
  a->pos.v[2] += a->mov[2] * rtime;
+
 
  ytoadd = a->mov[1] * rtime;
  if (a->flags & GRAVITY)

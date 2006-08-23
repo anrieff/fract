@@ -131,21 +131,7 @@ int fpsfrm=0;
 
 Uint32 get_ticks(void)
 {
-	static unsigned int start_val;
-	static int start_val_inited = 0;
-	unsigned int temp;
-#ifdef _WIN32
-	temp = GetTickCount();
-#else
-	struct timeval Time; 
-	gettimeofday(&Time, NULL);
-	temp = Time.tv_sec * 1000 + Time.tv_usec / 1000;
-#endif
-	if (!start_val_inited) {
-		start_val_inited = 1;
-		start_val = temp;
-	}
-	return temp - start_val;
+	return SDL_GetTicks();
 }
 
 

@@ -387,7 +387,8 @@ void preframe_do(Uint32 *ptr, Vector lw)
 			for (i=0;i<spherecount;i++) {
 				if (sp[i].flags & ANIMATED) {
 					calculate_XYZ(sp+i, btm, obex);
-					sp[i].mov = (obex-sp[i].pos) * (1.0/(btm - sp[i].time));
+					if (btm - sp[i].time == 0) sp[i].mov.zero();
+					else sp[i].mov = (obex-sp[i].pos) * (1.0/(btm - sp[i].time));
 					camera_moved = 1;
 				}
 			}
@@ -411,6 +412,7 @@ void preframe_do(Uint32 *ptr, Vector lw)
 			are synced to the new time
 		*/
 			//first of all, we make a list with all the spheres, which "move"
+			
 			check_moving();
 			for (j=0;j<spherecount;j++) if (sp[j].flags & COLLIDEABLE)
 				for (i=j+1;i<spherecount;i++) if ((sp[i].flags & COLLIDEABLE) && can_collide(j, i))
