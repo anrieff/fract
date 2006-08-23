@@ -268,6 +268,9 @@ const MatchEntry cpudb_amd[] = {
 	
 	{  5,  8, -1, -1, -1, NS, "K6-2" },
 	{  5,  9, -1, -1, -1, NS, "K6-III" },
+	{  5, 10, -1, -1, -1, NS, "Unknown K6" },
+	{  5, 11, -1, -1, -1, NS, "Unknown K6" },
+	{  5, 12, -1, -1, -1, NS, "Unknown K6" },
 	{  5, 13, -1, -1, -1, NS, "K6-2+" },
 	
 	// Athlon et al.
