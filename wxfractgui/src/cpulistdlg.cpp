@@ -24,7 +24,7 @@
 #include "cpu_list.h"
 
 CPUListDlg::CPUListDlg(wxWindow *parent)
-	: wxDialog(parent, -1, "CPU Selection", wxDefaultPosition, wxSize(500, 160))
+	: wxDialog(parent, -1, "CPU Selection", wxDefaultPosition, wxSize(500, 170))
 {
 	wxStaticText *txt1 = new wxStaticText(this, -1, 
 		"Select your CPU (if unsure, use CPU-Z (www.cpuid.com/cpu-z))",
