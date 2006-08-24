@@ -217,6 +217,8 @@ void Scene::init(void)
 		sprintf(msg, "Loading [%s]...", scenefilename);
 		intro_progress_init(screen, msg);	
 	}
+#else
+	printf("%s: ", scenefilename);
 #endif
 	vframe = 0;
 	spherecount = 0;
@@ -375,6 +377,8 @@ void Scene::close(void)
 		SDL_FreeYUVOverlay(ovr);
 		ovr = NULL;
 	}
+#else
+	printf("\n");
 #endif	
 	closed = true;
 }
