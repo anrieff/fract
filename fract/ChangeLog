@@ -1,13 +1,14 @@
-Differences from 1.08a to 1.07a
+Differences from 1.07b to 1.07a
 --------------------------------
 
+   *    Fixed a bug, which resulted in lack of small spheres on the
+        second scene.
 
-
-
-Version 1.07a is pinned at revision 122.
+   *    Added CPU autodetection to the GUI.
 
 Differences from 1.06a to 1.07a
 --------------------------------
+Version 1.07a is pinned at revision 122.
 
    *    New GUI, which features result browser, result compare and direct
         result upload to the server
