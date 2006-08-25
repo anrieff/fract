@@ -200,8 +200,10 @@ static void get_compiler_version(char *out)
 
 void generate_result_file(FPSWatch & watch)
 {
+#ifdef WIN32_NOGUI
 	printf("This is not an official version - no result file will be generated\n");
 	return;
+#endif
 	if (!are_args_ok()) {
 		printf("Commandline arguments violate the requirements for official test!\n");
 		printf("Sorry, you can't run fract for official result with these options!\n");

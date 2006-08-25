@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include "MyGlobal.h"
 
 #ifndef sqr
 #define sqr(x) ((x)*(x))
@@ -66,7 +67,7 @@
 */
 /* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 
-//#if !defined __SSE2__ && !defined __SSE3__
+#if !defined __SSE2__ && !defined __SSE3__
 #define SCALE v[0]*=scale,v[1]*=scale,v[2]*=scale
 #define real double
 class Vector {
@@ -294,6 +295,12 @@ inline void Vector::print() const
 	printf("(%.4lf, %.4lf, %.4lf)\n", x, y, z);
 }
 
+#endif // Non-sse2 version
+
+#define VECTOR3_ASM
+#include "x86_asm.h"
+#undef VECTOR3_ASM
+
 #define fast_float_sqrt(x) sqrtf(x)
 #if defined __GNUC__ && defined __SSE__ && defined __SSE2__
 #define fast_sqrt(x) \
@@ -310,129 +317,124 @@ inline void Vector::print() const
 #define fast_sqrt(x) sqrt(x)
 #endif
 
-//#endif // Non-sse2 version
-#define VECTOR3_ASM
-#include "x86_asm.h"
-#undef VECTOR3_ASM
 
 /**************************************************************************************************************************************/
 
-//#if defined __SSE2__
-#if 0
-
-// enumerate the vector types we're using
-typedef int v2df __attribute__ ((mode(V2DF),aligned(16)));
-typedef int v4sf __attribute__ ((mode(V4SF),aligned(16)));
-
-
-#endif
-
-//#if defined __SSE2__ && !defined __SSE3__
-#if 0
+#if defined __SSE2__ && !defined __SSE3__
+#include <emmintrin.h>
+#define vdd __v2df
 class Vector {
-	friend class vector3;
 public:
 	union {
-		SSE_ALIGN(double v[4]);
-		SSE_ALIGN(v2df a[2]);
+		double v[4];
+		vdd a[2];
 	};
-	Vector(){}
+	void align_test()
+	{
+		if ((reinterpret_cast<long>(this)) & 0xf) {
+			printf("A Vector does not have the correct alignment!!\n");
+			*(int*)0 = 1;
+		}
+	}
+#ifdef DEBUG
+#define ALIGN_TEST() align_test()
+#else
+#define ALIGN_TEST()
+#endif
+	Vector(){ ALIGN_TEST(); }
 	inline Vector(double x, double y, double z) {
+		ALIGN_TEST();
 		v[0] = x;
 		v[1] = y;
 		v[2] = z;
-		//v[3] = 0.0;
 	}
 	inline Vector(double const *data) {
-		a[0] = *(v2df*)data;
+		ALIGN_TEST();
+		a[0] = *(vdd*)data;
 		v[2] = data[2];
 	}
 
 	inline Vector(const Vector &r) {
+		ALIGN_TEST();
 		a[0] = r.a[0];
 		v[2] = r.v[2];
 	}
 	inline Vector & operator = (const Vector & r) {
+		ALIGN_TEST();
 		a[0] = r.a[0];
 		v[2] = r.v[2];
 		return *this;
 	}
 
 	inline void make_vector(const Vector & dst, const Vector & src) {
-		a[0] = __builtin_ia32_subpd(dst.a[0], src.a[0]);
-		v2df	t0 = __builtin_ia32_loadsd(dst.v+2),
-			t1 = __builtin_ia32_loadsd(src.v+2);
-		__builtin_ia32_storesd(v+2, __builtin_ia32_subsd(t0, t1));
+		a[0] = _mm_sub_pd(dst.a[0], src.a[0]);
+		v[2] = dst.v[2] - src.v[2];
 	}
 
 	inline void add2(const Vector & x, const Vector & y) {
-		a[0] = __builtin_ia32_addpd(x.a[0], y.a[0]);
-		v2df	t0 = __builtin_ia32_loadsd(x.v+2),
-			t1 = __builtin_ia32_loadsd(y.v+2);
-		__builtin_ia32_storesd(v+2, __builtin_ia32_addsd(t0, t1));
+		a[0] = _mm_add_pd(x.a[0], y.a[0]);
+		v[2] = x.v[2] + y.v[2];
 	}
 
 	inline void add3(const Vector & x, const Vector & y, const Vector & z) {
-		v2df t = __builtin_ia32_addpd(x.a[0], y.a[0]);
-		a[0]   = __builtin_ia32_addpd(t, z.a[0]);
-		v2df	t0 = __builtin_ia32_loadsd(x.v+2),
-			t1 = __builtin_ia32_loadsd(y.v+2),
-			t2 = __builtin_ia32_loadsd(z.v+2);
-		__builtin_ia32_storesd(v+2, __builtin_ia32_addsd(t2,
-					    __builtin_ia32_addsd(t0, t1)));
+		vdd    t = _mm_add_pd(x.a[0], y.a[0]);
+		double u = x.v[2] + y.v[2];
+		a[0]     = _mm_add_pd(t, z.a[0]);
+		v[2]     = u + z.v[2];
 	}
 
 	inline void macc(const Vector & start, const Vector & ray, const double & scale) {
 		// *this = start + ray * scale:
-		v2df 	mm = __builtin_ia32_loadsd(&scale),
-			rr = __builtin_ia32_loadsd(ray.v+2);
-			mm = __builtin_ia32_shufpd(mm,mm,0);
-		v2df	st = __builtin_ia32_loadsd(start.v+2),
-			t0 = __builtin_ia32_mulpd(ray.a[0], mm);
-			rr = __builtin_ia32_mulsd(rr, mm);
-		a[0] = __builtin_ia32_addpd(start.a[0], t0);
-		__builtin_ia32_storesd(v + 2, __builtin_ia32_addsd(rr, st));
+		vdd 	mm = _mm_load1_pd(&scale),
+			rr = _mm_load_sd(ray.v+2);
+		vdd	st = _mm_load_sd(start.v+2),
+			t0 = _mm_mul_pd(ray.a[0], mm);
+			rr = _mm_mul_sd(rr, mm);
+		a[0] = _mm_add_pd(start.a[0], t0);
+		_mm_store_sd(v + 2, _mm_add_sd(rr, st));
 	}
 
 	inline void make_length(const double & new_length) {
-		v2df 	t0 = a[0],
-			t1 = __builtin_ia32_loadsd(v+2);
+		vdd 	t0 = a[0],
+			t1 = _mm_load_sd(v+2);
 
-		v2df	oo = __builtin_ia32_loadsd(&new_length);
+		vdd	oo = _mm_load_sd(&new_length);
 
-		v2df	p0 = __builtin_ia32_mulpd(t0, t0),
-			p1 = __builtin_ia32_mulsd(t1, t1);
-		v2df	p2 = __builtin_ia32_shufpd(p0, p0, 1);
-			p0 = __builtin_ia32_addsd(p0, p1);
-			p0 = __builtin_ia32_sqrtsd(__builtin_ia32_addsd(p0, p2));
-			oo = __builtin_ia32_divsd(oo, p0);
-			oo = __builtin_ia32_shufpd(oo,oo,0);
-			a[0] = __builtin_ia32_mulpd(t0, oo);
-			__builtin_ia32_storesd(v+2, __builtin_ia32_mulsd(t1, oo));
+		vdd	p0 = _mm_mul_pd(t0, t0),
+			p1 = _mm_mul_sd(t1, t1);
+		vdd	p2 = _mm_shuffle_pd(p0, p0, 1);
+			p0 = _mm_add_sd(p0, p1);
+			p0 = _mm_add_sd(p0, p2);
+			p0 = _mm_sqrt_sd(p0, p0);
+			oo = _mm_div_sd(oo, p0);
+			oo = _mm_shuffle_pd(oo,oo,0);
+			a[0] = _mm_mul_pd(t0, oo);
+			_mm_store_sd(v+2, _mm_mul_sd(t1, oo));
 	}
 
 	/// normalizes a non-null vector to unitary
 	inline void norm() {
-		v2df 	t0 = a[0],
-			t1 = __builtin_ia32_loadsd(v+2);
+		vdd 	t0 = a[0],
+			t1 = _mm_load_sd(v+2);
 
 		const double one = 1.0;
-		v2df	oo = __builtin_ia32_loadsd(&one);
+		vdd	oo = _mm_load_sd(&one);
 
-		v2df	p0 = __builtin_ia32_mulpd(t0, t0),
-			p1 = __builtin_ia32_mulsd(t1, t1);
-		v2df	p2 = __builtin_ia32_shufpd(p0, p0, 1);
-			p0 = __builtin_ia32_addsd(p0, p1);
-			p0 = __builtin_ia32_sqrtsd(__builtin_ia32_addsd(p0, p2));
-			oo = __builtin_ia32_divsd(oo, p0);
-			oo = __builtin_ia32_shufpd(oo,oo,0);
-			a[0] = __builtin_ia32_mulpd(t0, oo);
-			__builtin_ia32_storesd(v+2, __builtin_ia32_mulsd(t1, oo));
+		vdd	p0 = _mm_mul_pd(t0, t0),
+			p1 = _mm_mul_sd(t1, t1);
+		vdd	p2 = _mm_shuffle_pd(p0, p0, 1);
+			p0 = _mm_add_sd(p0, p1);
+			p0 = _mm_add_sd(p0, p2);
+			p0 = _mm_sqrt_sd(p0, p0);
+			oo = _mm_div_sd(oo, p0);
+			oo = _mm_shuffle_pd(oo,oo,0);
+			a[0] = _mm_mul_pd(t0, oo);
+			_mm_store_sd(v+2, _mm_mul_sd(t1, oo));
 	}
 	/// nullifies a vector
 	inline void zero() {
-		a[0] = (v2df) __builtin_ia32_setzeropd();
-		a[1] = (v2df) __builtin_ia32_setzeropd();
+		a[0] = (vdd) _mm_setzero_pd();
+		a[1] = (vdd) _mm_setzero_pd();
 	}
 	/// returns the length of the vector
 	inline double lengthSqr() const {
@@ -440,17 +442,17 @@ public:
 	}
 	/// returns the squared length
 	inline double length() const {
-			v2df	tmp0 = __builtin_ia32_loadsd(v    ),
-			tmp1 = __builtin_ia32_loadsd(v + 1),
-			tmp2 = __builtin_ia32_loadsd(v + 2);
-			tmp0 = __builtin_ia32_mulsd(tmp0, tmp0);
-			tmp1 = __builtin_ia32_mulsd(tmp1, tmp1);
-			tmp2 = __builtin_ia32_mulsd(tmp2, tmp2);
-			tmp0 = __builtin_ia32_addsd(tmp0, tmp1);
-			tmp0 = __builtin_ia32_addsd(tmp0, tmp2);
-			tmp0 = __builtin_ia32_sqrtsd(tmp0);
+			vdd	tmp0 = _mm_load_sd(v    ),
+			tmp1 = _mm_load_sd(v + 1),
+			tmp2 = _mm_load_sd(v + 2);
+			tmp0 = _mm_mul_sd(tmp0, tmp0);
+			tmp1 = _mm_mul_sd(tmp1, tmp1);
+			tmp2 = _mm_mul_sd(tmp2, tmp2);
+			tmp0 = _mm_add_sd(tmp0, tmp1);
+			tmp0 = _mm_add_sd(tmp0, tmp2);
+			tmp0 = _mm_sqrt_sd(tmp0, tmp0);
 			double result;
-			__builtin_ia32_storesd(&result, tmp0);
+			_mm_store_sd(&result, tmp0);
 		return result;
 	}
 	/// multiplies by a scalar
@@ -463,10 +465,8 @@ public:
 	inline const Vector operator +(const Vector & r) const
 	{
 		Vector res;
-		res.a[0] = __builtin_ia32_addpd(a[0], r.a[0]);
-		v2df	t1 = __builtin_ia32_loadsd(v+2),
-			t2 = __builtin_ia32_loadsd(r.v+2);
-			__builtin_ia32_storesd(res.v+2,__builtin_ia32_addsd(t1, t2));
+		res.a[0] = _mm_add_pd(a[0], r.a[0]);
+		res.v[2] = v[2] + r.v[2];
 		return res;
 
 		//:(
@@ -478,18 +478,13 @@ public:
 	}
 	/// addition
 	inline void operator +=(const Vector & r) {
-		a[0] = __builtin_ia32_addpd(a[0], r.a[0]);
-		v2df	i1 = __builtin_ia32_loadsd(v+2),
-			i2 = __builtin_ia32_loadsd(r.v+2);
-		__builtin_ia32_storesd(v+2, __builtin_ia32_addsd(i1, i2));
-
+		a[0] = _mm_add_pd(a[0], r.a[0]);
+		v[2] += r.v[2];
 	}
 	/// substraction
 	inline void operator -=(const Vector & r) {
-		a[0] = __builtin_ia32_subpd(a[0], r.a[0]);
-		v2df	i1 = __builtin_ia32_loadsd(v+2),
-			i2 = __builtin_ia32_loadsd(r.v+2);
-		__builtin_ia32_storesd(v+2, __builtin_ia32_subsd(i1, i2));
+		a[0] = _mm_sub_pd(a[0], r.a[0]);
+		v[2] -= r.v[2];
 
 	}
 
@@ -509,52 +504,82 @@ public:
 	inline Vector operator ^ (const Vector & r) const {
 		// some weirrrrd shuffles ;)
 		Vector res;
-		v2df 	t0 = a[0],
-			t1 = __builtin_ia32_loadsd(v + 2),
+		vdd 	t0 = a[0],
+			t1 = _mm_load_sd(v + 2),
 			t2 = r.a[0],
-			t3 = __builtin_ia32_loadsd(r.v + 2);
+			t3 = _mm_load_sd(r.v + 2);
 
-		v2df	s0 = __builtin_ia32_shufpd(t0, t1, 1),
-			s1 = __builtin_ia32_shufpd(t3, t2, 0);
-			t1 = __builtin_ia32_shufpd(t1, t0, 0);
-		v2df	s3 = __builtin_ia32_shufpd(t2, t3, 1);
+		vdd	s0 = _mm_shuffle_pd(t0, t1, 1),
+			s1 = _mm_shuffle_pd(t3, t2, 0);
+			t1 = _mm_shuffle_pd(t1, t0, 0);
+		vdd	s3 = _mm_shuffle_pd(t2, t3, 1);
 
-		v2df	p0 = __builtin_ia32_mulpd(s0, s1);
-		v2df	p1 = __builtin_ia32_mulpd(t1, s3);
+		vdd	p0 = _mm_mul_pd(s0, s1);
+		vdd	p1 = _mm_mul_pd(t1, s3);
 
-		res.a[0]   = __builtin_ia32_subpd(p0, p1);
+		res.a[0]   = _mm_sub_pd(p0, p1);
 
-			t0 = __builtin_ia32_mulsd(t0, s3);
-			t2 = __builtin_ia32_mulsd(s0, t2);
-			__builtin_ia32_storesd(res.v+2,
-				__builtin_ia32_subsd(t0, t2));
+			t0 = _mm_mul_sd(t0, s3);
+			t2 = _mm_mul_sd(s0, t2);
+			_mm_store_sd(res.v+2,
+				_mm_sub_sd(t0, t2));
 		return res;
 	}
-	inline double operator [] (const unsigned index) const {
+	inline double& operator [] (const unsigned index) {
+		return v[index];
+	}
+	inline const double & operator [] (const unsigned index) const {
 		return v[index];
 	}
 	inline double distto(const Vector & r) const {
-		v2df	s0 = a[0];
-			s0 = __builtin_ia32_subpd(s0, r.a[0]);
-		v2df	s1 = __builtin_ia32_loadsd(v+2);
-			s1 = __builtin_ia32_subsd(s1, r.a[1]);
+		vdd	s0 = a[0];
+			s0 = _mm_sub_pd(s0, r.a[0]);
+		vdd	s1 = _mm_load_sd(v+2);
+			s1 = _mm_sub_sd(s1, r.a[1]);
 
-			s0 = __builtin_ia32_mulpd(s0,s0);
-			s1 = __builtin_ia32_mulsd(s1,s1);
+			s0 = _mm_mul_pd(s0,s0);
+			s1 = _mm_mul_sd(s1,s1);
 
-		v2df	s2 = __builtin_ia32_shufpd(s0, s0, 1);
-			s0 = __builtin_ia32_addsd(s0, s1);
-			s0 = __builtin_ia32_addsd(s0, s2);
+		vdd	s2 = _mm_shuffle_pd(s0, s0, 1);
+			s0 = _mm_add_sd(s0, s1);
+			s0 = _mm_add_sd(s0, s2);
 
 		double res;
-			__builtin_ia32_storesd(&res, __builtin_ia32_sqrtsd(s0));
+			_mm_store_sd(&res, _mm_sqrt_sd(s0, s0));
 		return res;
+	}
+	
+	inline void inverse(void) {
+		const double double_one = 1.0;
+		vdd one = _mm_load1_pd(&double_one);
+		a[0] = _mm_div_pd(a[0], one);
+		v[2] = double_one / v[2];
+	}
+	
+#define equal(a,b,c) (fabs((a)-(b))<(c))
+
+	inline bool like(const Vector &r, double compare_factor = 1e-9) const {
+		return 	equal(v[0], r.v[0], compare_factor) && 
+			equal(v[1], r.v[1], compare_factor) && 
+			equal(v[2], r.v[2], compare_factor);
+	}
+	
+	inline bool operator == (const Vector & r) const {
+		return v[0] == r.v[0] && v[1] == r.v[1] && v[2] == r.v[2];
+	}
+	
+	inline bool operator != (const Vector & r) const {
+		return v[0] != r.v[0] || v[1] != r.v[1] || v[2] != r.v[2];
 	}
 
 	void print() const {
 		printf("(%.3lf, %.3lf, %.3lf)", v[0], v[1], v[2]);
 	}
-};
+}
+#ifdef __GNUC__
+__attribute__ ((aligned(16)))
+#endif
+;
 
 #endif // __SSE2__ && !__SSE3__
 
@@ -567,7 +592,7 @@ class Vector {
 public:
 	union {
 		SSE_ALIGN(double v[4]);
-		SSE_ALIGN(v2df a[2]);
+		SSE_ALIGN(vdd a[2]);
 	};
 	Vector(){}
 	inline Vector(double x, double y, double z) {
@@ -577,7 +602,7 @@ public:
 		//v[3] = 0.0;
 	}
 	inline Vector(double const *data) {
-		a[0] = *(v2df*)data;
+		a[0] = *(vdd*)data;
 		v[2] = data[2];
 	}
 
@@ -593,22 +618,22 @@ public:
 
 	inline void make_vector(const Vector & dst, const Vector & src) {
 		a[0] = __builtin_ia32_subpd(dst.a[0], src.a[0]);
-		v2df	t0 = __builtin_ia32_loadsd(dst.v+2),
+		vdd	t0 = __builtin_ia32_loadsd(dst.v+2),
 			t1 = __builtin_ia32_loadsd(src.v+2);
 		__builtin_ia32_storesd(v+2, __builtin_ia32_subsd(t0, t1));
 	}
 
 	inline void add2(const Vector & x, const Vector & y) {
 		a[0] = __builtin_ia32_addpd(x.a[0], y.a[0]);
-		v2df	t0 = __builtin_ia32_loadsd(x.v+2),
+		vdd	t0 = __builtin_ia32_loadsd(x.v+2),
 			t1 = __builtin_ia32_loadsd(y.v+2);
 		__builtin_ia32_storesd(v+2, __builtin_ia32_addsd(t0, t1));
 	}
 
 	inline void add3(const Vector & x, const Vector & y, const Vector & z) {
-		v2df t = __builtin_ia32_addpd(x.a[0], y.a[0]);
+		vdd t = __builtin_ia32_addpd(x.a[0], y.a[0]);
 		a[0]   = __builtin_ia32_addpd(t, z.a[0]);
-		v2df	t0 = __builtin_ia32_loadsd(x.v+2),
+		vdd	t0 = __builtin_ia32_loadsd(x.v+2),
 			t1 = __builtin_ia32_loadsd(y.v+2),
 			t2 = __builtin_ia32_loadsd(z.v+2);
 		__builtin_ia32_storesd(v+2, __builtin_ia32_addsd(t2,
@@ -617,9 +642,9 @@ public:
 
 	inline void macc(const Vector & start, const Vector & ray, const double & scale) {
 		// *this = start + ray * scale:
-		v2df 	mm = __builtin_ia32_loadddup(&scale),
+		vdd 	mm = __builtin_ia32_loadddup(&scale),
 			rr = __builtin_ia32_loadsd(ray.v+2);
-		v2df	st = __builtin_ia32_loadsd(start.v+2),
+		vdd	st = __builtin_ia32_loadsd(start.v+2),
 			t0 = __builtin_ia32_mulpd(ray.a[0], mm);
 			rr = __builtin_ia32_mulsd(rr, mm);
 		a[0] = __builtin_ia32_addpd(start.a[0], t0);
@@ -627,12 +652,12 @@ public:
 	}
 
 	inline void make_length(const double & new_length) {
-		v2df 	t0 = a[0],
+		vdd 	t0 = a[0],
 			t1 = __builtin_ia32_loadsd(v+2);
 
-		v2df	oo = __builtin_ia32_loadsd(&new_length);
+		vdd	oo = __builtin_ia32_loadsd(&new_length);
 
-		v2df	p0 = __builtin_ia32_mulpd(t0, t0),
+		vdd	p0 = __builtin_ia32_mulpd(t0, t0),
 			p1 = __builtin_ia32_mulsd(t1, t1);
 			p0 = __builtin_ia32_haddpd(p0, p0);
 			p0 = __builtin_ia32_addsd(p0, p1);
@@ -645,13 +670,13 @@ public:
 
 	/// normalizes a non-null vector to unitary
 	inline void norm() {
-		v2df 	t0 = a[0],
+		vdd 	t0 = a[0],
 			t1 = __builtin_ia32_loadsd(v+2);
 
 		const double one = 1.0;
-		v2df	oo = __builtin_ia32_loadsd(&one);
+		vdd	oo = __builtin_ia32_loadsd(&one);
 
-		v2df	p0 = __builtin_ia32_mulpd(t0, t0),
+		vdd	p0 = __builtin_ia32_mulpd(t0, t0),
 			p1 = __builtin_ia32_mulsd(t1, t1);
 			p0 = __builtin_ia32_haddpd(p0, p0);
 			p0 = __builtin_ia32_addsd(p0, p1);
@@ -663,13 +688,13 @@ public:
 	}
 	/// nullifies a vector
 	inline void zero() {
-		a[0] = (v2df) __builtin_ia32_setzeropd();
-		a[1] = (v2df) __builtin_ia32_setzeropd();
+		a[0] = (vdd) __builtin_ia32_setzeropd();
+		a[1] = (vdd) __builtin_ia32_setzeropd();
 	}
 	/// returns the length of the vector
 	inline double lengthSqr() const {
 		double result;
-		v2df	t0 = __builtin_ia32_mulpd(a[0], a[0]),
+		vdd	t0 = __builtin_ia32_mulpd(a[0], a[0]),
 			t1 = __builtin_ia32_loadsd(v+2);
 			t0 = __builtin_ia32_haddpd(t0, t0);
 			t1 = __builtin_ia32_mulsd(t1,t1);
@@ -678,7 +703,7 @@ public:
 	}
 	/// returns the squared length
 	inline double length() const {
-			v2df	tmp0 = __builtin_ia32_mulpd(a[0],a[0]),
+			vdd	tmp0 = __builtin_ia32_mulpd(a[0],a[0]),
 			tmp2 = __builtin_ia32_loadsd(v + 2);
 			tmp2 = __builtin_ia32_mulsd(tmp2, tmp2);
 			tmp0 = __builtin_ia32_haddpd(tmp0, tmp0);
@@ -690,7 +715,7 @@ public:
 	}
 	/// multiplies by a scalar
 	inline Vector & scale(double const & scale) {
-		v2df 	mm = __builtin_ia32_loadddup(&scale);
+		vdd 	mm = __builtin_ia32_loadddup(&scale);
 		a[0] = __builtin_ia32_mulpd(a[0], mm);
 		a[1] = __builtin_ia32_mulsd(a[1], mm);
 		return *this;
@@ -701,7 +726,7 @@ public:
 	{
 		Vector res;
 		res.a[0] = __builtin_ia32_addpd(a[0], r.a[0]);
-		v2df	t1 = __builtin_ia32_loadsd(v+2),
+		vdd	t1 = __builtin_ia32_loadsd(v+2),
 			t2 = __builtin_ia32_loadsd(r.v+2);
 			__builtin_ia32_storesd(res.v+2,__builtin_ia32_addsd(t1, t2));
 		return res;
@@ -714,14 +739,14 @@ public:
 	/// addition
 	inline void operator +=(const Vector & r) {
 		a[0] = __builtin_ia32_addpd(a[0], r.a[0]);
-		v2df	i1 = __builtin_ia32_loadsd(v+2),
+		vdd	i1 = __builtin_ia32_loadsd(v+2),
 			i2 = __builtin_ia32_loadsd(r.v+2);
 		__builtin_ia32_storesd(v+2, __builtin_ia32_addsd(i1, i2));
 	}
 	/// substraction
 	inline void operator -=(const Vector & r) {
 		a[0] = __builtin_ia32_subpd(a[0], r.a[0]);
-		v2df	i1 = __builtin_ia32_loadsd(v+2),
+		vdd	i1 = __builtin_ia32_loadsd(v+2),
 			i2 = __builtin_ia32_loadsd(r.v+2);
 		__builtin_ia32_storesd(v+2, __builtin_ia32_subsd(i1, i2));
 	}
@@ -741,18 +766,18 @@ public:
 	inline Vector operator ^ (const Vector & r) const {
 		// some weirrrrd shuffles ;)
 		Vector res;
-		v2df 	t0 = a[0],
+		vdd 	t0 = a[0],
 			t1 = __builtin_ia32_loadsd(v + 2),
 			t2 = r.a[0],
 			t3 = __builtin_ia32_loadsd(r.v + 2);
 
-		v2df	s0 = __builtin_ia32_shufpd(t0, t1, 1),
+		vdd	s0 = __builtin_ia32_shufpd(t0, t1, 1),
 			s1 = __builtin_ia32_shufpd(t3, t2, 0);
 			t1 = __builtin_ia32_shufpd(t1, t0, 0);
-		v2df	s3 = __builtin_ia32_shufpd(t2, t3, 1);
+		vdd	s3 = __builtin_ia32_shufpd(t2, t3, 1);
 
-		v2df	p0 = __builtin_ia32_mulpd(s0, s1);
-		v2df	p1 = __builtin_ia32_mulpd(t1, s3);
+		vdd	p0 = __builtin_ia32_mulpd(s0, s1);
+		vdd	p1 = __builtin_ia32_mulpd(t1, s3);
 
 		res.a[0]   = __builtin_ia32_subpd(p0, p1);
 
@@ -766,9 +791,9 @@ public:
 		return v[index];
 	}
 	inline double distto(const Vector & r) const {
-		v2df	s0 = a[0];
+		vdd	s0 = a[0];
 			s0 = __builtin_ia32_subpd(s0, r.a[0]);
-		v2df	s1 = __builtin_ia32_loadsd(v+2);
+		vdd	s1 = __builtin_ia32_loadsd(v+2);
 			s1 = __builtin_ia32_subsd(s1, r.a[1]);
 
 			s0 = __builtin_ia32_mulpd(s0,s0);
@@ -787,6 +812,5 @@ public:
 	}
 };
 #endif // __SSE2__ && __SSE3__
-
 
 #endif // __VECTOR3_H__

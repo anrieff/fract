@@ -488,7 +488,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 #if SHADOW_TYPE == ST_FIXED
 			shadow_mul += _shadow_test(i, l, 0);
 			if (g_shadowquality > 0) {
-				real R = light_radius;
+				double R = light_radius;
 				shadow_mul += _shadow_test(i, l + Vector( +R, 0.0, 0.0), 1);
 				shadow_mul += _shadow_test(i, l + Vector( -R, 0.0, 0.0), 2);
 				shadow_mul += _shadow_test(i, l + Vector(0.0,  +R, 0.0), 3);
@@ -496,7 +496,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 				shadow_mul += _shadow_test(i, l + Vector(0.0, 0.0,  +R), 5);
 				shadow_mul += _shadow_test(i, l + Vector(0.0, 0.0,  -R), 6);
 				if (g_shadowquality > 1) {
-					real R1 = R * 0.707106781186;
+					double R1 = R * 0.707106781186;
 					shadow_mul += _shadow_test(i, l + Vector(+R1, +R1, 0.0), 7);
 					shadow_mul += _shadow_test(i, l + Vector(-R1, -R1, 0.0), 8);
 					shadow_mul += _shadow_test(i, l + Vector(+R1, 0.0, +R1), 9);
