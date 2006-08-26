@@ -53,6 +53,9 @@ public:
 	
 	void translate(const Vector&);
 	void scale(double, const Vector&);
+
+	void * operator new(size_t);
+	void operator delete(void*);
 	
 	~SDTreeNode();
 };

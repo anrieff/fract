@@ -12,6 +12,7 @@
 #include "array.h"
 #include "random.h"
 #include "common.h"
+#include "memory.h"
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -107,6 +108,9 @@ int SDTreeNode::testintersect(Triangle *base, const Vector& start, const Vector 
 		return -1;
 	}
 }
+
+void * SDTreeNode::operator new(size_t size) { return sse_malloc(size); }
+void SDTreeNode::operator delete(void * what) { sse_free(what); }
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * @class SDTree                                                  *
