@@ -200,7 +200,7 @@ static void get_compiler_version(char *out)
 
 void generate_result_file(FPSWatch & watch)
 {
-#ifdef WIN32_NOGUI
+#if defined WIN32_NOGUI || defined SIMD_VECTOR
 	printf("This is not an official version - no result file will be generated\n");
 	return;
 #endif
