@@ -82,10 +82,10 @@ OBJECTS=\
 	vectormath.o\
 	voxel.o
 
-OPTFLAGS=-O2 -g -ffast-math
-DEFINES=-DDEBUG
+OPTFLAGS=-O3 -ffast-math -msse -msse2 -msse3 -mfpmath=sse
+DEFINES=-DSIMD_VECTOR
 LINKPATHS=
-LINK_LIBS=-lmingw32 -lm
+LINK_LIBS=-lmingw32 -lSDLmain -lSDL -lm
 
 ## Ok, lets enumerate some targets :)
 
@@ -93,8 +93,8 @@ all: fract.exe
 
 clean:
 	@echo "CLEAN"
-	@del fract.exe
-	@del *.o
+	@rm *.o fract.exe
+
 
 fract.exe: $(OBJECTS)
 	@echo "LINK   fract.exe"

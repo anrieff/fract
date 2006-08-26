@@ -802,7 +802,10 @@ public:
 				_mm_sub_sd(t0, t2));
 		return res;
 	}
-	inline double operator [] (const unsigned index) const {
+	inline double& operator [] (const unsigned index) {
+		return v[index];
+	}
+	inline const double& operator [] (const unsigned index) const {
 		return v[index];
 	}
 	inline double distto(const Vector & r) const {
@@ -822,9 +825,37 @@ public:
 		return res;
 	}
 
+	inline void inverse(void) {
+		const double double_one = 1.0;
+		vdd one = _mm_load1_pd(&double_one);
+		a[0] = _mm_div_pd(a[0], one);
+		v[2] = double_one / v[2];
+	}
+	
+#define equal(a,b,c) (fabs((a)-(b))<(c))
+
+	inline bool like(const Vector &r, double compare_factor = 1e-9) const {
+		return 	equal(v[0], r.v[0], compare_factor) && 
+			equal(v[1], r.v[1], compare_factor) && 
+			equal(v[2], r.v[2], compare_factor);
+	}
+	
+	inline bool operator == (const Vector & r) const {
+		return v[0] == r.v[0] && v[1] == r.v[1] && v[2] == r.v[2];
+	}
+	
+	inline bool operator != (const Vector & r) const {
+		return v[0] != r.v[0] || v[1] != r.v[1] || v[2] != r.v[2];
+	}
+
 	void print() const {
 		printf("(%.3lf, %.3lf, %.3lf)", v[0], v[1], v[2]);
 	}
+
+	void * operator new (size_t size);
+	void operator delete(void * what);
+	void * operator new[] (size_t size);
+	void operator delete[](void * what);
 }
 #ifdef __GNUC__
 __attribute__ ((aligned(16)))
