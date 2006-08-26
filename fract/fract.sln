@@ -6,19 +6,25 @@ EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
-		Optimized = Optimized
-		Optimized-SSE = Optimized-SSE
-		Release = Release
+		Debug SSE2 vector = Debug SSE2 vector
+		GUI P5 = GUI P5
+		GUI SSE2 scalar = GUI SSE2 scalar
+		GUI SSE2 vector = GUI SSE2 vector
+		GUI SSE3 vector = GUI SSE3 vector
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Debug.ActiveCfg = Debug|Win32
 		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Debug.Build.0 = Debug|Win32
-		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Optimized.ActiveCfg = Optimized|Win32
-		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Optimized.Build.0 = Optimized|Win32
-		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Optimized-SSE.ActiveCfg = Optimized-SSE|Win32
-		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Optimized-SSE.Build.0 = Optimized-SSE|Win32
-		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Release.ActiveCfg = Optimized|Win32
-		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Release.Build.0 = Optimized|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Debug SSE2 vector.ActiveCfg = Debug SSE2 vector|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.Debug SSE2 vector.Build.0 = Debug SSE2 vector|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.GUI P5.ActiveCfg = GUI P5|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.GUI P5.Build.0 = GUI P5|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.GUI SSE2 scalar.ActiveCfg = GUI SSE2 scalar|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.GUI SSE2 scalar.Build.0 = GUI SSE2 scalar|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.GUI SSE2 vector.ActiveCfg = GUI SSE2 vector|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.GUI SSE2 vector.Build.0 = GUI SSE2 vector|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.GUI SSE3 vector.ActiveCfg = GUI SSE3 vector|Win32
+		{DDA9778D-C76B-47FE-A6E9-52BF94970A2A}.GUI SSE3 vector.Build.0 = GUI SSE3 vector|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

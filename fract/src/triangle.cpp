@@ -83,7 +83,7 @@ bool Triangle::is_visible(const Vector & camera, Vector w[3])
 }
 
 
-int Triangle::calculate_convex(Vector pt[], Vector camera)
+int Triangle::calculate_convex(Vector pt[], const Vector& camera)
 {
 	for (int i = 0; i < 3; i++)
 		pt[i] = vertex[2-i];
@@ -95,7 +95,7 @@ void Triangle::map2screen(
 			   int color, 
 			   int sides, 
 			   Vector pt[], 
-			   Vector camera, 
+			   const Vector& camera, 
 			   Vector w[3], 
 			   int & min_y,
 			   int & max_y)

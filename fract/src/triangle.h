@@ -74,8 +74,8 @@ struct Triangle : public Object {
 	bool okplane(const Vector & camera);
 	double get_depth(const Vector &camera);
 	bool is_visible(const Vector & camera, Vector w[3]);
-	int calculate_convex(Vector pt[], Vector camera);
-	void map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
+	int calculate_convex(Vector pt[], const Vector& camera);
+	void map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], const Vector& camera, Vector w[3],
 		int & min_y, int & max_y);
 	bool fastintersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const;
 	bool intersect(const Vector& ray, const Vector &camera, void *IntersectContext);

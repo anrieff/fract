@@ -356,7 +356,7 @@ int  project_point_shadow(const Vector & vs, const Vector & l, int *x_2d, int *y
 
 double predlo[MAX_SPHERES], dlc;
 
-void pass_pre(double *p, double plc, Vector LL)
+void pass_pre(double *p, double plc, const Vector& LL)
 {int i;
  dlc = plc;
  for (i=0;i<MAX_SPHERES;i++) predlo[i] = p[i];

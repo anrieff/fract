@@ -53,6 +53,7 @@ enum {
 struct Mesh;
 class Inscribed {
 public:
+
 	/// gets the volume of the primitive
 	virtual double volume(void) const = 0;
 	
@@ -72,11 +73,14 @@ public:
 	
 	/// Translate the primitive with the given movement vector
 	virtual void translate(const Vector & movement) = 0;
+
+	void * operator new(size_t);
+	void operator delete(void *);
 };
 
 class InscribedSphere: public Inscribed {
-	double R;
 	Vector center;
+	double R;
 	double planedist(Triangle&);
 public:
 	double volume(void) const;
@@ -89,9 +93,9 @@ public:
 };
 
 class InscribedCube: public Inscribed {
-	double R;
 	Vector center;
 	BBox bbox;
+	double R;
 public:
 	double volume(void) const;
 	InscribedCube(Mesh *);
@@ -122,6 +126,8 @@ struct Mesh : public BBox, public ShadowCaster {
 		int ai, bi, nc;
 		Vector a, b;
 		Vector norm1, norm2;
+		void * operator new[] (size_t);
+		void operator delete [] (void *);
 	};
 	
 	EdgeInfo *edges;

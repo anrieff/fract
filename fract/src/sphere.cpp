@@ -333,7 +333,7 @@ bool Sphere::is_visible(const Vector & camera, Vector w[3])
 }
 
 
-int Sphere::calculate_convex(Vector pt[], Vector c)
+int Sphere::calculate_convex(Vector pt[], const Vector& c)
 {
 	int steps;
 	steps = 4;
@@ -351,7 +351,7 @@ int Sphere::calculate_convex(Vector pt[], Vector c)
 	return steps;
 }
 
-void Sphere::calculate_fixed_convex(Vector pt[], Vector c, int steps)
+void Sphere::calculate_fixed_convex(Vector pt[], const Vector& c, int steps)
 {
 	double alpha, beta;
 	double sina, sinb, cosa, cosb;
@@ -385,7 +385,7 @@ void Sphere::calculate_fixed_convex(Vector pt[], Vector c, int steps)
 	pt[steps] = pt[0];
 }
 
-void Sphere::map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
+void Sphere::map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], const Vector& camera, Vector w[3],
 			 int & min_y, int & max_y)
 {
 	int L[RES_MAXY], R[RES_MAXY];

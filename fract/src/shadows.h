@@ -67,7 +67,7 @@ const int shadow_intensity = 0xB2;
 void shadows_merge(int xr, int yr, Uint32 *target_framebuffer, Uint16 *sbuffer);
 
 /// called before render_shadows to do some set-up work
-void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector mtt, Vector mti, Vector mtti);
+void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, const Vector& mtt, const Vector& mti, const Vector& mtti);
 
 /**
  * render_shadows - cast shadows from (lx, ly, lz) to the floor and ceil planes
@@ -82,7 +82,7 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
  * @param thread_idx - when rendering on multiple cpus, this is the thread index (otherwise - 0)
  */ 
 void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
-		    Vector mtt, Vector mti, Vector mtti, int thread_idx);
+		    const Vector& mtt, const Vector& mti, const Vector& mtti, int thread_idx);
 
 /**
  * Checks every sphere against every sphere or mesh object - if the sphere

@@ -49,7 +49,7 @@ static inline float face(const vec2f& a, const vec2f& b, const vec2f& c)
 	       -c[0] * b[1] - b[0] * a[1] - a[0] * c[1];
 }
 
-static void shadows_precalc(int xr, int yr, Vector & mtt, Vector& mti, Vector& mtti)
+static void shadows_precalc(int xr, int yr, const Vector & mtt, const Vector& mti, const Vector& mtti)
 {
 	prof_enter(PROF_SHADOW_PRECALC);
 	for (int j = 0; j < yr; j++) {
@@ -489,7 +489,7 @@ static void reversed_check(Vector verts[], const PolyInfo &pi, const Vector & l,
 	}
 }
 
-static void thresh_light(Vector verts[], int n, Vector l)
+static void thresh_light(Vector verts[], int n, const Vector& l)
 {
 	for (int i = 0; i < n; i++) {
 		if (fabs(verts[i][1] - l[1]) < YOFFSET) {
@@ -501,7 +501,7 @@ static void thresh_light(Vector verts[], int n, Vector l)
 	}
 }
 
-static int rearrange_poly(Vector verts[], int n, Vector l, Vector cur, double alpha, double beta, PolyInfo o[], PolyContext &po)
+static int rearrange_poly(Vector verts[], int n, const Vector& l, const Vector& cur, double alpha, double beta, PolyInfo o[], PolyContext &po)
 {
 	Array<Vector> up, down;
 	//
@@ -583,7 +583,7 @@ static inline bool floorness(const Vector& v, const Vector &l)
 	return l[1] > v[1];
 }
 
-static void make_wedges(Vector verts[], int n, Vector l, Triangularized &solid, Triangularized &wedgy, PolyContext& po)
+static void make_wedges(Vector verts[], int n, const Vector& l, Triangularized &solid, Triangularized &wedgy, PolyContext& po)
 {
 	solid.tris.clear();
 	wedgy.tris.clear();
@@ -738,7 +738,7 @@ static void poly_bias(Vector verts[], int n, const Vector& light, const Vector& 
 	}
 }
 
-static void poly_display2(Triangularized &t, int xr, int yr, Vector cur, Vector mtt, Vector mti, Vector mtti, Uint16 *sbuffer, int thread_idx = 0, int thread_count = 1)
+static void poly_display2(Triangularized &t, int xr, int yr, const Vector& cur, const Vector& mtt, const Vector& mti, const Vector& mtti, Uint16 *sbuffer, int thread_idx = 0, int thread_count = 1)
 {
 	Box2D all;
 	
@@ -894,7 +894,7 @@ void shadows_close(void)
 }
 
 
-void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, Vector mtt, Vector mti, Vector mtti)
+void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, const Vector& mtt, const Vector& mti, const Vector& mtti)
 {
 	ceilmax = floormin = -1;
 
@@ -909,7 +909,7 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 static Allocator<PolyContext> allocator(ALLOCATOR_NEW_DELETE);
 
 void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
-		    Vector mtt, Vector mti, Vector mtti, int thread_idx)
+		    const Vector& mtt, const Vector& mti, const Vector& mtti, int thread_idx)
 {
 	Vector ml(lx, ly, lz);
 	PolyContext *po = allocator[thread_idx];

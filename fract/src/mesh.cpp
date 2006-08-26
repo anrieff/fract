@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include "mesh.h"
 #include "triangle.h"
+#include "memory.h"
 
 Mesh mesh[MAX_OBJECTS];
 int mesh_count;
@@ -43,6 +44,20 @@ struct trio_slot{
 };
 
 bool g_speedup = true;
+
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * @class Mesh::EdgeInfo                                      *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+void * Mesh::EdgeInfo::operator new[](size_t size)
+{
+	return sse_malloc(size);
+}
+
+void Mesh::EdgeInfo::operator delete[](void *what)
+{
+	return sse_free(what);
+}
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * @class Mesh                                                *
@@ -504,7 +519,7 @@ bool Mesh::read_from_obj(const char *fn)
 			vert_map[map_size++] = i;
 		}
 	}
-	Vector *vertexlist = new Vector[map_size];
+	Vector *vertexlist = (Vector*) sse_malloc(sizeof(Vector)*map_size);
 	for (int i = 0; i < map_size; i++)
 		vertexlist[i] = vertices[vert_map[i]];
 	for (int i = 0; i < triangle_count; i++) {
@@ -514,9 +529,9 @@ bool Mesh::read_from_obj(const char *fn)
 				trio[base + i].nm_index[j]++;
 		}
 	}
-	delete [] vertexlist;
+	sse_free(vertexlist);
 	// Allocate a normal map	
-	normal_map = new Vector[map_size];
+	normal_map = (Vector*) sse_malloc(map_size * sizeof(Vector));
 /*
 	Normalize the mesh size
 	
@@ -699,6 +714,20 @@ bool Mesh::sintersect(const Vector & start, const Vector &dir, int opt)
 	return fullintersect(start, dir, opt);
 }
 
+/** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * @class Inscribed                                           *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+void * Inscribed::operator new(size_t size)
+{
+	return sse_malloc(size);
+}
+
+void Inscribed::operator delete(void * what)
+{
+	sse_free(what);
+}
+
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * @class InscribedSphere                                     *
@@ -848,7 +877,7 @@ void mesh_close(void)
 		if (mesh[i].image)
 			delete mesh[i].image;
 		if (mesh[i].normal_map)
-			delete [] mesh[i].normal_map;
+			sse_free(mesh[i].normal_map);
 		if (mesh[i].edges)
 			delete [] mesh[i].edges;
 		if (mesh[i].iprimitive)

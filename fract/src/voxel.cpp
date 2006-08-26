@@ -17,7 +17,7 @@
 #include "MyGlobal.h"
 #include "antialias.h"
 #include "bitmap.h"
-#include "common.h"
+#include "memory.h"
 #include "cpu.h"
 #include "fract.h"
 #include "gfx.h"

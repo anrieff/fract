@@ -590,7 +590,7 @@ bool fun_more(int a, int b) { return a > b; }
 int truncate(float x) { return (int) x; }
 int fround(float x) { return (int) (x + 0.5); }
 
-void project_hull_part(int *hull, Vector pt[], int start, int incr, int count, int sides, int color, Vector c, Vector w[3], int (*fun) (int,int), int (*rounding_fn) (float), int yres)
+void project_hull_part(int *hull, Vector pt[], int start, int incr, int count, int sides, int color, const Vector& c, Vector w[3], int (*fun) (int,int), int (*rounding_fn) (float), int yres)
 {
 	int x, yy, last_y=0, wy=-1;
 	if (yres == -1) yres = Yres2;
@@ -669,7 +669,7 @@ void map_hull_16(Uint16 *fb, int *left, int *right, int ys, int ye, Uint16 color
 }
 
 
-int accumulate(Vector pt[], int sides, Vector c, Vector w[3], bool (*fun) (int, int), int start_val, int & bi)
+int accumulate(Vector pt[], int sides, const Vector& c, Vector w[3], bool (*fun) (int, int), int start_val, int & bi)
 {
 	int opt = start_val;
 	for (int i = 0; i < sides; i++) {
@@ -687,7 +687,7 @@ int accumulate(Vector pt[], int sides, Vector c, Vector w[3], bool (*fun) (int, 
 	Maps a sphere on the framebuffer. Pixels, coloured with its number are "expected" to be rendered there
 	The Mapper's error is within 0.4% in most cases.
 */
-void mapsphere(Uint32 *fb, int Ox, int Oy, int color, int sides, Vector pt[], Vector c, Vector w[3], sphere *A)
+void mapsphere(Uint32 *fb, int Ox, int Oy, int color, int sides, Vector pt[], const Vector& c, Vector w[3], sphere *A)
 {
 	int L[RES_MAXY], R[RES_MAXY];
 	int ys, ye, bs, be;

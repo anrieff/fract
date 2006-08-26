@@ -53,9 +53,9 @@ struct Sphere : public Object, public ShadowCaster {
 // implement the functions we need to comply with the `object' class
 	double get_depth(const Vector &camera);
 	bool is_visible(const Vector & camera, Vector w[3]);
-	int calculate_convex(Vector pt[], Vector camera);
-	void calculate_fixed_convex(Vector pt[], Vector source, int sides);
-	void map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], Vector camera, Vector w[3],
+	int calculate_convex(Vector pt[], const Vector& camera);
+	void calculate_fixed_convex(Vector pt[], const Vector& source, int sides);
+	void map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], const Vector& camera, Vector w[3],
 		int & min_y, int & max_y);
 	int get_best_miplevel(double x0, double z0, FilteringInfo & fi);
 	inline bool fastintersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const

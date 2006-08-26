@@ -80,7 +80,7 @@ void write_triplet1(FILE *f, const char *prefix, Vector &a)
 	write_triplet(f, prefix, a[0], a[1], a[2]);
 }
 
-void write_sphere(FILE *f, int num, Sphere a)
+void write_sphere(FILE *f, int num, const Sphere& a)
 {int i;
 	fprintf(f, "Sphere[%d].x=%.5lf\n", num, a.pos[0]);
 	fprintf(f, "Sphere[%d].y=%.5lf\n", num, a.pos[1]);

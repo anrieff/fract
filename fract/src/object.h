@@ -61,7 +61,7 @@ public:
 	///
 	/// @returns how many points the resulting polygon has; must be
 	/// &lt; MAX_SPHERE_SIDES
-	virtual int calculate_convex(Vector pt[], Vector camera) = 0;
+	virtual int calculate_convex(Vector pt[], const Vector& camera) = 0;
 
 	/** Rasterize an object onto the screen. Use the polygon provided
 	*** by calculate_convex().
@@ -83,7 +83,7 @@ public:
 				int color,
 				int sides,
 				Vector pt[],
-				Vector camera,
+				const Vector& camera,
 				Vector w[3],
 				int & min_y,
 				int & max_y) = 0;

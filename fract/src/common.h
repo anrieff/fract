@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "MyGlobal.h"
+#include "memory.h"
 
 #define imin(a,b) ((a)<(b)?(a):(b))
 #define imax(a,b) ((a)>(b)?(a):(b))
@@ -32,9 +33,6 @@ T hermite(const T& a, const T& b, double t)
 }
 
 float perlin(float x, float y);
-
-void *sse_malloc(size_t size);
-void sse_free(void *ptr);
 
 extern int sqrt_lut[];
 void common_init(void);

@@ -355,7 +355,7 @@ void postframe_do(void)
  *	This routine does the common stuff, identical for both the P5 and SSE version of Drawit
  */
 
-void preframe_do(Uint32 *ptr, Vector lw)
+void preframe_do(Uint32 *ptr, const Vector& lw)
 {
 	int i, j;
 	double btm, ttm;
@@ -553,11 +553,12 @@ void render_spheres_init(unsigned short *fbuffer)
 
 // NOTE: this uses a modified code from DrawIt_P5
 void render_spheres(Uint32 *fb, unsigned short *fbuffer,
-		Vector tt, const Vector& ti, Vector tti, int thread_idx, InterlockedInt& lock)
+		const Vector& in_tt, const Vector& ti, const Vector& in_tti, int thread_idx, InterlockedInt& lock)
 {
 	int i, j, xr, yr, dropped, backd, ii, x_start, x_end;
 	Uint32 *start_fb = fb;
 	Uint16 *start_fbuffer = fbuffer;
+	Vector tt = in_tt, tti = in_tti;
 	Vector t;
 	Vector v;
 	Vector lw(lx, ly, lz);

@@ -90,9 +90,9 @@ bool fun_more(int a, int b);
 int truncate(float x);
 int fround(float x);
 
-void project_hull_part(int *hull, Vector pt[], int start, int incr, int count, int sides, int color, Vector c, Vector w[3], int (*fun) (int,int), int (*rounding_fn) (float) = truncate, int yres = -1);
+void project_hull_part(int *hull, Vector pt[], int start, int incr, int count, int sides, int color, const Vector& c, Vector w[3], int (*fun) (int,int), int (*rounding_fn) (float) = truncate, int yres = -1);
 void map_hull(Uint32 *fb, int *left, int *right, int ys, int ye, int color, int bias = 0, int xres=-1, int yres=-1);
-int accumulate(Vector pt[], int sides, Vector c, Vector w[3], bool (*fun) (int, int), int start_val, int & bi);
+int accumulate(Vector pt[], int sides, const Vector& c, Vector w[3], bool (*fun) (int, int), int start_val, int & bi);
 void map_to_screen(Uint16 *sb, Vector pt[], int sides, Uint16 color, Vector& cur, Vector w[3], int xr, int yr);
 void outline_to_screen(Uint16 *sbuffer, Vector pt[], int sides, Uint16 color, Vector &cur, Vector w[3], int xres, int yres);
 
