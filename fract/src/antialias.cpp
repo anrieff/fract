@@ -9,8 +9,6 @@
  *-------------------------------------------------------------------------*
  *  Copes with antialiasing modes, does transforms using MMX if possible   *
  ***************************************************************************/
-#include <map>
-using namespace std;
 
 #include <stdio.h>
 #include <string.h>
