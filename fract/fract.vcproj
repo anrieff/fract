@@ -208,7 +208,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)/fract_sse2.exe"
+				OutputFile="$(OutDir)/fract_sse2v.exe"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="msvcrtd.lib"
 				GenerateDebugInformation="TRUE"
@@ -321,7 +321,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)/fract_sse2.exe"
+				OutputFile="$(OutDir)/fract_sse3v.exe"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="msvcrtd.lib"
 				GenerateDebugInformation="TRUE"

@@ -598,7 +598,7 @@ __attribute__ ((aligned(16)))
 
 #if defined SIMD_VECTOR && defined __SSE2__ && defined __SSE3__
 #include <emmintrin.h>
-#include <intrin.h>
+#include <pmmintrin.h>
 #define vdd __m128d
 
 #ifdef _MSC_VER
