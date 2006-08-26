@@ -287,9 +287,10 @@ struct PolyInfo {
 
 
 struct PolyContext {
-	int recu_es;
 	Mesh::EdgeInfo recu_edges[MAX_SIDES];
 	Vector mesh_poly[MAX_SIDES];
+	Vertex verts[MAX_SIDES];
+	vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
 	
 	bool ps[MAX_SIDES];
 	int maxdist, maxvert;
@@ -297,11 +298,14 @@ struct PolyContext {
 	int final_path[MAX_SIDES];
 	int path_length;
 	bool visited[MAX_SIDES];
-	Vertex verts[MAX_SIDES];
 	int fwdmap[MAX_SIDES];
 	int g[MAX_SIDES][max_neighs + 1];
 	float casted[MAX_SIDES][2];
-	vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
+	
+	int recu_es;
+
+	void * operator new (size_t size) { return sse_malloc(size); };
+	void operator delete(void * what) { sse_free(what); }
 };
 
 

@@ -1,9 +1,9 @@
 bin_PROGRAMS = fract
 fract_SOURCES = antialias.cpp bitmap.cpp blur.cpp cmdline.cpp common.cpp \
-				fract.cpp gfx.cpp infinite_plane.cpp profile.cpp render.cpp rgb2yuv.cpp \
-				sphere.cpp threads.cpp triangle.cpp saveload.cpp scene.cpp shaders.cpp \
-				vectormath.cpp voxel.cpp mesh.cpp aes.cpp md5.cpp resultoutput.cpp shadows.cpp \
-				random.cpp sdtree.cpp cpu.cpp thorus.cpp tracer.cpp credits.cpp
+					fract.cpp gfx.cpp infinite_plane.cpp profile.cpp render.cpp rgb2yuv.cpp \
+					sphere.cpp threads.cpp triangle.cpp saveload.cpp scene.cpp shaders.cpp \
+					vectormath.cpp voxel.cpp mesh.cpp aes.cpp md5.cpp resultoutput.cpp shadows.cpp \
+					random.cpp sdtree.cpp cpu.cpp thorus.cpp tracer.cpp credits.cpp memory.cpp
 
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes) $(LIBSDL_CFLAGS)

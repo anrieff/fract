@@ -59,7 +59,7 @@ read an
 echo "CLEAN"
 rm -rf release 2> /dev/null
 mkdir release
-echo -n "Creating console variant"
+echo -n "Creating console build  "
 if [ $SHORTVIEW -eq 0 ]; then
     echo ""
 else
@@ -85,21 +85,29 @@ rm MyGlobal.h
 mv MyGlobal1.h MyGlobal.h
 cd ..
 if [ $SHORTVIEW -eq 1 ]; then
-    echo -n "Creating non-SSE2 graphics variant   ["
+    echo -n "Creating non-SSE2 graphics build     ["
 else
-    echo "Creating non-SSE2 graphics variant"
+    echo "Creating non-SSE2 graphics build"
 fi
 COMPFLAGS="-O3 -g0 -ffast-math"; LIBFLAGS="-lm -lSDL"; OUT_BINARY="fract_p5"; compile
 if [ $SHORTVIEW -eq 1 ]; then
-    echo -n "Creating SSE2 graphics variant       ["
+    echo -n "Creating SSE2 scalar graphics build  ["
 else
-    echo "Creating SSE2 graphics variant"
+    echo "Creating SSE2 scalar graphics build"
 fi
 
 COMPFLAGS="-O3 -g0 -ffast-math -mfpmath=sse -msse -msse2"; LIBFLAGS="-lm -lSDL"; OUT_BINARY="fract_sse2"; compile
 
+if [ $SHORTVIEW -eq 1 ]; then
+    echo -n "Creating SSE2 vector graphics build  ["
+else
+    echo "Creating SSE2 vector graphics build"
+fi
+
+COMPFLAGS="-O3 -g0 -ffast-math -mfpmath=sse -msse -msse2 -DSIMD_VECTOR"; LIBFLAGS="-lm -lSDL"; OUT_BINARY="fract_sse2v"; compile
+
 cd release
-for fn in "fract_console	fract_p5	fract_sse2"; do
+for fn in "fract_console	fract_p5	fract_sse2	fract_sse2v"; do
     echo "STRIP $fn"
     strip $fn
     echo "COMPRESS $fn"

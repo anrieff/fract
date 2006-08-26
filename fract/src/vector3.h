@@ -16,12 +16,11 @@
  * determined by the use of compilation defines __SSE2__ and __SSE3__      *
  * which are selected by `-msse2' and `-msse3' compiler switches in gcc    *
  ***************************************************************************/
-#ifndef __VECTOR3_H__
-#define __VECTOR3_H__
+#ifndef __VECTOR3_FRACT_H__
+#define __VECTOR3_FRACT_H__
 
 #include <stdio.h>
 #include <math.h>
-#include "MyGlobal.h"
 
 #ifndef sqr
 #define sqr(x) ((x)*(x))
@@ -340,11 +339,11 @@ public:
 			*(int*)0 = 1;
 		}
 	}
-//#ifdef DEBUG
+#ifdef DEBUG
 #define ALIGN_TEST() align_test()
-//#else
-//#define ALIGN_TEST()
-//#endif
+#else
+#define ALIGN_TEST()
+#endif
 	Vector(){ ALIGN_TEST(); }
 	inline Vector(double x, double y, double z) {
 		ALIGN_TEST();
@@ -833,4 +832,4 @@ __attribute__ ((aligned(16)))
 ;
 #endif // __SSE2__ && __SSE3__
 
-#endif // __VECTOR3_H__
+#endif // __VECTOR3_FRACT_H__

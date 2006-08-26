@@ -13,13 +13,21 @@
 
 #define Fract_Version "v. 1.07b"
 #ifdef __SSE3__
-#define Mod_Instruction_Set "SSE3"
+#	ifdef SIMD_VECTOR
+#		define Mod_Instruction_Set "SSE3v"
+#	else
+#		define Mod_Instruction_Set "SSE3"
+#	endif
 #else
-#ifdef __SSE2__
-#define Mod_Instruction_Set "SSE2"
-#else
-#define Mod_Instruction_Set "SSE"
-#endif
+#	ifdef __SSE2__
+#		ifdef SIMD_VECTOR
+#			define Mod_Instruction_Set "SSE2v"
+#		else
+#			define Mod_Instruction_Set "SSE2"
+#		endif
+#	else
+#		define Mod_Instruction_Set "SSE"
+#	endif
 #endif
 
 // this will toggle between flipping and just drawing on the framebuffer
