@@ -12,7 +12,7 @@
 
 #include <stdlib.h>
 
-#ifdef __GNUC__
+#ifndef _WIN32
 double drandom(void)
 {
 	return drand48();

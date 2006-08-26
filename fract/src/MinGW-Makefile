@@ -1,0 +1,107 @@
+## Fract Makfile for MinGW32, written from scratch by Veselin Georgiev
+## @Date 2006-08-26
+
+INCLUDES=\
+	MyGlobal.h\
+	MyLimits.h\
+	MyTypes.h\
+	aes.h\
+	antialias.h\
+	array.h\
+	asmconfig.h\
+	bbox.h\
+	bitmap.h\
+	blur.h\
+	cmdline.h\
+	common.h\
+	cpu.h\
+	credits.h\
+	cross_vars.h\
+	fract.h\
+	gfx.h\
+	hierarchy.h\
+	idnames.h\
+	infinite_plane.h\
+	md5.h\
+	memory.h\
+	mesh.h\
+	object.h\
+	profile.h\
+	progress.h\
+	random.h\
+	render.h\
+	resultfmt.h\
+	resultoutput.h\
+	rgb2yuv.h\
+	saveload.h\
+	scene.h\
+	sdtree.h\
+	shaders.h\
+	shadows.h\
+	sphere.h\
+	thorus.h\
+	threads.h\
+	tracer.h\
+	triangle.h\
+	vector2f.h\
+	vector3.h\
+	vectormath.h\
+	voxel.h\
+	x86_asm.h
+
+OBJECTS=\
+	aes.o\
+	antialias.o\
+	bitmap.o\
+	blur.o\
+	cmdline.o\
+	common.o\
+	cpu.o\
+	credits.o\
+	fract.o\
+	gfx.o\
+	infinite_plane.o\
+	md5.o\
+	memory.o\
+	mesh.o\
+	profile.o\
+	random.o\
+	render.o\
+	resultoutput.o\
+	rgb2yuv.o\
+	saveload.o\
+	scene.o\
+	sdtree.o\
+	shaders.o\
+	shadows.o\
+	sphere.o\
+	thorus.o\
+	threads.o\
+	tracer.o\
+	triangle.o\
+	vectormath.o\
+	voxel.o
+
+OPTFLAGS=-O2 -g -ffast-math
+DEFINES=-DDEBUG
+LINKPATHS=
+LINK_LIBS=-lmingw32 -lm
+
+## Ok, lets enumerate some targets :)
+
+all: fract.exe
+
+clean:
+	@echo "CLEAN"
+	@del fract.exe
+	@del *.o
+
+fract.exe: $(OBJECTS)
+	@echo "LINK   fract.exe"
+	@g++ $(OPTFLAGS) $(DEFINES) -o fract.exe $(OBJECTS) $(LINKPATHS) $(LINK_LIBS)
+
+.cpp.o: $(INCLUDES)
+	@echo "C++    $<"
+	@g++ $(OPTFLAGS) $(DEFINES) -c $<
+
+.PHONY: all clean

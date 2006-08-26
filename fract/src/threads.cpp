@@ -346,7 +346,7 @@ int system_get_processor_count(void)
 
 int atomic_add(volatile int *addr, int val) 
 {
-	return InterlockedExchangeAdd((volatile long*)addr, val);
+	return InterlockedExchangeAdd((long*)addr, val);
 }
 
 DWORD WINAPI win32_thread_proc(void *data)
