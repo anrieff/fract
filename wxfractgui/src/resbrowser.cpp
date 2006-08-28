@@ -364,8 +364,14 @@ ResultBrowser::ResultBrowser(wxWindow *parent, wxTextCtrl *cmdline) : GenericTab
 	m_grid->SetColLabelValue(4, "Select");
 	m_grid->SetColFormatBool(4);
 
+#ifdef __WXGTK__
+#define GTK_FONT_MINUS 2
+#else
+#define GTK_FONT_MINUS 1
+#endif
+	
 	wxFont font = m_grid->GetDefaultCellFont();
-	font.SetPointSize(font.GetPointSize()-1);
+	font.SetPointSize(font.GetPointSize()-GTK_FONT_MINUS);
 	m_grid->SetDefaultCellFont(font);
 	
 	UpdateGrid();

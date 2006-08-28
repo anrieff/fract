@@ -16,7 +16,7 @@
   <kdevautoproject>
     <general>
       <activetarget>src/wxfractgui</activetarget>
-      <useconfiguration>debug</useconfiguration>
+      <useconfiguration>optimized</useconfiguration>
       <useactivetarget>true</useactivetarget>
     </general>
     <run>
