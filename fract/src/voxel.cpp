@@ -929,6 +929,9 @@ void subdivide(Uint32 * blockPtr, const Vector & base, int x, int y, int size, i
 
 void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & ti, Vector & tti)
 {
+#ifdef __MINGW32__
+#warning this function triggers an error, please fix it!
+#else
 	int xr = xsize_render(xres());
 	int yr = ysize_render(yres());
 	int xr2 = xr/2;
@@ -1020,6 +1023,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 			walky += yStride;
 		}
 	}
+#endif // __MINGW32__
 }
 
 Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
