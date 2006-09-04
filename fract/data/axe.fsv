@@ -43,7 +43,7 @@ default_font="data/font1.bmp"
 # Sphere information section
 #
 
-spherecount=6
+spherecount=0
 Sphere[0].x=120.00000
 Sphere[0].y=15.00000
 Sphere[0].z=275.00000

@@ -79,7 +79,7 @@ public:
 	Vector() {}
 	Vector(const real& x1, const real& y1, const real& z1):x(x1), y(y1), z(z1) {}
 	Vector(real data[3]) : x(data[0]), y(data[1]), z(data[2]) {}
-	Vector(const Vector &r) : x(r.v[0]), y(r.v[1]), z(r.v[2]) {}
+	Vector(const Vector &r) : x(r.x), y(r.y), z(r.z) {}
 	Vector& operator =(const Vector& r) {
 		v[0] = r.v[0];
 		v[1] = r.v[1];

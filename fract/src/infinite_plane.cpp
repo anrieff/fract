@@ -218,7 +218,7 @@ SSE_ALIGN(static const unsigned short my_ffs[8]) =
 
 void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, const Vector& in_tt, const Vector& ti, const Vector& in_tti, int thread_idx, InterlockedInt& lock)
 {
-	Vector tt = in_tt, tti = in_tti;
+	Vector tt;
 	Uint32 *dptr;
 	int i, j;
 	float fx[4], fy[4];
@@ -242,14 +242,13 @@ void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, const Vector& in_tt, 
 	SSE_ALIGN(int gxx[8]);
 	//printf("thread #%d ran render_floor(); addr. of lightxy1 = 0x%X\n", start_line, (unsigned) lightxy1);	fflush(stdout);
 	
-	Vector tt_start = tt;
 
 	while ((j = lock++) < yr) {
 	//for (j = thread_idx; j < yr; j += cpu.count) {
-		tt = tt_start + tti * j;
+		tt = in_tt + in_tti * j;
 		dptr = &fb[j*xr];
 		Vector g1 = tt;
-		ut.make_vector(g1, tti);
+		ut.make_vector(g1, in_tti);
 		if ((ydist=vfabs(cur[1]-tt[1]))>DST_THRESHOLD) {
 				prof_enter(PROF_INIT_PER_ROW);
 			dp = (cur[1]>tt[1]?(cur[1]-daFloor):(daCeiling-cur[1]));

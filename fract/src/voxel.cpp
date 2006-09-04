@@ -39,7 +39,7 @@
 info_t vxInput[NUM_VOXELS] = {
 	//{ "data/heightmap_f.fda", "data/aardfdry256.bmp", 0, 0.5, 1},
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
-	{ "data/heightmap_f.fda", "data/green.bmp", /*-200*/0, 0.55/*2.5*/, 1},
+	{ "data/heightmap_f.fda", "data/aardfdry512.bmp", /*-200*/0, 0.55/*2.5*/, 1},
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 };
 

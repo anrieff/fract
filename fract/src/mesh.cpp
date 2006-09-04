@@ -326,6 +326,7 @@ bool Mesh::read_from_obj(const char *fn)
 	char basedir[100];
 	static Vector vertices[MAX_TRIANGLES_PER_OBJECT * 3];
 	static int    vert_map[MAX_TRIANGLES_PER_OBJECT * 3];
+	static int    dup_map [MAX_TRIANGLES_PER_OBJECT * 3];
 	static EdgeInfo    edg[MAX_TRIANGLES_PER_OBJECT * 3];
 	int edgc = 0;
 	int vc = 0;
@@ -358,7 +359,16 @@ bool Mesh::read_from_obj(const char *fn)
 			bool ok = true;
 			for (int i = 0; i < 3; i++)
 				ok &= read_real(buff, sp, ep, vertices[vc].v[i]);
-			if (ok) vc++;
+			if (ok) {
+				dup_map[vc] = vc;
+				for (int j = 0; j < vc; j++)
+					if (vertices[vc].like(vertices[j])) {
+						// found a duplicate
+						dup_map[vc] = j;
+						break;
+					}
+				vc++;
+			}
 			else printf("Mesh::ReadFromObj(%s): error parsing line #%d\n", fn, l);
 		}
 		if (!strcmp("vt", cmd)) {
@@ -387,6 +397,7 @@ bool Mesh::read_from_obj(const char *fn)
 				if (a[2*i][0] > vc || a[2*i][1] > tc) {
 					ok = false; break;
 				}
+				a[2*i][0] = dup_map[a[2*i][0]-1];
 			}
 			if (!ok) {
 				printf("Mesh::ReadFromObj(%s): error parsing line #%d\n", fn, l);
@@ -402,29 +413,30 @@ bool Mesh::read_from_obj(const char *fn)
 				if (!read_trio(buff, sp, ep, a[2])) {
 					break;
 				}
+				a[2][0] = dup_map[a[2][0]-1];
 				
 				
 				++poly_triangles;
 				if (!added) {
-					Vector A = vertices[a[0][0]-1];
-					Vector B = vertices[a[1][0]-1];
-					Vector C = vertices[a[2][0]-1];
+					Vector A = vertices[a[0][0]];
+					Vector B = vertices[a[1][0]];
+					Vector C = vertices[a[2][0]];
 					B -= A;
 					C -= A;
 					facenorm = (B^C);
 					facenorm.norm();
-					addedge(vertices, edg, edgc, a[0][0]-1, a[1][0]-1, facenorm);
+					addedge(vertices, edg, edgc, a[0][0], a[1][0], facenorm);
 				}
 				added = true;
 				for (int i = 0; i < 3; i++) {
-					trio[base + triangle_count].vertex[i] = vertices[a[i][0]-1];
+					trio[base + triangle_count].vertex[i] = vertices[a[i][0]];
 					if (a[i][1] != 0) {
 						for (int j = 0; j < 2; j++)
 							trio[base + triangle_count].mapcoords[i][j] =
 								mappings[a[i][1]-1][j];
 					}
 				}
-				addedge(vertices, edg, edgc, lastvert-1, a[2][0]-1, facenorm);
+				addedge(vertices, edg, edgc, lastvert, a[2][0], facenorm);
 				trio[base + triangle_count].flags |= flags;
 				trio[base + triangle_count].tag = (this - mesh) + OB_TRIANGLE;
 				trio[base + triangle_count].tri_offset = 0;
@@ -434,7 +446,7 @@ bool Mesh::read_from_obj(const char *fn)
 			if (!added) {
 				printf("Mesh::ReadFromObj(%s) warning: polygon defined with no triangles at line #%d!\n", fn, l);
 			} else 
-				addedge(vertices, edg, edgc, lastvert - 1, a[0][0] - 1, facenorm);
+				addedge(vertices, edg, edgc, lastvert, a[0][0], facenorm);
 			int k = base + triangle_count - (poly_triangles - 2);
 			trio[k].tri_offset = poly_triangles - 3;
 		}
