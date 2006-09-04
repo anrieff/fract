@@ -280,8 +280,8 @@ int  project_point(int *dx, int *dy, const  Vector & d, const Vector & cur, Vect
  *  0x10 and 0x08 happen if the light projection goes to infinity (with an
  *  epsilon DST_THRESHOLD, used for floor rendering)
 */
-int  project_point_shadow(const Vector & vs, const Vector & l, float result[], int xres, int yres, Vector& cur, Vector& tt,
-			Vector& a, Vector& b, bool& isfloor, Vector &casted)
+int  project_point_shadow(const Vector & vs, const Vector & l, float result[], int xres, int yres, const Vector& cur, const Vector& tt,
+			const Vector& a, const Vector& b, bool& isfloor, Vector &casted)
 {
 	double x, y, y_to_be, z, planeDist, m, lambda, theta, zurla, Dcr;
 	double M[3][3];
@@ -341,8 +341,8 @@ int  project_point_shadow(const Vector & vs, const Vector & l, float result[], i
 	return ret;
 }
 // old verse
-int  project_point_shadow(const Vector & vs, const Vector & l, int *x_2d, int *y_2d, int xres, int yres, Vector& cur, Vector& tt,
-			 Vector& a, Vector& b, bool& isfloor)
+int  project_point_shadow(const Vector & vs, const Vector & l, int *x_2d, int *y_2d, int xres, int yres, const Vector& cur, const Vector& tt,
+			 const Vector& a, const Vector& b, bool& isfloor)
 {
 	float ret[2];
 	Vector temp;

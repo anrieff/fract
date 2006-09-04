@@ -83,6 +83,31 @@ void shadows_merge(int xr, int yr, Uint32 *target_framebuffer, Uint16 *sbuffer)
 	prof_leave(PROF_MERGE);
 }
 
+static bool in_shadow(Mesh::EdgeInfo & e, Mesh & m, const Vector &light)
+{
+	int base = m.get_triangle_base();
+	char ic[128];
+	for (int i = 0; i < m.triangle_count; i++) {
+		Triangle &t = trio[i + base];
+		
+		bool same_tri = false;
+		for (int j = 0; j < 3; j++)
+			if (t.vertex[j] == e.a || t.vertex[j] == e.b) {
+				same_tri = true;
+				break;
+			}
+		if (same_tri) continue;
+		
+		Vector ray;
+		ray.make_vector(e.a, light);
+		if (t.intersect(ray, light, ic)) return true;
+		ray.make_vector(e.b, light);
+		if (t.intersect(ray, light, ic)) return true;
+		
+	}
+	return false;
+}
+
 class bary_t {
 	float s[2], u[2], v[2], d;
 	float inc[3];
@@ -271,6 +296,9 @@ struct SolidDrawer : public AbstractDrawer
 
 struct Vertex {
 	int no;
+#ifdef DEBUG
+	int color;
+#endif
 	Vector v;
 	Vertex() {}
 	Vertex(int _no, const Vector & _v):no(_no), v(_v) {}
@@ -290,6 +318,9 @@ struct PolyContext {
 	Mesh::EdgeInfo recu_edges[MAX_SIDES];
 	Vector mesh_poly[MAX_SIDES];
 	Vertex verts[MAX_SIDES];
+#ifdef DEBUG
+	int mesh_color[MAX_SIDES];
+#endif
 	vec2f cs1[MAX_SIDES], cs2[MAX_SIDES];
 	
 	bool ps[MAX_SIDES];
@@ -347,6 +378,19 @@ static void record_path(int node, int dest, int g[][max_neighs + 1], bool ps[], 
 	}
 }
 
+#ifdef DEBUG
+static int make_color(int mod4)
+{
+	switch (mod4) {
+		case 0: return 0xcccccc;
+		case 1: return 0x00ffff;
+		case 2: return 0xff00ff;
+		case 3: return 0xffff00;
+	}
+	return 0;
+}
+#endif
+
 static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 {
 	int n = 0;
@@ -389,17 +433,24 @@ static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 		for (int j = 0; j < po.path_length; j++) {
 			compo += po.final_path[j];
 			po.visited[po.final_path[j]] = true;
+#ifdef DEBUG
+			po.verts[po.final_path[j]].color = ((compos.size()%4) << 16) + po.final_path[j];
+#endif
 		}
 		compos += compo;
 	}
 	//
 	/*
-	printf("%d components: \n", compos.size());
-	for (int i = 0; i < compos.size(); i++) {
-		printf("{ ");
-		for (int j = 0; j < compos[i].size(); j ++)
-			printf("%d ", compos[i][j]);
-		printf("}\n");
+	static bool compos_shown = false;
+	if (!compos_shown) {
+		printf("%d components: \n", compos.size());
+		for (int i = 0; i < compos.size(); i++) {
+			printf("{ ");
+			for (int j = 0; j < compos[i].size(); j ++)
+				printf("%d ", compos[i][j]);
+			printf("}\n");
+		}
+		compos_shown = true;
 	}
 	*/
 	
@@ -433,8 +484,12 @@ static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 	}
 	int r = 0;
 	for (int i = 0; i < all.size(); i++) {
-		if (r == 0 || po.mesh_poly[r-1].distto(po.verts[all[i]].v) > 1e-9)
-			po.mesh_poly[r++] = po.verts[all[i]].v;
+		if (r == 0 || po.mesh_poly[r-1].distto(po.verts[all[i]].v) > 1e-9) {
+			po.mesh_poly [r++] = po.verts[all[i]].v;
+#ifdef DEBUG
+			po.mesh_color[r-1] = po.verts[all[i]].color;
+#endif
+		}
 	}
 	if (po.mesh_poly[r-1].distto(po.mesh_poly[0]) < 1e-9) r--;
 	return r;
@@ -911,6 +966,9 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 }
 
 static Allocator<PolyContext> allocator(ALLOCATOR_NEW_DELETE);
+#ifdef DEBUG
+Array<node_info> node_arr;
+#endif
 
 void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
 		    const Vector& mtt, const Vector& mti, const Vector& mtti, int thread_idx)
@@ -960,7 +1018,7 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		{
 			Mesh::EdgeInfo &e = mesh[i].edges[j];
 			Vector p = (e.a + e.b) * 0.5 - ml;
-			if ((p * e.norm1) * (p * e.norm2) < 0.0)
+			if ((p * e.norm1) * (p * e.norm2) < 0.0 && !in_shadow(e, mesh[i], ml))
 				po->recu_edges[po->recu_es++] = e;
 #ifdef DEBUG
 			if (fabs(p * e.norm1) < 1e-8) {
@@ -982,6 +1040,27 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		prof_enter(PROF_POLY_REARRANGE);
 		int pir = rearrange_poly(po->mesh_poly, r, ml, cur, alpha, beta, pif, *po);
 		prof_leave(PROF_POLY_REARRANGE);
+		
+#ifdef DEBUG
+		if ( 0 == thread_idx ) {
+			node_arr.clear();
+			for (int j = 0; j < pir; j++) {
+				for (int i = 0; i < pif[j].size; i++) {
+					node_info info;
+					
+					bool isfloor;
+					if (project_point_shadow(po->mesh_poly[pif[j].start+i], ml, &info.x, &info.y, 
+						xr, yr, cur, mtt, mti, mtti, isfloor)) {
+						info.x -= 6;
+						info.y -= 8;
+						info.number = po->mesh_color[pif[j].start+i] & 0xffff;
+						info.color = make_color(po->mesh_color[pif[j].start + i] >> 16);
+						node_arr.add(info);
+					}
+				}
+			}
+		}
+#endif
 		
 		for (int i = 0; i < pir; i++) {
 			prof_enter(PROF_MAKE_WEDGES);

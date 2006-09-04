@@ -300,6 +300,13 @@ void postframe_do(void)
 		}
 	}
 #endif
+#ifdef DEBUG
+	if (developer && node_arr.size()) {
+		for (int i = 0; i < node_arr.size(); i++) {
+			printxy(p, framebuffer, font0, node_arr[i].x, node_arr[i].y, node_arr[i].color, 0.8f, "%d", node_arr[i].number);
+		}
+	}
+#endif // DEBUG
 #endif // ACTUALLYDISPLAY
 #ifdef ACTUALLYDISPLAY
 	if (stereo_mode == STEREO_MODE_NONE || stereo_mode == STEREO_MODE_FINAL) {

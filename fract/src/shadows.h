@@ -45,6 +45,15 @@ extern int g_biasmethod;
 */
 extern int g_shadowquality;
 
+#ifdef DEBUG
+struct node_info {
+	int number, color;
+	int x, y;
+};
+#include "array.h"
+extern Array<node_info> node_arr;
+#endif
+
 const int SPHERE_SIDES = 16;
 const int MAX_SIDES = 4096;
 const int shadow_intensity = 0xB2;
