@@ -20,14 +20,14 @@
   <kdevautoproject>
     <general>
       <activetarget>src/fract</activetarget>
-      <useconfiguration>optimized</useconfiguration>
+      <useconfiguration>debug</useconfiguration>
     </general>
     <run>
       <mainprogram>src/fract</mainprogram>
       <terminal>true</terminal>
       <directoryradio>executable</directoryradio>
       <customdirectory>/</customdirectory>
-      <programargs>--developer --no-overlay</programargs>
+      <programargs>--developer -w --no-overlay --scene=data/axe.fsv</programargs>
       <autocompile>true</autocompile>
       <envvars/>
     </run>
@@ -37,7 +37,7 @@
         <ccompiler>kdevgccoptions</ccompiler>
         <cxxcompiler>kdevgppoptions</cxxcompiler>
         <f77compiler>kdevpgf77options</f77compiler>
-        <cxxflags>-Wall -g -O2 -ffast-math -msse -msse2 -mfpmath=sse</cxxflags>
+        <cxxflags>-Wall -g  -ffast-math</cxxflags>
         <configargs></configargs>
         <topsourcedir></topsourcedir>
         <cppflags></cppflags>
@@ -131,7 +131,7 @@
     </codecompletion>
     <references/>
     <creategettersetter>
-      <prefixGet></prefixGet>
+      <prefixGet/>
       <prefixSet>set</prefixSet>
       <prefixVariable>m_,_</prefixVariable>
       <parameterName>theValue</parameterName>
