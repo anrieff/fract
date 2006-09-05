@@ -17,6 +17,7 @@
 #include "cpu.h"
 #include "gfx.h"
 #include "mesh.h"
+#include "konsole.h"
 #include "profile.h"
 #include "progress.h"
 #include "render.h"
@@ -43,7 +44,8 @@ int BackgroundMode = BACKGROUND_MODE_FLOOR;
 
 // the default font
 
-RawImg font0;
+Font font0, minifont;
+
 
 // the framebuffer:
 
@@ -311,6 +313,14 @@ void kbd_do(int *ShouldExit)
 				take_snapshot(tempf);
 			}
 			if (developer) {
+				if (e.key.keysym.sym == SDLK_BACKQUOTE) {
+					konsole.toggle();
+					continue;
+				}
+				if (konsole.visible()) {
+					if (konsole.handle_keycode(e.key.keysym.sym))
+						continue;
+				}
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
 					bilfilter = !bilfilter;
 					}
@@ -487,6 +497,7 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
+	option_add("--developer");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }

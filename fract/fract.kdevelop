@@ -20,14 +20,14 @@
   <kdevautoproject>
     <general>
       <activetarget>src/fract</activetarget>
-      <useconfiguration>debug</useconfiguration>
+      <useconfiguration>optimized</useconfiguration>
     </general>
     <run>
       <mainprogram>src/fract</mainprogram>
       <terminal>true</terminal>
       <directoryradio>executable</directoryradio>
       <customdirectory>/</customdirectory>
-      <programargs>--developer --no-overlay --scene=data/heart.fsv --xres=640 -w</programargs>
+      <programargs>--developer</programargs>
       <autocompile>true</autocompile>
       <envvars/>
     </run>
@@ -131,7 +131,7 @@
     </codecompletion>
     <references/>
     <creategettersetter>
-      <prefixGet/>
+      <prefixGet></prefixGet>
       <prefixSet>set</prefixSet>
       <prefixVariable>m_,_</prefixVariable>
       <parameterName>theValue</parameterName>

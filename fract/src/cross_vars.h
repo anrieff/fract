@@ -20,6 +20,7 @@ extern RawImg tex;
 // the default font
 
 extern Font font0;
+extern Font minifont;
 
 // precalculated storage...
 

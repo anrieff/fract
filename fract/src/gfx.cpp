@@ -293,7 +293,7 @@ void intro_progress_init(SDL_Surface *p, char * message)
 	surface_lock(p);
 	memset(p->pixels, 0, p->w * p->h * sizeof(Uint32));
 	int xr = p->w, yr = p->h;
-	intro.width  = (int) ceil(font0.w()) * strlen(message) + PROG_XSPACE;
+	intro.width  = font0.w_int() * strlen(message) + PROG_XSPACE;
 	intro.height = font0.h() + PROG_YSPACE;
 	if (intro.width > xr - 6)
 		intro.width = xr - 6;
@@ -534,6 +534,10 @@ int Font::get_text_xlength(const char *s)
 bool Font::init(const char *image_file, float fx, int fy)
 {
 	if (!font.load_bmp(image_file)) return false;
+	if (-1 == fx) {
+		fx = font.get_x() / 95.0f;
+		fy = font.get_y();
+	}
 	font_xsize_floor = (int) floor(fx);
 	font_xsize_ceil = 1 + font_xsize_floor;
 	font_xsize_float = fx;
@@ -544,6 +548,11 @@ bool Font::init(const char *image_file, float fx, int fy)
 float Font::w() const
 {
 	return font_xsize_floor;
+}
+
+int Font::w_int() const
+{
+	return font_xsize_ceil;
 }
 
 int Font::h() const

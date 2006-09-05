@@ -213,11 +213,12 @@ class Font {
 	int font_xsize_ceil, font_xsize_floor, font_ysize;
 	float font_xsize_float;
 public:
-	bool init(const char *image_file, float font_xsize_float, int font_ysize);
+	bool init(const char *image_file, float font_xsize_float = -1, int font_ysize = -1);
 	void printxy(SDL_Surface *p, Uint32 *a, int x, int y, Uint32 col, float opacity, const char *buf, ...);
 	void set_print_callback(void (*callback) (Uint32&, bool &, const char *));
 	int get_text_xlength(const char *);
 	float w() const;
+	int w_int() const;
 	int h() const;
 };
 

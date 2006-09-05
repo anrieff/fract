@@ -25,6 +25,7 @@
 #include "cmdline.h"
 #include "cpu.h"
 #include "fract.h"
+#include "konsole.h"
 #include "cross_vars.h"
 #include "gfx.h"
 #include "infinite_plane.h"
@@ -60,6 +61,7 @@ char scenes[5][256] ={
 };
 char dev_scene[256] = "data/benchmark.fsv";
 char default_font[64] = "data/font1.bmp";
+char mini_font[64] = "data/minifont.bmp";
 const char *introtex = "data/intro.bmp";
 
 
@@ -448,7 +450,14 @@ void Scene::videoinit(void)
 	}
 		
 	SDL_WM_SetCaption("Anrieff's Fractal", "");
-	if (!font0.init(default_font, DEFAULT_FONT_XSIZE, DEFAULT_FONT_YSIZE)) { printf("Unable to load default font, bailing out\n"); exit(1); }
+	if (!font0.init(default_font, DEFAULT_FONT_XSIZE, DEFAULT_FONT_YSIZE)) {
+		printf("Unable to load default font, bailing out\n"); 
+		exit(1);
+	}
+	if (!minifont.init(mini_font)) {
+		printf("Unable to load console font, bailing out\n");
+		exit(1);
+	}
 #endif
 	if (option_exists("--xres")) {
 		set_new_videomode(option_value_int("--xres"), option_value_int("--xres")/4*3);
@@ -463,7 +472,7 @@ void Scene::videoinit(void)
 		}
 		mouse_sensitivity *= def_resx / (double) xres();
 	}
-	
+	konsole.init(xres(), yres(), &minifont);
 #endif
 	set_fsaa_mode(FSAA_STARTING_MODE);
 	check_fsaa_param();

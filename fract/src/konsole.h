@@ -11,24 +11,48 @@
 #ifndef __KONSOLE_H__
 #define __KONSOLE_H__
 
+#include "MyTypes.h"
 #include "bitmap.h"
+#include "gfx.h"
+
+struct KonsoleChar {
+	int color;
+	char ch;
+	
+	void neutral(void)
+	{
+		color = 0;
+		ch = 0;
+	}
+};
 
 class Konsole {
-	int lines, rows;
+	int lines, cols;
 	int xr, yr;
-	char *data;
+	int current_color;
+	KonsoleChar *data;
+	Uint32 *konsole_background;
 	int cur_x, cur_y;
 	bool is_on;
-	RawImg *font;
+	Font *font;
+	
+	void advance(void);
+	void putchar(char c);
+	void scroll(void);
 public:
 	Konsole();
 	~Konsole();
 	
-	void init(int xres, int yres, RawImg *font);
+	void init(int xres, int yres, Font *font);
 	void toggle();
 	void show(bool reallyshow = true);
-	void render(Uint32* framebuff);
+	bool visible() const;
+	void render(void *screen, Uint32* framebuff);
+	bool handle_keycode(int );
+	void write(const char *format, ...);
+	void puts(const char *s);
 };
 
+extern Konsole konsole;
 
 #endif // __KONSOLE_H__

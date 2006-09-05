@@ -33,6 +33,7 @@
 #include "gfx.h"
 #include "infinite_plane.h"
 #include "mesh.h"
+#include "konsole.h"
 #include "object.h"
 #include "profile.h"
 #include "render.h"
@@ -307,6 +308,8 @@ void postframe_do(void)
 		}
 	}
 #endif // DEBUG
+	if (konsole.visible())
+		konsole.render(p, framebuffer);
 #endif // ACTUALLYDISPLAY
 #ifdef ACTUALLYDISPLAY
 	if (stereo_mode == STEREO_MODE_NONE || stereo_mode == STEREO_MODE_FINAL) {
