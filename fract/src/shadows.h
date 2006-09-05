@@ -56,7 +56,7 @@ extern Array<node_info> node_arr;
 
 const int SPHERE_SIDES = 16;
 const int MAX_SIDES = 4096;
-const int shadow_intensity = 0xB2;
+const int shadow_intensity = 0x90;
 
 #define VALIDITY_THRESH 10.0
 #define ST_FIXED 1

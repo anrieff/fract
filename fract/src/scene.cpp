@@ -44,6 +44,10 @@ extern int RenderMode;
 extern int developer, design;
 extern int threads_first;
 
+#ifdef DEBUG_MIPMAPS
+extern unsigned mips_colors[];
+#endif
+
 int SceneType = FRAME_BASED;
 static int def_resx = 640, def_resy = 480;
 double beta_limit_low, beta_limit_high;
@@ -444,7 +448,7 @@ void Scene::videoinit(void)
 	}
 		
 	SDL_WM_SetCaption("Anrieff's Fractal", "");
-	if (!font0.load_bmp(default_font)) { printf("Unable to load default font, bailing out\n"); exit(1); }
+	if (!font0.init(default_font, DEFAULT_FONT_XSIZE, DEFAULT_FONT_YSIZE)) { printf("Unable to load default font, bailing out\n"); exit(1); }
 #endif
 	if (option_exists("--xres")) {
 		set_new_videomode(option_value_int("--xres"), option_value_int("--xres")/4*3);
@@ -508,47 +512,47 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	shader_outro_effect(framebuffer);
 	//shader_gamma_shr(framebuffer, framebuffer, xres(), yres(), 1);
 	if (exit_code == 4)
-		printxy(screen, framebuffer, font0, 45, 32, 0xeef9ff, 0.75, "Test complete.");
+		font0.printxy(screen, framebuffer, 45, 32, 0xeef9ff, 0.75, "Test complete.");
 	else
-		printxy(screen, framebuffer, font0, 45, 32, 0xeef9ff, 0.75, "Test complete -- %d loops.", option_value_int("--loops"));
-	printxy(screen, framebuffer, font0, 45, 52, 0xeef9ff, 0.75, "This machine score:");
-	//printxy(screen, framebuffer, font0, 264,52, 0x22ff33, 0.99, "%.2lf FPS.", 1000.0 * (double) vframe / (double) clk);
+		font0.printxy(screen, framebuffer, 45, 32, 0xeef9ff, 0.75, "Test complete -- %d loops.", option_value_int("--loops"));
+	font0.printxy(screen, framebuffer, 45, 52, 0xeef9ff, 0.75, "This machine score:");
+	//font0.printxy(screen, framebuffer, 264,52, 0x22ff33, 0.99, "%.2lf FPS.", 1000.0 * (double) vframe / (double) clk);
 	int y = 72;
 	for (int i = 0; i < watch.size(); i++, y += 20) {
-		printxy(screen, framebuffer, font0, 45, y, 0xeef9ff, 0.75, "Scene %d: %.2lf FPS.", i + 1, 
+		font0.printxy(screen, framebuffer, 45, y, 0xeef9ff, 0.75, "Scene %d: %.2lf FPS.", i + 1, 
 			watch.get_data(i) / watch[i]);
 	}	
 	y += 10;
-	printxy(screen, framebuffer, font0, 54, y, 0xffffff, 0.8, "Total: ");
-	printxy(screen, framebuffer, font0, 131, y, 0x22ff33, 0.99, "%.2lf FPS", watch.total_data() / watch.total());
+	font0.printxy(screen, framebuffer, 54, y, 0xffffff, 0.8, "Total: ");
+	font0.printxy(screen, framebuffer, 131, y, 0x22ff33, 0.99, "%.2lf FPS", watch.total_data() / watch.total());
 	y += 30;
-	//printxy(screen, framebuffer, font0, 45, 72, 0xeef9ff, 0.75, "Rendering time: %.2lf seconds.", clk / 1000.0);
+	//font0.printxy(screen, framebuffer, 45, 72, 0xeef9ff, 0.75, "Rendering time: %.2lf seconds.", clk / 1000.0);
 #ifdef SHOW_CPU_SPEED
-	printxy(screen, framebuffer, font0, 45, y, 0xeef9ff, 0.66, "CPU Speed:       MHz");
-	printxy(screen, framebuffer, font0,166, y, 0xff3f00, 0.95, "%5d", cpuspd);
+	font0.printxy(screen, framebuffer, 45, y, 0xeef9ff, 0.66, "CPU Speed:       MHz");
+	font0.printxy(screen, framebuffer, 166, y, 0xff3f00, 0.95, "%5d", cpuspd);
 	y += 20;
 #endif
 	if (cpu.count > 1) {
-		printxy(screen, framebuffer, font0, 45,y, 0xeef9ff, 0.75, "Used %d-threaded rendering.", cpu.count);
+		font0.printxy(screen, framebuffer, 45,y, 0xeef9ff, 0.75, "Used %d-threaded rendering.", cpu.count);
 		y += 20;
 	}
 #ifdef MAKE_CHECKSUM
 	if (defaultconfig) {
 		
-		printxy(screen, framebuffer, font0, 45,y, 0xeef9ff, 0.75, "Expected checksum: %X", get_correct_cksum());
+		font0.printxy(screen, framebuffer, 45,y, 0xeef9ff, 0.75, "Expected checksum: %X", get_correct_cksum());
 		y+= 20;
-		printxy(screen, framebuffer, font0, 45,y, 0xeef9ff, 0.75, "  YOUR   checksum: ");
+		font0.printxy(screen, framebuffer, 45,y, 0xeef9ff, 0.75, "  YOUR   checksum: ");
 		//y+= 20;
 		if (exit_code == 4)
 			if (cksum==get_correct_cksum())
-				printxy(screen, framebuffer, font0, 254, y, 0x22ff33, 0.75, "OK");
+				font0.printxy(screen, framebuffer, 254, y, 0x22ff33, 0.75, "OK");
 		else
-			printxy(screen, framebuffer, font0, 254, y, 0xff4444, 0.99, "INCORRECT - %X", cksum);
+			font0.printxy(screen, framebuffer, 254, y, 0xff4444, 0.99, "INCORRECT - %X", cksum);
 		else
 			if (exit_code == 8)
-				printxy(p, framebuffer, font0, 254, y, 0x22ff33, 0.75, "OK (for all loops).");
+				font0.printxy(p, framebuffer, 254, y, 0x22ff33, 0.75, "OK (for all loops).");
 		else
-			printxy(screen, framebuffer, font0, 254, y, 0xff4444, 0.99, "FAILED after loop #%d",
+			font0.printxy(screen, framebuffer, 254, y, 0xff4444, 0.99, "FAILED after loop #%d",
 				option_value_int("--loops")-loops_remaining);
 		y += 20;
 	}
@@ -556,13 +560,13 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	if (defaultconfig) {
 	if (	 option_exists("-w")|| option_exists("--window")||option_exists("--windowed") &&
 			!option_exists("-f")&&!option_exists("--fullscreen"))
-		printxy(screen, framebuffer, font0, 45, y, 0xeef9ff, 0.50, "(Test ran in windowed mode)");
+		font0.printxy(screen, framebuffer, 45, y, 0xeef9ff, 0.50, "(Test ran in windowed mode)");
 	}
 	char VersionString[100];
 	strcpy(VersionString, Fract_Version);
 	strcat(VersionString, "/");
 	strcat(VersionString, Mod_Instruction_Set);
-	printxy(screen, framebuffer, font0, xres()-(4+11*strlen(VersionString)), yres()-18, 0xffddcc, 0.750, VersionString);
+	font0.printxy(screen, framebuffer, xres()-(4+font0.get_text_xlength(VersionString)), yres()-font0.h(), 0xffddcc, 0.750, VersionString);
 	surface_lock(screen);
 	memcpy(screen->pixels, framebuffer, screen->h*screen->w*4);
 	surface_unlock(screen);

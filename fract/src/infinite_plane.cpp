@@ -34,7 +34,10 @@
 #undef fract_asm
 
 
-double Area_const = 1.61;
+const double Area_const_isotrophic = 1.61;
+const double Area_const_anisotrophic = 4.12;
+double Area_const;
+bool g_isotrophic = false;
 int do_mipmap  = 1;
 FilteringInfo def_finfo;
 
@@ -174,7 +177,14 @@ void choose_texture(const Vector& cur, int xr, int yr, double cx, double cxi, do
 {
 	double parea; // parea is the area (in square texels) which single ray covers
 	int i;
-	parea = sqrt(cxi * cxi + cyi * cyi) * sqrt(sqr(cx - hx) + sqr(cy - hy));
+	double aa = sqrt(cxi * cxi + cyi * cyi), bb = sqrt(sqr(cx - hx) + sqr(cy - hy));
+	
+	if (g_isotrophic) { // isotrophic/anisotrophic selection
+		parea = aa * bb; // old/ugly - measure rectangle size
+	} else {
+		if (aa > bb) parea = aa * aa; // new - measure square size of the larger side
+			else parea = bb * bb;
+	}
 	*xtex = 0; *xandmask = MAX_TEXTURE_SIZE; *xshl = (int) log2(*xandmask);
 	/*
 		The idea is simple. Since we want to bilinear filter (or do nearest neighbour) all the time
@@ -416,6 +426,14 @@ void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, const Vector& in_tt, c
 	}
 }
 
+void infinite_plane_perframe_init(void)
+{
+	if (g_isotrophic) {
+		Area_const = Area_const_isotrophic;
+	} else {
+		Area_const = Area_const_anisotrophic;
+	}
+}
 
 void render_infinite_plane(Uint32 *frame_buffer, int xr, int yr, Vector& tt, Vector& ti, Vector& tti, 
 			   int start_line, InterlockedInt &lock)

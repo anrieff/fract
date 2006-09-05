@@ -29,7 +29,7 @@ const Uint32 boldcol = 0xcdf9ff;
 const Uint32 graycol = 0x9f9f9f;
 const Uint32 orgcol = 0xf8c88f;
 const double fontspeed = 0.15; // y screen size per second
-extern RawImg font0;
+extern Font font0;
 
 const char * credits[] = {
 	"[U]CREDITS",
@@ -177,15 +177,15 @@ static void credits_callback(Uint32 & col, bool & underline, const char *format)
 static void add_text(double time, int *should_exit, int xr, int yr, Uint32 *fb)
 {
 	int i;
-	set_print_callback(credits_callback);
+	font0.set_print_callback(credits_callback);
 	for (i = 0; strcmp(credits[i], "sentinel"); i++) {
-		int ly = yr + (2 + FONT_YSIZE) * i - (int) (time*fontspeed*yr);
-		if (ly < yr && ly > -FONT_YSIZE) {
-			int startx = (xr-get_text_xlength(credits[i]))/2;
-			printxy(NULL, fb, font0, startx, ly, normcol, 1.0, credits[i]);
+		int ly = yr + (2 + font0.h()) * i - (int) (time*fontspeed*yr);
+		if (ly < yr && ly > -font0.h()) {
+			int startx = (xr-font0.get_text_xlength(credits[i]))/2;
+			font0.printxy(NULL, fb, startx, ly, normcol, 1.0, credits[i]);
 		}
 	}
-	if (yr + (2 + FONT_YSIZE) * i - (int) (time*fontspeed*yr) < 0) *should_exit = 1;
+	if (yr + (2 + font0.h()) * i - (int) (time*fontspeed*yr) < 0) *should_exit = 1;
 }
 
 void show_credits(void)

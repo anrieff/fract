@@ -45,7 +45,7 @@ int Xres=640, Yres=480;
 int Xres2, Yres2;
 extern int camera_moved;
 extern int RowMin[], RowMax[];
-extern RawImg font0;
+extern Font font0;
 
 static inline int inrange(int x, int y)
 {
@@ -293,8 +293,8 @@ void intro_progress_init(SDL_Surface *p, char * message)
 	surface_lock(p);
 	memset(p->pixels, 0, p->w * p->h * sizeof(Uint32));
 	int xr = p->w, yr = p->h;
-	intro.width  = FONT_XSIZE_CEIL * strlen(message) + PROG_XSPACE;
-	intro.height = FONT_YSIZE + PROG_YSPACE;
+	intro.width  = (int) ceil(font0.w()) * strlen(message) + PROG_XSPACE;
+	intro.height = font0.h() + PROG_YSPACE;
 	if (intro.width > xr - 6)
 		intro.width = xr - 6;
 	intro.x = (xr - intro.width) / 2;
@@ -326,7 +326,7 @@ void intro_progress_init(SDL_Surface *p, char * message)
 			   intro.y + i,
 			   PROG_FRAME_COLOR);
 	}
-	printxy(p, pix, font0, intro.x + PROG_XSPACE / 2, intro.y + PROG_YSPACE / 2,
+	font0.printxy(p, pix, intro.x + PROG_XSPACE / 2, intro.y + PROG_YSPACE / 2,
 	       PROG_TEXT_COLOR, 1.0f, message);
 	intro.last = 0;
 	surface_unlock(p);
@@ -444,9 +444,9 @@ static inline Uint32 addrgb(Uint32 A, Uint32 B)
 
 #ifdef ACTUALLYDISPLAY
 
-void (*printxy_callback) (Uint32&, bool&, const char *);
+
 // a printf-like procedure... prints a message at x,y with a color col and the given opacity
-void printxy(SDL_Surface *p, Uint32 *a, const RawImg &font, int x, int y, Uint32 col, float opacity, const char *buf, ...)
+void Font::printxy(SDL_Surface *p, Uint32 *a, int x, int y, Uint32 col, float opacity, const char *buf, ...)
 {
 	va_list arg;
 	static char s[1024];
@@ -478,9 +478,9 @@ void printxy(SDL_Surface *p, Uint32 *a, const RawImg &font, int x, int y, Uint32
 			if (!s[i]) break;
 		}
 		if (s[i]>32 && s[i]<126) {
-			fx = (int) ((s[i]-33)*FONT_XSIZE);
-			for (x0=0;x0<FONT_XSIZE_FLOOR; x0++) {
-				for (y0=0;y0<FONT_YSIZE;y0++) {
+			fx = (int) ((s[i]-33)*font_xsize_float);
+			for (x0=0;x0<font_xsize_floor; x0++) {
+				for (y0=0;y0<font_ysize;y0++) {
 					ampi= fontdata[fx+x0 + y0*font.get_x()] & 0xff;
 					amp = ampi / 255.0;
 					ampi<<=8;
@@ -495,7 +495,7 @@ void printxy(SDL_Surface *p, Uint32 *a, const RawImg &font, int x, int y, Uint32
 						}
 					}
 				}
-				y0 = FONT_YSIZE;
+				y0 = font_ysize;
 				if (underline) {
 					if (inrange(x + x0, y + y0))
 						a[x + x0 + (y + y0) * Xres] = col;
@@ -504,17 +504,17 @@ void printxy(SDL_Surface *p, Uint32 *a, const RawImg &font, int x, int y, Uint32
 				}
 			}
 		}
-		i++; x+=FONT_XSIZE_CEIL;
-		if (x>=Xres-1- FONT_XSIZE_CEIL) break;
+		i++; x+=font_xsize_ceil;
+		if (x>=Xres-1- font_xsize_ceil) break;
 	}
 }
 
-void set_print_callback(void (*callback) (Uint32&, bool &, const char *))
+void Font::set_print_callback(void (*callback) (Uint32&, bool &, const char *))
 {
 	printxy_callback = callback;
 }
 
-int get_text_xlength(const char *s)
+int Font::get_text_xlength(const char *s)
 {
 	int res = 0;
 	int i = 0;
@@ -526,9 +526,29 @@ int get_text_xlength(const char *s)
 			i = j + 1;
 			if (!s[i]) break;
 		}
-		i++; res += FONT_XSIZE_CEIL;
+		i++; res += font_xsize_ceil;
 	}
 	return res;
+}
+
+bool Font::init(const char *image_file, float fx, int fy)
+{
+	if (!font.load_bmp(image_file)) return false;
+	font_xsize_floor = (int) floor(fx);
+	font_xsize_ceil = 1 + font_xsize_floor;
+	font_xsize_float = fx;
+	font_ysize = fy;
+	return true;
+}
+
+float Font::w() const
+{
+	return font_xsize_floor;
+}
+
+int Font::h() const
+{
+	return font_ysize;
 }
 
 #endif

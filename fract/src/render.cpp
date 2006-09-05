@@ -280,11 +280,11 @@ void postframe_do(void)
 		if (get_ticks()-fpsclk>FPS_UPDATE_INTERVAL || not_fps_written_yet) {
 			not_fps_written_yet = 0;
 			sprintf(buff, "fps: %.1lf", (double) fpsfrm / ((get_ticks()-fpsclk)/1000.0));
-			printxy(p, framebuffer, font0, 0, 0, FPS_COLOR, 0.8, buff);
+			font0.printxy(p, framebuffer, 0, 0, FPS_COLOR, 0.8, buff);
 			fpsfrm = 0;
 			fpsclk = get_ticks();
 		} else {
-			printxy(p, framebuffer, font0, 0, 0, FPS_COLOR, 0.8, buff);
+			font0.printxy(p, framebuffer, 0, 0, FPS_COLOR, 0.8, buff);
 		}
 	}
 	prof_leave(PROF_SHOWFPS);
@@ -296,14 +296,14 @@ void postframe_do(void)
 			double opacity = tt < 3 ? 0.75 : 0.75 - 0.75*(tt-3);
 			char fsaabuf[100];
 			sprintf(fsaabuf, "FSAA: %s", fsaa_name);
-			printxy(p, framebuffer, font0, xres()-(int)(strlen(fsaabuf)*11)-5, 0, 0xdddddd, opacity, fsaabuf);
+			font0.printxy(p, framebuffer, xres()-(int)(strlen(fsaabuf)*11)-5, 0, 0xdddddd, opacity, fsaabuf);
 		}
 	}
 #endif
 #ifdef DEBUG
 	if (developer && node_arr.size()) {
 		for (int i = 0; i < node_arr.size(); i++) {
-			printxy(p, framebuffer, font0, node_arr[i].x, node_arr[i].y, node_arr[i].color, 0.8f, "%d", node_arr[i].number);
+			font0.printxy(p, framebuffer, node_arr[i].x, node_arr[i].y, node_arr[i].color, 0.8f, "%d", node_arr[i].number);
 		}
 	}
 #endif // DEBUG
@@ -540,6 +540,7 @@ void bash_preframe(Vector& lw, Vector& tt, Vector& ti, Vector& tti)
 		pp_state = user_pp_state | system_pp_state;
 	else
 		pp_state = system_pp_state;
+	infinite_plane_perframe_init();
 }
 
 void render_spheres_init(unsigned short *fbuffer)

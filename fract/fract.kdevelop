@@ -27,7 +27,7 @@
       <terminal>true</terminal>
       <directoryradio>executable</directoryradio>
       <customdirectory>/</customdirectory>
-      <programargs>--developer -w --no-overlay --scene=data/axe.fsv --xres=800 --cpus=1</programargs>
+      <programargs>--developer --no-overlay --scene=data/heart.fsv --xres=640 -w</programargs>
       <autocompile>true</autocompile>
       <envvars/>
     </run>
@@ -131,7 +131,7 @@
     </codecompletion>
     <references/>
     <creategettersetter>
-      <prefixGet></prefixGet>
+      <prefixGet/>
       <prefixSet>set</prefixSet>
       <prefixVariable>m_,_</prefixVariable>
       <parameterName>theValue</parameterName>

@@ -14,11 +14,12 @@
 #include "bitmap.h"
 #include "sphere.h"
 #include "triangle.h"
+#include "gfx.h"
 extern RawImg tex;
 
 // the default font
 
-extern RawImg font0;
+extern Font font0;
 
 // precalculated storage...
 

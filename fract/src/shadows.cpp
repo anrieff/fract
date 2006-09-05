@@ -440,7 +440,7 @@ static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 		compos += compo;
 	}
 	//
-	
+	/*
 	static bool compos_shown = false;
 	if (!compos_shown) {
 		printf("%d components: \n", compos.size());
@@ -452,10 +452,9 @@ static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 		}
 		
 	}
-	
+	*/
 	
 	Array<int> all;
-	/*
 	all.append(compos[0]);
 	bool *used = (bool*)alloca(sizeof(bool) * compos.size());
 	memset(used, 0, sizeof(bool) * compos.size());
@@ -481,36 +480,11 @@ static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 		}
 		used[bi] = true;
 		if (reversed) compos[bi].reverse();
-		if (!compos_shown) {
+		/*if (!compos_shown) {
 			printf("Appending current chain (ending in %d) to %d\n", all[all.size()-1], compos[bi][0]);
-		}
+		}*/
 		all.append(compos[bi]);
 	}
-	*/
-	all.append(compos[0]);
-	compos[3].reverse();
-	all.append(compos[3]);
-	all.append(compos[4]);
-	all.append(compos[1]);
-	all.append(compos[7]);
-	all.append(compos[6]);
-	compos[5].reverse();
-	all.append(compos[5]);
-	compos[2].reverse();
-	all.append(compos[2]);
-	
-	
-	/*
-	0{ 2 0 }
-	1{ 3 4 5 6 7 1 }
-	2{ 9 10 43 44 41 40 42 8 }
-	3{ 12 11 }
-	4{ 14 19 16 24 25 23 22 21 20 17 18 15 13 }
-	5{ 38 26 }
-	6{ 29 33 34 35 36 39 37 28 32 27 }
-	7{ 31 30 }
-
-	*/	
 	int r = 0;
 	for (int i = 0; i < all.size(); i++) {
 		if (r == 0 || po.mesh_poly[r-1].distto(po.verts[all[i]].v) > 1e-9) {
@@ -521,7 +495,7 @@ static int connect_graph(Mesh::EdgeInfo e[], int m, PolyContext &po)
 		}
 	}
 	if (po.mesh_poly[r-1].distto(po.mesh_poly[0]) < 1e-9) r--;
-	compos_shown = true;
+	//compos_shown = true;
 	return r;
 }
 

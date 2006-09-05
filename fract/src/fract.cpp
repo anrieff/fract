@@ -358,7 +358,7 @@ void kbd_do(int *ShouldExit)
 
 			//FIXME
 			if (e.key.keysym.sym == SDLK_i) {
-				g_biasmethod = (g_biasmethod+1) % 3;
+				g_isotrophic = !g_isotrophic;
 			}
 			
 			if (e.key.keysym.sym == SDLK_q) {
@@ -373,10 +373,6 @@ void kbd_do(int *ShouldExit)
 				g_view_tracers = !g_view_tracers;
 			}
 			
-			if (e.key.keysym.sym == SDLK_i) {
-				cur.print();
-			}
-
 			// /FIXME
 			
 			if (e.key.keysym.sym == SDLK_g) switch_gravity();

@@ -8,17 +8,19 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
+#ifndef __GFX_H__
+#define __GFX_H__
+ 
 #include "MyGlobal.h"
 #include "MyTypes.h"
 #include "sphere.h"
 #include "vector2f.h"
 #include "vector3.h"
+#include "bitmap.h"
 
 #define vfabs(x) (((x)<0)?-(x):(x))
-#define FONT_XSIZE 10.66666666666
-#define FONT_YSIZE 18
-#define FONT_XSIZE_FLOOR 10
-#define FONT_XSIZE_CEIL (FONT_XSIZE_FLOOR+1)
+#define DEFAULT_FONT_XSIZE 10.66666666666
+#define DEFAULT_FONT_YSIZE 18
 
 #define PROG_FRAME_COLOR  0x8c8d90
 #define PROG_INNER_COLOR1 0x6488af
@@ -49,9 +51,6 @@ typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
  void paste_raw(SDL_Surface *p, const RawImg& a, int x, int y);
  void intro_progress(SDL_Surface *p, double prog);
  void intro_progress_init(SDL_Surface *p, char * message);
- void printxy(SDL_Surface *p, Uint32 *a, const RawImg& font, int x, int y, Uint32 col, float opacity, const char *buf, ...);
- void set_print_callback(void (*callback) (Uint32&, bool &, const char *));
- int get_text_xlength(const char *);
 #endif
 
  int xres(void);
@@ -207,3 +206,19 @@ public:
 		if (ymax != -inf && _ymax < ymax) _ymax = ymax;
 	}
 };
+
+class Font {
+	RawImg font;
+	void (*printxy_callback) (Uint32&, bool&, const char *);
+	int font_xsize_ceil, font_xsize_floor, font_ysize;
+	float font_xsize_float;
+public:
+	bool init(const char *image_file, float font_xsize_float, int font_ysize);
+	void printxy(SDL_Surface *p, Uint32 *a, int x, int y, Uint32 col, float opacity, const char *buf, ...);
+	void set_print_callback(void (*callback) (Uint32&, bool &, const char *));
+	int get_text_xlength(const char *);
+	float w() const;
+	int h() const;
+};
+
+#endif // __GFX_H__
