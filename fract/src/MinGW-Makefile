@@ -22,6 +22,7 @@ INCLUDES=\
 	hierarchy.h\
 	idnames.h\
 	infinite_plane.h\
+	konsole.h\
 	md5.h\
 	memory.h\
 	mesh.h\
@@ -61,6 +62,7 @@ OBJECTS=\
 	fract.o\
 	gfx.o\
 	infinite_plane.o\
+	konsole.o\
 	md5.o\
 	memory.o\
 	mesh.o\
@@ -82,7 +84,7 @@ OBJECTS=\
 	vectormath.o\
 	voxel.o
 
-OPTFLAGS=-O3 -ffast-math -msse -msse2 -msse3 -mfpmath=sse
+OPTFLAGS=-O3 -ffast-math -msse -msse2 -mfpmath=sse
 DEFINES=-DSIMD_VECTOR
 LINKPATHS=
 LINK_LIBS=-lmingw32 -lSDLmain -lSDL -lm
