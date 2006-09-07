@@ -39,6 +39,7 @@ class Konsole {
 	void advance(void);
 	void putchar(char c);
 	void scroll(void);
+	char try_char(int code, bool shift);
 public:
 	Konsole();
 	~Konsole();
@@ -48,7 +49,7 @@ public:
 	void show(bool reallyshow = true);
 	bool visible() const;
 	void render(void *screen, Uint32* framebuff);
-	bool handle_keycode(int );
+	bool handle_keycode(int keycode, bool shift);
 	void write(const char *format, ...);
 	void puts(const char *s);
 };

@@ -188,18 +188,39 @@ void Konsole::render(void* screen, Uint32 *fb)
 #endif
 }
 
-bool Konsole::handle_keycode( int code )
+bool Konsole::handle_keycode( int code, bool shift )
 {
 #ifndef ACTUALLYDISPLAY
 	return false;
 #else
-	if (code >= SDLK_a && code <= SDLK_z) {
-		putchar('a' + (code - SDLK_a));
+	char c = try_char(code, shift);
+	if (c != 0) {
+		putchar(c);
+		return true;
+	}
+	if (code == SDLK_RETURN || code == SDLK_KP_ENTER) {
+		putchar('\n');
+		//execute the command
 		return true;
 	}
 	return false;
 #endif
 }
+
+char Konsole::try_char(int code, bool shift)
+{
+#ifdef ACTUALLYDISPLAY
+	if (code >= SDLK_a && code <= SDLK_z) {
+		char base = shift ? 'A' : 'a';
+		return base + (code - SDLK_a);
+	}
+	if (code >= SDLK_SPACE && code <= SDLK_BACKQUOTE)
+		return (char) code;
+	
+#endif
+	return 0;
+}
+
 
 
 //////// data...

@@ -318,7 +318,8 @@ void kbd_do(int *ShouldExit)
 					continue;
 				}
 				if (konsole.visible()) {
-					if (konsole.handle_keycode(e.key.keysym.sym))
+					if (konsole.handle_keycode(e.key.keysym.sym, 
+					    keystate[SDLK_LSHIFT] || keystate[SDLK_RSHIFT]))
 						continue;
 				}
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
