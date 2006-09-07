@@ -295,7 +295,7 @@ void check_fsaa_param(void)
 	}
 	printf("antialias.cpp: unknown fullscreen antialiasing mode.\n");
 	printf("Valid choices are:\n\n");
-	printf("\t`none' (default),\n\t`4xlo-fi',\n\t`4xhi-fi',\n\t`4xAAA',\n\t`5xAAA',\n\t`10xAAA',\n\t`16xAAA'\n");
+	printf("\t`none',\n\t`4xlo-fi',\n\t`4xhi-fi',\n\t`4xAAA',\n\t`5xAAA' (default),\n\t`10xAAA',\n\t`16xAAA'\n");
 }
 
 bool is_adaptive_fsaa(void)
