@@ -15,6 +15,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
+#ifdef _WIN32
+#include <malloc.h>
+#endif
 
 #ifdef ACTUALLYDISPLAY
 #endif

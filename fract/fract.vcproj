@@ -391,6 +391,9 @@
 				RelativePath=".\src\infinite_plane.cpp">
 			</File>
 			<File
+				RelativePath=".\src\konsole.cpp">
+			</File>
+			<File
 				RelativePath=".\src\md5.cpp">
 			</File>
 			<File
@@ -505,6 +508,9 @@
 			</File>
 			<File
 				RelativePath=".\src\infinite_plane.h">
+			</File>
+			<File
+				RelativePath=".\src\konsole.h">
 			</File>
 			<File
 				RelativePath=".\src\md5.h">
