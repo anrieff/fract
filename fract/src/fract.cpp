@@ -318,9 +318,10 @@ void kbd_do(int *ShouldExit)
 					continue;
 				}
 				if (konsole.visible()) {
-					if (konsole.handle_keycode(e.key.keysym.sym, 
-					    keystate[SDLK_LSHIFT] || keystate[SDLK_RSHIFT]))
+					bool shift = keystate[SDLK_LSHIFT] || keystate[SDLK_RSHIFT];
+					if (konsole.handle_keycode(e.key.keysym.sym, shift)) {
 						continue;
+					}
 				}
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
 					bilfilter = !bilfilter;
@@ -408,14 +409,16 @@ void kbd_do(int *ShouldExit)
 		}
 	}
 
-	if (keystate[SDLK_UP	])	move_camera(	0	);
-	if (keystate[SDLK_DOWN	])	move_camera(	M_PI	);
-	if (keystate[SDLK_LEFT	])	move_camera(-	M_PI / 2);
-	if (keystate[SDLK_RIGHT	])	move_camera(	M_PI / 2);
-	if (keystate[SDLK_KP2	])	rotate_camera(	0,	-1*keyboard_sensitivity);
-	if (keystate[SDLK_KP4	])	rotate_camera( -1*keyboard_sensitivity,	 0);
-	if (keystate[SDLK_KP6	])	rotate_camera( +1*keyboard_sensitivity,	 0);
-	if (keystate[SDLK_KP8	])	rotate_camera(	0,	+1*keyboard_sensitivity);
+	if (!konsole.visible()) {
+		if (keystate[SDLK_UP	])	move_camera(	0	);
+		if (keystate[SDLK_DOWN	])	move_camera(	M_PI	);
+		if (keystate[SDLK_LEFT	])	move_camera(-	M_PI / 2);
+		if (keystate[SDLK_RIGHT	])	move_camera(	M_PI / 2);
+		if (keystate[SDLK_KP2	])	rotate_camera(	0,	-1*keyboard_sensitivity);
+		if (keystate[SDLK_KP4	])	rotate_camera( -1*keyboard_sensitivity,	 0);
+		if (keystate[SDLK_KP6	])	rotate_camera( +1*keyboard_sensitivity,	 0);
+		if (keystate[SDLK_KP8	])	rotate_camera(	0,	+1*keyboard_sensitivity);
+	}
 	
 	SDL_GetRelativeMouseState(&deltax, &deltay);
 	rotate_camera(mouse_sensitivity*deltax, -mouse_sensitivity*deltay);

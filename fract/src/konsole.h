@@ -31,6 +31,7 @@ class Konsole {
 	int xr, yr;
 	int current_color;
 	KonsoleChar *data;
+	char *buffer; int buffpos;
 	Uint32 *konsole_background;
 	int cur_x, cur_y;
 	bool is_on;
@@ -52,6 +53,9 @@ public:
 	bool handle_keycode(int keycode, bool shift);
 	void write(const char *format, ...);
 	void puts(const char *s);
+	void set_color(int new_color);
+	void set_default_color(void);
+	int execute(const char *cmd);
 };
 
 extern Konsole konsole;

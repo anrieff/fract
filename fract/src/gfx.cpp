@@ -477,7 +477,7 @@ void Font::printxy(SDL_Surface *p, Uint32 *a, int x, int y, Uint32 col, float op
 			i = j + 1;
 			if (!s[i]) break;
 		}
-		if (s[i]>32 && s[i]<126) {
+		if (s[i]>32 && s[i]<=126) {
 			fx = (int) ((s[i]-33)*font_xsize_float);
 			for (x0=0;x0<font_xsize_floor; x0++) {
 				for (y0=0;y0<font_ysize;y0++) {
