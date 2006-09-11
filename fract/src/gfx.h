@@ -214,7 +214,9 @@ class Font {
 	float font_xsize_float;
 public:
 	bool init(const char *image_file, float font_xsize_float = -1, int font_ysize = -1);
+#ifdef ACTUALLYDISPLAY
 	void printxy(SDL_Surface *p, Uint32 *a, int x, int y, Uint32 col, float opacity, const char *buf, ...);
+#endif
 	void set_print_callback(void (*callback) (Uint32&, bool &, const char *));
 	int get_text_xlength(const char *);
 	float w() const;

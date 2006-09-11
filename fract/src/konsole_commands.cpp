@@ -43,6 +43,7 @@ int cmd_cpu(int argc, char **argv)
 	konsole.write("   SSE: %s\n", cpu.sse?"present":"absent");
 	konsole.write("   SSE2: %s\n", cpu.sse2?"present":"absent");
 	konsole.write("   Speed: %d MHz\n", cpu.speed());
+	konsole.write("   Vendor id: %s\n", cpu.vendor_id);
 	return 0;
 }
 

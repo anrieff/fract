@@ -13,6 +13,7 @@
 #include "MyGlobal.h"
 #include "konsole.h"
 #include "konsole_commands.h"
+#include "fract.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
@@ -61,7 +62,7 @@ void Konsole::init(int xres, int yres, Font *font_in)
 	font = font_in;
 	xr = xres;
 	yr = yres;
-	int fsx = (int) ceil(font->w());
+	int fsx = font->w_int();
 	int fsy = font->h();
 	lines = yres / 2 / fsy;
 	cols = xres / fsx;
@@ -188,11 +189,19 @@ void Konsole::write(const char *buf, ...)
 void Konsole::toggle()
 {
 	is_on = !is_on;
+#ifdef ACTUALLYDISPLAY
+	if (is_on) {
+		SDL_EnableKeyRepeat(500, 30);
+	} else {
+		SDL_EnableKeyRepeat(0, 0); // this is meant to disable key repeat
+	}
+#endif
 }
 
 void Konsole::show(bool reallyshow)
 {
-	is_on = reallyshow;
+	if (reallyshow != is_on) 
+		toggle();
 }
 
 bool Konsole::visible() const
@@ -237,7 +246,10 @@ void Konsole::render(void* screen, Uint32 *fb)
 	}
 	
 	// place the cursor:
-	font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y, 0x00ff00, 0.8f, "_");
+	if (get_ticks() / 500 % 2) {
+		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y, 0x00ff00, 0.8f, "_");
+		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y-1, 0x00ff00, 0.8f, "_");
+	}
 #endif
 }
 
@@ -250,7 +262,7 @@ bool Konsole::handle_keycode( int code, bool shift )
 	if (c != 0) {
 		//putchar(c);
 		int n = strlen(buffer);
-		if (n < cols - 3) {
+		if (n < cols - 4) {
 			for (int i = n; i > buffpos; i--)
 				buffer[i] = buffer[i-1];
 			buffer[buffpos++] = c;

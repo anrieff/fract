@@ -545,6 +545,8 @@ bool Font::init(const char *image_file, float fx, int fy)
 	return true;
 }
 
+#endif
+
 float Font::w() const
 {
 	return font_xsize_floor;
@@ -560,7 +562,6 @@ int Font::h() const
 	return font_ysize;
 }
 
-#endif
 
 /* calculates the needed number of "shell" 3D points needed for the pre-filler
 
