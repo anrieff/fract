@@ -34,6 +34,7 @@ struct CVar {
 	bool set_value(const char *new_value);
 };
 
+void cvars_init(void);
 CVar *find_cvar_by_name(const char *name);
 CVar *cvars_start(void);
 CVar *cvars_iter(void);

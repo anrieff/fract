@@ -15,6 +15,7 @@
 #include "common.h"
 #include "credits.h"
 #include "cpu.h"
+#include "cvar.h"
 #include "gfx.h"
 #include "mesh.h"
 #include "konsole.h"
@@ -195,6 +196,7 @@ void init_program(void)
 	common_init();
 	thor_init();
 	config.init();
+	cvars_init();
 }
 
 void close_program(void)

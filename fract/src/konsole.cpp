@@ -13,6 +13,7 @@
 #include "MyGlobal.h"
 #include "konsole.h"
 #include "konsole_commands.h"
+#include "cvar.h"
 #include "fract.h"
 #include <stdio.h>
 #include <stdarg.h>
@@ -399,6 +400,20 @@ int Konsole::execute(const char *rawcmd)
 			cleanup(argc, argv);
 			return r;
 		}
+	}
+	CVar *cvar = find_cvar_by_name(argv[0]);
+	if (cvar) {
+		if (argc == 1) {
+			konsole.write("%s is %s\n", argv[0], cvar->to_string());
+		} else {
+			if (!cvar->set_value(argv[1])) {
+				konsole.write("Can't set %s to %s - value is invalid.\n", argv[0], argv[1]);
+				cleanup(argc, argv);
+				return 1;
+			}
+		}
+		cleanup(argc, argv);
+		return 0;
 	}
 	konsole.write("No such cvar or command: `%s'\n", rawcmd);
 	cleanup(argc, argv);

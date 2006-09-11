@@ -7,3 +7,15 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  ***************************************************************************/
+
+#undef DECLARE_VARIABLE
+#ifdef IMPLEMENTATION
+#	define DECLARE_VARIABLE(type, var, description) \
+		allcvars.add(CVar(#var, &CVars::var, description))
+#else
+#	define DECLARE_VARIABLE(type, var, description) type var
+#endif
+
+
+DECLARE_VARIABLE(double, alpha, "camera rotation around Y");
+DECLARE_VARIABLE(double, beta , "camera rotation around XZ");
