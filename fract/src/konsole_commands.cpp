@@ -62,7 +62,7 @@ int cmd_testarg(int argc, char **argv)
 int cmd_cmdlist(int argc, char **argv)
 {
 	if (!strcmp(QUICKHELP_STRING, argv[1])) {
-		konsole.write("displays info about the CPU\n");
+		konsole.write("lists all commands\n");
 		return 0;
 	}
 	const char *lastc = "";
