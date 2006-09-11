@@ -20,6 +20,7 @@
 #include "bitmap.h"
 #include "blur.h"
 #include "cmdline.h"
+#include "cvars.h"
 #include "fract.h"
 #include "mesh.h"
 #include "scene.h"
@@ -44,7 +45,6 @@ extern char floor_texture[];
 extern char default_font[];
 extern AniSphere AS[];
 extern int anicnt;
-extern double alpha, beta;
 extern double sv_gravity, sv_air;
 extern double fov;
 
@@ -160,8 +160,8 @@ int save_context(const char *fn)
 	fprintf(f, "ShadowQuality=%s\n");
 	fprintf(f, "\n# User position information:\n");
 	write_triplet1(f, "User", cur);
-	fprintf(f, "alpha=%.6lf\n", alpha);
-	fprintf(f, "beta=%.6lf\n", beta);
+	fprintf(f, "alpha=%.6lf\n", CVars::alpha);
+	fprintf(f, "beta=%.6lf\n", CVars::beta);
 	fprintf(f, "\n# Physics (1=on)\n");
 	fprintf(f, "Physics=%d\n", Physics);
 	fprintf(f, "\n# Collision Detection (1=on)\n");
@@ -198,8 +198,8 @@ void record_do(double time)
 		fprintf(rec_file, "%.3lf\t%.6lf\t%.6lf\t%.6lf\t%.6lf\t%.6lf\t%.6lf\t%.6lf\t%.6lf\t%d\t%.4f\n",
 			time,
 			cur[0], cur[1], cur[2],
-			alpha,
-			beta,
+			CVars::alpha,
+			CVars::beta,
 			(double) lx, (double) ly, (double) lz,
 			pp_state,
 			shader_param);
@@ -579,8 +579,8 @@ int load_context(const char *fn)
 				
 			/* CAMERA */
 				case 0x4b9e: get_vector(line, cur); break;
-				case 0xa6c5: alpha = get_real(line); break;
-				case 0x3b9d: beta = get_real(line); break;
+				case 0xa6c5: CVars::alpha = get_real(line); break;
+				case 0x3b9d: CVars::beta = get_real(line); break;
 			/* Physics: */
 				case 0x9501: Physics = get_int (line); break;
 				case 0xa3e0: CollDetect = get_int (line); break;
@@ -682,8 +682,8 @@ bool load_frame(int frame_no, double time, int mySceneType, int loopmode, int& l
 		if (frame_no>=cd_frames) return false;
 		play_time = cd[frame_no].time;
 		for (i=0;i<3;i++) cur.v[i] = cd[frame_no].cam[i];
-		alpha = cd[frame_no].alpha;
-		beta  = cd[frame_no].beta;
+		CVars::alpha = cd[frame_no].alpha;
+		CVars::beta  = cd[frame_no].beta;
 		if (cd[frame_no].is_106) {
 			check_state(system_pp_state, cd[frame_no].pp_state);
 			shader_param = cd[frame_no].shader_param;
@@ -710,8 +710,8 @@ bool load_frame(int frame_no, double time, int mySceneType, int loopmode, int& l
 		for (i = 0; i < 3; i++) {
 			cur.v[i] = cd[l].cam[i] * (1-f) + cd[r].cam[i] * f;
 		}
-		alpha = cd[l].alpha * (1 - f) + cd[r].alpha * f;
-		beta =  cd[l].beta  * (1 - f) + cd[r].beta  * f;
+		CVars::alpha = cd[l].alpha * (1 - f) + cd[r].alpha * f;
+		CVars::beta =  cd[l].beta  * (1 - f) + cd[r].beta  * f;
 		if (cd[l].is_106) {
 			check_state(system_pp_state, cd[l].pp_state);
 			shader_param = cd[l].shader_param * (1 - f) + cd[r].shader_param * f;

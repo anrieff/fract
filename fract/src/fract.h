@@ -23,7 +23,6 @@ void init_fract_array(void);
 
 
 extern double daFloor, daCeiling;
-extern double alpha, beta;
 extern bool WantToQuit;
 extern int defaultconfig;
 extern bool show_aa;

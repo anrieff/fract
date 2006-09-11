@@ -75,7 +75,6 @@ bool show_aa =  false;
 Uint32 clk;
 double daFloor = 0.0, daCeiling = 200.0;
 double gX, gY;
-double alpha = -0.95, beta = -0.15;
 Vector w[3], cur(30, 45, 50);
 double pdlo[MAX_SPHERES];
 double lft, delta;

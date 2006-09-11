@@ -12,6 +12,7 @@
 #include "MyGlobal.h"
 #include "cross_vars.h"
 #include "cpu.h"
+#include "cvars.h"
 #include "common.h"
 #include "profile.h"
 #include "gfx.h"
@@ -991,7 +992,7 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		
 		PolyInfo pif[2];
 		prof_enter(PROF_POLY_REARRANGE);
-		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, alpha, beta, pif, *po);
+		int pir = rearrange_poly(poly, SPHERE_SIDES, ml, cur, CVars::alpha, CVars::beta, pif, *po);
 		prof_leave(PROF_POLY_REARRANGE);
 		
 
@@ -1042,7 +1043,7 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 	
 		PolyInfo pif[2];
 		prof_enter(PROF_POLY_REARRANGE);
-		int pir = rearrange_poly(po->mesh_poly, r, ml, cur, alpha, beta, pif, *po);
+		int pir = rearrange_poly(po->mesh_poly, r, ml, cur, CVars::alpha, CVars::beta, pif, *po);
 		prof_leave(PROF_POLY_REARRANGE);
 		
 #ifdef DEBUG

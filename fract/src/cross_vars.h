@@ -48,7 +48,6 @@ extern int vframe, bilfilter;
 extern Uint32 clk;
 extern double daFloor, daCeiling;
 extern double gX, gY;
-extern double alpha, beta;
 extern Vector w[3], cur;
 extern double pdlo[MAX_SPHERES];
 extern double lft, delta;

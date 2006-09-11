@@ -19,6 +19,7 @@
 #include "bitmap.h"
 #include "memory.h"
 #include "cpu.h"
+#include "cvars.h"
 #include "fract.h"
 #include "gfx.h"
 #include "infinite_plane.h"
@@ -46,7 +47,6 @@ info_t vxInput[NUM_VOXELS] = {
 /** --------=========== Externals ============== ------------------------**/
 
 extern Vector cur;
-extern double alpha, beta;
 extern double fov;
 extern int bilfilter;
 extern int vframe, lx, ly, lz;
@@ -549,7 +549,7 @@ void voxel_light_recalc(int thread_idx)
 void show_light(Uint32 *fb, int xr, int yr)
 {
 	Vector w[3];
-	calc_grid_basics(cur, alpha, beta, w);
+	calc_grid_basics(cur, CVars::alpha, CVars::beta, w);
 	int x, y;
 	Vector light(lx, ly, lz);
 	project_point(&x, &y, light, cur, w, xr, yr);
@@ -584,8 +584,8 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 
 
 	dCX = 1.0/tan(fov*0.75*FOURTY_FIVE_DEGREES);
-	double tgB = tan(beta);
-	float sinb = sin(-beta), cosb = cos(-beta);
+	double tgB = tan(CVars::beta);
+	float sinb = sin(-CVars::beta), cosb = cos(-CVars::beta);
 	double Thing = sqrt(1+ sqr(tgB));
 	double rcpThing = 1.0 / Thing;
 
@@ -613,10 +613,10 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		sizemask = sz-1;
 		sizeshift = power_of_2(sz);
 		texandmask = sz*sz-1;
-		fx = cur[0] + sin(alpha - fov * FOURTY_FIVE_DEGREES)*render_dist;
-		fz = cur[2] + cos(alpha - fov * FOURTY_FIVE_DEGREES)*render_dist;
-		fxi = ((cur[0] + sin(alpha + fov * FOURTY_FIVE_DEGREES)*render_dist) - fx) / xr;
-		fzi = ((cur[2] + cos(alpha + fov * FOURTY_FIVE_DEGREES)*render_dist) - fz) / xr;
+		fx = cur[0] + sin(CVars::alpha - fov * FOURTY_FIVE_DEGREES)*render_dist;
+		fz = cur[2] + cos(CVars::alpha - fov * FOURTY_FIVE_DEGREES)*render_dist;
+		fxi = ((cur[0] + sin(CVars::alpha + fov * FOURTY_FIVE_DEGREES)*render_dist) - fx) / xr;
+		fzi = ((cur[2] + cos(CVars::alpha + fov * FOURTY_FIVE_DEGREES)*render_dist) - fz) / xr;
 		fx += thread_index * fxi;
 		fz += thread_index * fzi;
 

@@ -13,8 +13,12 @@
 #	define DECLARE_VARIABLE(type, var, description) \
 		allcvars.add(CVar(#var, &CVars::var, description))
 #else
-#	define DECLARE_VARIABLE(type, var, description) type var
-#endif
+#	ifdef STORAGE
+#		define DECLARE_VARIABLE(type, var, description) type var
+#	else
+#		define DECLARE_VARIABLE(type, var, description) extern type var
+#	endif // STORAGE
+#endif // IMPLEMENTATION
 
 
 DECLARE_VARIABLE(double, alpha, "camera rotation around Y");

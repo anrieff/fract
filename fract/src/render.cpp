@@ -29,6 +29,7 @@
 #include "cmdline.h"
 #include "common.h"
 #include "cpu.h"
+#include "cvars.h"
 #include "fract.h"
 #include "gfx.h"
 #include "infinite_plane.h"
@@ -120,8 +121,8 @@ int render_init(void)
 void move_camera(double angle)
 {double a, b;
 
- a = alpha + angle;
- b = beta;
+ a = CVars::alpha + angle;
+ b = CVars::beta;
  if (angle == M_PI/2 || angle == -M_PI/2) b = 0;
  if (angle == M_PI)	b = -b;
  Vector x(sin(a)*cos(b), sin(b), cos(a)*cos(b));
@@ -135,8 +136,8 @@ void move_camera(double angle)
  */
 void rotate_camera(double alphai, double betai)
 {
- alpha += (alphai*delta*anglespeed);
- beta +=  (betai *delta*anglespeed);
+ CVars::alpha += (alphai*delta*anglespeed);
+ CVars::beta +=  (betai *delta*anglespeed);
  camera_moved = 1;
 }
 
@@ -146,8 +147,8 @@ void check_params(void)
  if (y<daFloor+1) y = daFloor+1;
  if (y>daCeiling -1) y = daCeiling -1;
  cur = Vector(cur[0], y, cur[2]);
- if (beta< beta_limit_low ) beta = beta_limit_low;
- if (beta> beta_limit_high) beta = beta_limit_high;
+ if (CVars::beta< beta_limit_low ) CVars::beta = beta_limit_low;
+ if (CVars::beta> beta_limit_high) CVars::beta = beta_limit_high;
 }
 
 double czero(double x)
@@ -528,14 +529,14 @@ void bash_preframe(Vector& lw, Vector& tt, Vector& ti, Vector& tti)
 {
 	lw = Vector(lx, ly, lz);
 	if (stereo_mode == STEREO_MODE_LEFT) {
-		cur -= Vector(stereo_separation * 0.5 * sin(alpha+M_PI/2), 0, stereo_separation * 0.5 * cos(alpha+M_PI/2));
-		alpha -= M_PI/2-atan(stereo_depth / (stereo_separation * 0.5));
+		cur -= Vector(stereo_separation * 0.5 * sin(CVars::alpha+M_PI/2), 0, stereo_separation * 0.5 * cos(CVars::alpha+M_PI/2));
+		CVars::alpha -= M_PI/2-atan(stereo_depth / (stereo_separation * 0.5));
 	}
 	if (stereo_mode == STEREO_MODE_RIGHT) {
-		cur += Vector(stereo_separation * 0.5 * sin(alpha+M_PI/2), 0, stereo_separation * 0.5 * cos(alpha+M_PI/2));
-		alpha += M_PI/2-atan(stereo_depth / (stereo_separation * 0.5));
+		cur += Vector(stereo_separation * 0.5 * sin(CVars::alpha+M_PI/2), 0, stereo_separation * 0.5 * cos(CVars::alpha+M_PI/2));
+		CVars::alpha += M_PI/2-atan(stereo_depth / (stereo_separation * 0.5));
 	}
-	calc_grid_basics(cur, alpha, beta, w);
+	calc_grid_basics(cur, CVars::alpha, CVars::beta, w);
 	tt = w[0];
 	ti = (w[1]-w[0])*(1.0/((double) xsize_render(xres())));
 	tti= (w[2]-w[0])*(1.0/((double) xsize_render(yres())));
@@ -984,10 +985,10 @@ void render_single_frame(SDL_Surface *p, SDL_Overlay *ov)
 {
 	if (parallel) {
 		Vector camera_save = cur;
-		double alpha_save = alpha;
+		double alpha_save = CVars::alpha;
 		for (stereo_mode = STEREO_MODE_LEFT; stereo_mode <= STEREO_MODE_FINAL; stereo_mode++) {
 			cur = camera_save;
-			alpha = alpha_save;
+			CVars::alpha = alpha_save;
 			camera_moved = true;
 			render_single_frame_do(p, ov);
 		}
