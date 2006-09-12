@@ -106,3 +106,14 @@ CVar * find_cvar_by_name(const char *name)
 	}
 	return NULL;
 }
+
+const char *CVar::get_type_name(void) const
+{
+	switch (type) {
+		case TYPE_INT: return "INT";
+		case TYPE_BOOL: return "BOOL";
+		case TYPE_DOUBLE: return "REAL";
+		default: return "UNKNOWN";
+	}
+}
+

@@ -15,6 +15,7 @@
 #include "sphere.h"
 #include "triangle.h"
 #include "gfx.h"
+#include "cvars.h"
 extern RawImg tex;
 
 // the default font
@@ -43,7 +44,7 @@ extern int num_sides[MAX_SPHERES];
 extern int spherecount;
 
 
-extern int vframe, bilfilter;
+extern int vframe;
 
 extern Uint32 clk;
 extern double daFloor, daCeiling;

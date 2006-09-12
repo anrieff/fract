@@ -48,7 +48,6 @@ info_t vxInput[NUM_VOXELS] = {
 
 extern Vector cur;
 extern double fov;
-extern int bilfilter;
 extern int vframe, lx, ly, lz;
 extern bool WantToQuit;
 
@@ -633,7 +632,7 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 			for (lasty=999666111, wf=1; wf < render_dist; wf++, lasty = opty, x+=xi, z+=zi) {
 				//if (((x>>16)&~sizemask)||((z>>16)&~sizemask)) continue;
 				if (((unsigned)x>>16) > (unsigned) sz - 2 || ((unsigned)z>>16) > (unsigned) sz - 2) continue;
-				if (!bilfilter) {
+				if (!CVars::bilinear) {
 					prof_enter(PROF_ADDRESS_GENERATE);
 					index = ((((unsigned)z>>16)&sizemask)<<sizeshift) + (((unsigned)x>>16)&sizemask);
 
@@ -892,7 +891,7 @@ void subdivide(Uint32 * blockPtr, const Vector & base, int x, int y, int size, i
 		}
 
 		if (davg < 10000) {
-			if (bilfilter) {
+			if (CVars::bilinear) {
 				int stepsrcp = (int) (65536.0f / size);
 
 				int cx0y0[3], cx1y0[3], cx0y1[3], cx1y1[3];

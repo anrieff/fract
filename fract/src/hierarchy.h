@@ -39,7 +39,7 @@
 #define OUTER_SIZE (1 << OUTER_MIPLEVEL)
 
 
-extern int bilfilter, vframe;
+extern int vframe;
 struct subdivision_t {
 	float dist;
 	int index;

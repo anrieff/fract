@@ -59,7 +59,7 @@ void CPU::init()
 	/**************************************
 	 Get the processor count
 	**************************************/
-    count = get_processor_count();
+	count = get_processor_count();
 	/****************************************
 	 Seek for processor features
 	****************************************/

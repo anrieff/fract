@@ -15,6 +15,7 @@
 #include "konsole_commands.h"
 #include "cvar.h"
 #include "fract.h"
+#include "string_array.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
@@ -24,12 +25,15 @@
 #endif
 
 const int KONSOLE_DEFAULT_COLOR = 0xcccccc;
+const double POPUP_TIME = 0.5; // in seconds
 
 CommandStruct allcommands[] = {
+	{ "exit", cmd_exit },
 	{ "help", cmd_help },
 	{ "cpu", cmd_cpu },
-	{ "testarg", cmd_testarg }, /// FIXME!
 	{ "cmdlist", cmd_cmdlist },
+	{ "cvarlist", cmd_cvarlist },
+	{ "list", cmd_list },
 };
 
 int cmdcount(void)
@@ -44,6 +48,8 @@ Konsole::Konsole()
 	konsole_background = NULL;
 	is_on = false;
 	font = NULL;
+	stroketime = -1000.0;
+	_exit = false;
 }
 
 Konsole::~Konsole()
@@ -59,6 +65,7 @@ Konsole::~Konsole()
 
 void Konsole::init(int xres, int yres, Font *font_in)
 {
+	
 	current_color = KONSOLE_DEFAULT_COLOR;
 	font = font_in;
 	xr = xres;
@@ -114,6 +121,15 @@ void Konsole::init(int xres, int yres, Font *font_in)
 	}
 	delete [] konsole_background;
 	konsole_background = t;
+	int xp = 0;
+	for (int j = 0; j < yr/2; j++) {
+		float y = (float) j / xr;
+		for (int i = 0; i < xr; i++, xp++) {
+			float x = (float) i / xr;
+			float dist = sqrtf(sqr(x - 0.5f) + sqr(y - 0.25f));
+			konsole_background[xp] = multiplycolorf(konsole_background[xp], fabs(sin(dist*50.0f)));
+		}
+	}
 
 }
 
@@ -190,6 +206,7 @@ void Konsole::write(const char *buf, ...)
 void Konsole::toggle()
 {
 	is_on = !is_on;
+	stroketime = bTime();
 #ifdef ACTUALLYDISPLAY
 	if (is_on) {
 		SDL_EnableKeyRepeat(500, 30);
@@ -207,21 +224,36 @@ void Konsole::show(bool reallyshow)
 
 bool Konsole::visible() const
 {
-	return is_on;
+	return is_on || (bTime() - stroketime <= POPUP_TIME);
 }
 
 void Konsole::render(void* screen, Uint32 *fb)
 {
-	if (!is_on) return;
+	if (!is_on && bTime() - stroketime > POPUP_TIME) return;
 #ifdef ACTUALLYDISPLAY
 	char *temp = (char *) alloca(cols+2);
 	SDL_Surface *p = (SDL_Surface*) screen;
 	
-	int xp = 0;
-	for (int j = 0; j < yr/2; j++)
-		for (int i = 0; i < xr; i++, xp++)
-			fb[xp] = konsole_background[xp];
+	// calculate how much lines of the console must be shown. They are yr/2
+	// when the console is fully opened, but might be less if it is in 
+	// a pop-up state.
+	int yspan;
+	if (bTime() - stroketime <= POPUP_TIME) {
+		double x = (bTime() - stroketime) / POPUP_TIME;
+		if (is_on) 
+			yspan = (int) (yr / 2 * sqrt(x));
+		else
+			yspan = (int) (yr / 2 * sqrt(1.0 - x));
+	} else yspan = yr / 2;
+	int yoffset = yr/2 - yspan;
 	
+	// put the background
+	int xp = 0;
+	for (int j = 0; j < yspan; j++)
+		for (int i = 0; i < xr; i++, xp++)
+			fb[xp] = konsole_background[xp + yoffset * xr];
+	
+	// clean up the current cursor line
 	for (int i = 0; i < cols; i++)
 		data[cols * cur_y + i].neutral();
 	cur_x = 0;
@@ -238,7 +270,8 @@ void Konsole::render(void* screen, Uint32 *fb)
 				i++;
 			}
 			temp[k] = 0;
-			font->printxy(p, fb, start * (font->w_int()), j * font->h(), cc, 0.8f, temp);
+			if (j * font->h() - yoffset >= 0)
+				font->printxy(p, fb, start * (font->w_int()), j * font->h() - yoffset, cc, 0.8f, temp);
 			start += k;
 			if (i >= cols || data[j * cols + i].ch == 0) break;
 			cc = data[j*cols + i].color;
@@ -247,9 +280,9 @@ void Konsole::render(void* screen, Uint32 *fb)
 	}
 	
 	// place the cursor:
-	if (get_ticks() / 500 % 2) {
-		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y, 0x00ff00, 0.8f, "_");
-		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y-1, 0x00ff00, 0.8f, "_");
+	if (get_ticks() / 500 % 2 && font->h() * cur_y - 1 - yoffset >= 0) {
+		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y - yoffset, 0x00ff00, 0.8f, "_");
+		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y - 1 - yoffset, 0x00ff00, 0.8f, "_");
 	}
 #endif
 }
@@ -301,6 +334,58 @@ bool Konsole::handle_keycode( int code, bool shift )
 		//reclear the buffer
 		memset(buffer, 0, sizeof(buffer[0]) * (cols+1));
 		buffpos = 0;
+		return true;
+	}
+	if (code == SDLK_TAB) {
+		// get the partial expression:
+		int i = buffpos - 1;
+		while (i >= 0 && !isspace(buffer[i])) i--;
+		++i;
+		int length = buffpos - i;
+		char *part = (char *) alloca(sizeof(char) * (length + 1));
+		memcpy(part, buffer + i, length);
+		part[length] = 0;
+		
+		//attempt to complete it
+		StringArray array;
+		// add all commands and cvars
+		for (int i = 0; i < cmdcount(); i++)
+			array.add(allcommands[i].cmdname, NULL);
+		for (CVar *cvar = cvars_start(); cvar; cvar = cvars_iter()) 
+			array.add(cvar->name, cvar);
+		
+		// filter using the partial expression:
+		array.filter(part);
+		
+		// see what's left
+		if (array.size() == 0) return true;
+		if (array.size() == 1) { // woot - we can tab-complete it!
+			const char * whole = array.get_string(0);
+			whole += length;
+			int n = strlen(buffer);
+			int m = strlen(whole) + 1;
+			if (n < cols - 3 - m) {
+				for (int i = n - 1 + m; i >= buffpos + m; i--)
+					buffer[i] = buffer[i-m];
+				for (int i = 0; i < m-1; i++)
+					buffer[buffpos+i] = whole[i];
+				buffer[buffpos+m-1] = ' ';
+				buffpos += m;
+			}
+		} else { // too many matches - display them all...
+			array.sort();
+			konsole.write("\n");
+			for (int i = 0; i < array.size(); i++) {
+				//align under cursor
+				for (int j = 0; j < 3 + buffpos; j++)
+					konsole.write(" ");
+				konsole.set_color(array.get_traits(i) ? 0xccccff : 0xffffcc);
+				konsole.write("%s", array.get_string(i));
+				konsole.set_default_color();
+				konsole.write("\n");
+			}
+		}
+			
 		return true;
 	}
 	return false;
@@ -430,6 +515,15 @@ void Konsole::set_default_color(void)
 	current_color = KONSOLE_DEFAULT_COLOR;
 }
 
+void Konsole::exit(void)
+{
+	_exit = true;
+}
+
+bool Konsole::wants_exit() 
+{
+	return _exit;
+}
 
 //////// data...
 

@@ -16,6 +16,7 @@
 #include "credits.h"
 #include "cpu.h"
 #include "cvar.h"
+#include "cvars.h"
 #include "gfx.h"
 #include "mesh.h"
 #include "konsole.h"
@@ -69,7 +70,7 @@ int spherecount;
 bool recordmode = false;
 bool savevideo = false;
 
-int vframe=0, bilfilter=0;
+int vframe=0;
 bool show_aa =  false;
 
 Uint32 clk;
@@ -237,8 +238,8 @@ void kbd_tiny_do(int *ShouldExit)
 			}
 			if (developer) {
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
-					bilfilter = !bilfilter;
-					}
+					CVars::bilinear = !CVars::bilinear;
+				}
 
 				if (e.key.keysym.sym == SDLK_F8) {
 					switch (fsaa_mode) {
@@ -321,12 +322,14 @@ void kbd_do(int *ShouldExit)
 				if (konsole.visible()) {
 					bool shift = keystate[SDLK_LSHIFT] || keystate[SDLK_RSHIFT];
 					if (konsole.handle_keycode(e.key.keysym.sym, shift)) {
+						if (konsole.wants_exit())
+							*ShouldExit = RUN_CANCELLED;
 						continue;
 					}
 				}
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
-					bilfilter = !bilfilter;
-					}
+					CVars::bilinear = !CVars::bilinear;
+				}
 //HACK FIXME HAX0RED
 
 				if (e.key.keysym.sym == SDLK_F1) {
@@ -362,6 +365,7 @@ void kbd_do(int *ShouldExit)
 				}
 
 			}
+			if (konsole.wants_exit()) *ShouldExit = RUN_CANCELLED;
 			if (e.key.keysym.sym == SDLK_F5) use_shader = !use_shader;
 			if (e.key.keysym.sym == SDLK_r)	{
 				runmode = !runmode;
@@ -371,7 +375,7 @@ void kbd_do(int *ShouldExit)
 
 			//FIXME
 			if (e.key.keysym.sym == SDLK_i) {
-				g_isotrophic = !g_isotrophic;
+				CVars::anisotrophic = !CVars::anisotrophic;
 			}
 			
 			if (e.key.keysym.sym == SDLK_q) {

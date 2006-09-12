@@ -31,6 +31,7 @@ struct CVar {
 	CVar(const char *name, double *, const char *description);
 	
 	const char *to_string(void);
+	const char *get_type_name(void) const;
 	bool set_value(const char *new_value);
 };
 

@@ -21,9 +21,11 @@ struct CommandStruct {
 extern CommandStruct allcommands[];
 int cmdcount(void);
 
+int cmd_exit(int argc, char **argv);
 int cmd_help(int argc, char **argv);
 int cmd_cpu(int argc, char **argv);
-int cmd_testarg(int argc, char **argv);
 int cmd_cmdlist(int argc, char **argv);
+int cmd_cvarlist(int argc, char **argv);
+int cmd_list(int argc, char **argv);
 
 #endif // __CONSOLE_COMMANDS_H__

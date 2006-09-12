@@ -10,9 +10,23 @@
 
 
 #include <string.h>
+#include "cvar.h"
+#include "cvars.h"
 #include "konsole_commands.h"
 #include "konsole.h"
 #include "cpu.h"
+#include "threads.h"
+#include "string_array.h"
+
+int cmd_exit(int argc, char **argv)
+{
+	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+		konsole.write("quits the program\n");
+		return 0;
+	}
+	konsole.exit();
+	return 0;
+}
 
 int cmd_help(int argc, char **argv)
 {
@@ -38,6 +52,8 @@ int cmd_cpu(int argc, char **argv)
 		return 0;
 	}
 	konsole.write("CPU Info:\n");
+	konsole.write("   Detected # of CPUs: %d\n", get_processor_count());
+	konsole.write("   Used CPUs: %d\n", cpu.count);
 	konsole.write("   MMX: %s\n", cpu.mmx?"present":"absent");
 	konsole.write("   MMX2: %s\n", cpu.mmx2?"present":"absent");
 	konsole.write("   SSE: %s\n", cpu.sse?"present":"absent");
@@ -47,16 +63,53 @@ int cmd_cpu(int argc, char **argv)
 	return 0;
 }
 
-int cmd_testarg(int argc, char **argv)
+static void list_things(bool list_commands, bool list_cvars, const char *filter)
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
-		konsole.write("tests console capabilities\n");
-		return 0;
+	StringArray arr;
+	
+	if (list_commands) {
+		int n = cmdcount();
+		for (int i = 0; i < n; i++)
+			arr.add(allcommands[i].cmdname, NULL);
 	}
-	konsole.write("%d arguments:\n", argc);
-	for (int i = 0; i < argc; i++) 
-		konsole.write("arg[%d] = `%s'\n", i, argv[i]);
-	return 0;
+	if (list_cvars) {
+		for (CVar *cvar = cvars_start(); cvar; cvar = cvars_iter()) {
+			arr.add(cvar->name, cvar);
+		}
+	}
+	if (filter[0]) arr.filter(filter);
+	if (!arr.size()) {
+		konsole.write("(no matches)\n");
+		return;
+	}
+	int maxlen = arr.get_max_length();
+	arr.sort();
+	
+	char *exec = (char *) alloca(5 + maxlen);
+	
+	for (int i = 0; i < arr.size(); i++) {
+		bool iscmd = arr.get_traits(i) == NULL;
+		
+		konsole.set_color(iscmd ? 0xffffcc : 0xccccff);
+		konsole.write("%s", arr.get_string(i));
+		konsole.set_default_color();
+		for (int j = 0; j < maxlen - (int) strlen(arr.get_string(i)); j++)
+			konsole.write(" ");
+		konsole.write(" - ");
+		if (iscmd) {
+			strcpy(exec, arr.get_string(i));
+			strcat(exec, " ");
+			strcat(exec, QUICKHELP_STRING);
+			konsole.execute(exec);
+		} else {
+			const CVar *cvar = reinterpret_cast<const CVar *>(arr.get_traits(i));
+			konsole.set_color(0x777777);
+			konsole.write("(%4s)", cvar->get_type_name());
+			konsole.set_default_color();
+			konsole.write("  - %s\n", cvar->description);
+		}
+		
+	}
 }
 
 int cmd_cmdlist(int argc, char **argv)
@@ -65,35 +118,26 @@ int cmd_cmdlist(int argc, char **argv)
 		konsole.write("lists all commands\n");
 		return 0;
 	}
-	const char *lastc = "";
-	int n = cmdcount();
-	int maxcmdlen = 0;
-	
-	for (int i = 0; i < n; i++)
-		if ((int) strlen(allcommands[i].cmdname) > maxcmdlen)
-			maxcmdlen = strlen(allcommands[i].cmdname);
-	char *exec = (char *) alloca(5 + maxcmdlen);
-	while (1) {
-		const char *mincmd = NULL;
-		for (int i = 0; i < n; i++) {
-			if (strcmp(allcommands[i].cmdname, lastc) > 0 ) {
-				if (!mincmd) mincmd = allcommands[i].cmdname;
-				else if (strcmp(allcommands[i].cmdname, mincmd)< 0)
-					mincmd = allcommands[i].cmdname;
-			}
-		}
-		if (!mincmd) break;
-		lastc = mincmd;
-		konsole.set_color(0xffffcc);
-		konsole.write("%s", mincmd);
-		konsole.set_default_color();
-		for (int j = 0; j < maxcmdlen - (int) strlen(mincmd); j++)
-			konsole.write(" ");
-		konsole.write(" - ");
-		strcpy(exec, mincmd);
-		strcat(exec, " ");
-		strcat(exec, QUICKHELP_STRING);
-		konsole.execute(exec);
+	list_things(true, false, argc > 1 ? argv[1] : "");
+	return 0;
+}
+
+int cmd_cvarlist(int argc, char **argv)
+{
+	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+		konsole.write("lists all cvars\n");
+		return 0;
 	}
+	list_things(false, true, argc > 1 ? argv[1] : "");
+	return 0;
+}
+
+int cmd_list(int argc, char **argv) 
+{
+	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+		konsole.write("lists all cvars and commands\n");
+		return 0;
+	}
+	list_things(true, true, argc > 1 ? argv[1] : "");
 	return 0;
 }

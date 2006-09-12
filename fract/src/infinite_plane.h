@@ -42,7 +42,6 @@ struct FilteringInfo {
 };
 
 extern FilteringInfo def_finfo;
-extern bool g_isotrophic;
 struct sphere;
 Uint32 texture_handle_nearest (int x, int y, int miplevel, int ysqrd_raytrace);
 Uint32 texture_handle_bilinear(double x, double y, int miplevel, int ysqrd_raytrace);

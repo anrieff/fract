@@ -287,7 +287,7 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 	fpsclk = clk;
 #endif
 #ifdef BILINEAR_FILTER
-	bilfilter = 1;
+	CVars::bilinear = 1;
 #else
 	defaultconfig = 0;
 #endif

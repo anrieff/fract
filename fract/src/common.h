@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "MyGlobal.h"
+#include "MyTypes.h"
 #include "memory.h"
 
 #define imin(a,b) ((a)<(b)?(a):(b))

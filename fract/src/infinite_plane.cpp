@@ -19,6 +19,7 @@
 #include "bitmap.h"
 #include "common.h"
 #include "cpu.h"
+#include "cvars.h"
 #include "fract.h"
 #include "gfx.h"
 #include "profile.h"
@@ -37,7 +38,6 @@
 const double Area_const_isotrophic = 1.61;
 const double Area_const_anisotrophic = 4.12;
 double Area_const;
-bool g_isotrophic = false;
 int do_mipmap  = 1;
 FilteringInfo def_finfo;
 
@@ -179,7 +179,7 @@ void choose_texture(const Vector& cur, int xr, int yr, double cx, double cxi, do
 	int i;
 	double aa = sqrt(cxi * cxi + cyi * cyi), bb = sqrt(sqr(cx - hx) + sqr(cy - hy));
 	
-	if (g_isotrophic) { // isotrophic/anisotrophic selection
+	if (!CVars::anisotrophic) { // isotrophic/anisotrophic selection
 		parea = aa * bb; // old/ugly - measure rectangle size
 	} else {
 		if (aa > bb) parea = aa * aa; // new - measure square size of the larger side
@@ -304,7 +304,7 @@ void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, const Vector& in_tt, 
 #define render1
 #include "x86_asm.h"
 #undef render1
-			if (bilfilter) {
+			if (CVars::bilinear) {
 				while (i--) {
 #define render2
 #include "x86_asm.h"
@@ -383,7 +383,7 @@ void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, const Vector& in_tt, c
 			i = xr;
 			prof_leave(PROF_INIT_PER_ROW);
 			prof_enter(PROF_WORK_PER_ROW);
-			if (bilfilter) {
+			if (CVars::bilinear) {
 				do {
 					Bx = (gX<0?(notmask|(gX>>(16+xtex))):(gX>>(16+xtex)));
 					By = (gY<0?(notmask|(gY>>(16+xtex))):(gY>>(16+xtex)));
@@ -428,10 +428,10 @@ void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, const Vector& in_tt, c
 
 void infinite_plane_perframe_init(void)
 {
-	if (g_isotrophic) {
-		Area_const = Area_const_isotrophic;
-	} else {
+	if (CVars::anisotrophic) {
 		Area_const = Area_const_anisotrophic;
+	} else {
+		Area_const = Area_const_isotrophic;
 	}
 }
 

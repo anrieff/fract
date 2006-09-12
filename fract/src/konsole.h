@@ -35,6 +35,8 @@ class Konsole {
 	Uint32 *konsole_background;
 	int cur_x, cur_y;
 	bool is_on;
+	bool _exit;
+	double stroketime;
 	Font *font;
 	
 	void advance(void);
@@ -45,6 +47,8 @@ public:
 	Konsole();
 	~Konsole();
 	
+	void exit(void);
+	bool wants_exit();
 	void init(int xres, int yres, Font *font);
 	void toggle();
 	void show(bool reallyshow = true);
