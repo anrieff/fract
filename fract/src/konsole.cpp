@@ -440,6 +440,24 @@ static void cleanup(int argc, char **argv)
 
 int Konsole::execute(const char *rawcmd)
 {
+	// see if the command line contains multiple commands, delimited by ';'s
+	
+	if (strchr(rawcmd, ';')) {
+		char *t = (char *) alloca(sizeof(char) * (strlen(rawcmd) + 1));
+		strcpy(t, rawcmd);
+		int lasti = 0;
+		int n = strlen(t);
+		for (int i = 0; i < n; i++) {
+			if (t[i] == ';') {
+				t[i] = 0;
+				int r = execute(t + lasti);
+				if (r) return r;
+				lasti = i+1;
+			}
+		}
+		return execute(t + lasti); // execute the last command on the line 
+	}
+	
 	// split the command into arguments...
 	int argc, n; char **argv;
 	

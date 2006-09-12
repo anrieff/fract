@@ -27,7 +27,7 @@
       <terminal>true</terminal>
       <directoryradio>executable</directoryradio>
       <customdirectory>/</customdirectory>
-      <programargs>--developer --scene=data/empty.fsv --no-overlay --xres=1024</programargs>
+      <programargs>--developer --scene=data/empty.fsv --no-overlay</programargs>
       <autocompile>true</autocompile>
       <envvars/>
     </run>
