@@ -382,6 +382,12 @@
 				RelativePath=".\src\credits.cpp">
 			</File>
 			<File
+				RelativePath=".\src\cvar.cpp">
+			</File>
+			<File
+				RelativePath=".\src\cvars.cpp">
+			</File>
+			<File
 				RelativePath=".\src\fract.cpp">
 			</File>
 			<File
@@ -392,6 +398,9 @@
 			</File>
 			<File
 				RelativePath=".\src\konsole.cpp">
+			</File>
+			<File
+				RelativePath=".\src\konsole_commands.cpp">
 			</File>
 			<File
 				RelativePath=".\src\md5.cpp">
@@ -434,6 +443,9 @@
 			</File>
 			<File
 				RelativePath=".\src\sphere.cpp">
+			</File>
+			<File
+				RelativePath=".\src\string_array.cpp">
 			</File>
 			<File
 				RelativePath=".\src\thorus.cpp">
@@ -495,6 +507,15 @@
 				RelativePath=".\src\cross_vars.h">
 			</File>
 			<File
+				RelativePath=".\src\cvar.h">
+			</File>
+			<File
+				RelativePath=".\src\cvarlist.h">
+			</File>
+			<File
+				RelativePath=".\src\cvars.h">
+			</File>
+			<File
 				RelativePath=".\src\fract.h">
 			</File>
 			<File
@@ -511,6 +532,9 @@
 			</File>
 			<File
 				RelativePath=".\src\konsole.h">
+			</File>
+			<File
+				RelativePath=".\src\konsole_commands.h">
 			</File>
 			<File
 				RelativePath=".\src\md5.h">
@@ -571,6 +595,9 @@
 			</File>
 			<File
 				RelativePath=".\src\sphere.h">
+			</File>
+			<File
+				RelativePath=".\src\string_array.h">
 			</File>
 			<File
 				RelativePath=".\src\thorus.h">

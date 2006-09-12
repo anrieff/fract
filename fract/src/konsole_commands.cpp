@@ -17,6 +17,9 @@
 #include "cpu.h"
 #include "threads.h"
 #include "string_array.h"
+#ifdef _WIN32
+#include <malloc.h>
+#endif
 
 int cmd_exit(int argc, char **argv)
 {
