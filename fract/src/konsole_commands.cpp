@@ -141,3 +141,13 @@ int cmd_list(int argc, char **argv)
 	list_things(true, true, argc > 1 ? argv[1] : "");
 	return 0;
 }
+
+int cmd_fancy(int argc, char **argv)
+{
+	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+		konsole.write("makes console background look fancy\n");
+		return 0;
+	}
+	konsole.fancy();
+	return 0;
+}

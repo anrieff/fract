@@ -26,10 +26,19 @@ struct KonsoleChar {
 	}
 };
 
+struct HistoryEntry {
+	char * line;
+	int pos;
+	HistoryEntry *next, *prev;
+	HistoryEntry(const char *line, int pos);
+	~HistoryEntry();
+};
+
 class Konsole {
 	int lines, cols;
 	int xr, yr;
 	int current_color;
+	int fancy_level;
 	KonsoleChar *data;
 	char *buffer; int buffpos;
 	Uint32 *konsole_background;
@@ -38,10 +47,15 @@ class Konsole {
 	bool _exit;
 	double stroketime;
 	Font *font;
+	HistoryEntry *history, *selected_history;
 	
 	void advance(void);
 	void putchar(char c);
 	void scroll(void);
+	void remember_from_history(void);
+	void history_add(const char *command, int);
+	void history_prev(void);
+	void history_next(void);
 	char try_char(int code, bool shift);
 public:
 	Konsole();
@@ -49,6 +63,7 @@ public:
 	
 	void exit(void);
 	bool wants_exit();
+	void fancy(void);
 	void init(int xres, int yres, Font *font);
 	void toggle();
 	void show(bool reallyshow = true);

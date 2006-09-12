@@ -25,6 +25,7 @@
 #endif
 
 const int KONSOLE_DEFAULT_COLOR = 0xcccccc;
+const float KONSOLE_ALPHA = 0.75f;
 const double POPUP_TIME = 0.5; // in seconds
 
 CommandStruct allcommands[] = {
@@ -34,6 +35,7 @@ CommandStruct allcommands[] = {
 	{ "cmdlist", cmd_cmdlist },
 	{ "cvarlist", cmd_cvarlist },
 	{ "list", cmd_list },
+	{ "fancy", cmd_fancy },
 };
 
 int cmdcount(void)
@@ -41,8 +43,23 @@ int cmdcount(void)
 	return (int) (sizeof(allcommands)/sizeof(allcommands[0]));
 }
 
+HistoryEntry::HistoryEntry(const char *theline, int thepos)
+{
+	line = new char[1 + strlen(theline)];
+	pos = thepos;
+	strcpy(line, theline);
+	next = prev = NULL;
+}
+
+HistoryEntry::~HistoryEntry()
+{
+	if (prev) delete prev;
+	delete line;
+}
+
 Konsole::Konsole()
 {
+	selected_history = history = NULL;
 	buffer = NULL;
 	data = NULL;
 	konsole_background = NULL;
@@ -50,6 +67,7 @@ Konsole::Konsole()
 	font = NULL;
 	stroketime = -1000.0;
 	_exit = false;
+	fancy_level = 0;
 }
 
 Konsole::~Konsole()
@@ -121,16 +139,33 @@ void Konsole::init(int xres, int yres, Font *font_in)
 	}
 	delete [] konsole_background;
 	konsole_background = t;
-	int xp = 0;
-	for (int j = 0; j < yr/2; j++) {
-		float y = (float) j / xr;
-		for (int i = 0; i < xr; i++, xp++) {
-			float x = (float) i / xr;
-			float dist = sqrtf(sqr(x - 0.5f) + sqr(y - 0.25f));
-			konsole_background[xp] = multiplycolorf(konsole_background[xp], fabs(sin(dist*50.0f)));
+}
+
+void Konsole::fancy(void)
+{
+	if (fancy_level == 0) {
+		int xp = 0;
+		for (int j = 0; j < yr/2; j++) {
+			float y = (float) j / xr;
+			for (int i = 0; i < xr; i++, xp++) {
+				float x = (float) i / xr;
+				float dist = sqrtf(sqr(x - 0.5f) + sqr(y - 0.25f));
+				konsole_background[xp] = multiplycolorf(konsole_background[xp], fabs(sin(dist*50.0f)));
+			}
+		}	
+	}
+	if (fancy_level == 1) {
+		for (int j = 0; j < yr / 2 ; j++) {
+			if (j / 3 % 2) {
+				for (int i = 0; i < xr; i++)
+					konsole_background[xr * j + i] = 0;
+			}
 		}
 	}
-
+	if (fancy_level == 2) {
+		memset(konsole_background, 0, xr * (yr / 2) * 4);
+	}
+	++fancy_level;
 }
 
 void Konsole::scroll(void)
@@ -250,8 +285,12 @@ void Konsole::render(void* screen, Uint32 *fb)
 	// put the background
 	int xp = 0;
 	for (int j = 0; j < yspan; j++)
-		for (int i = 0; i < xr; i++, xp++)
-			fb[xp] = konsole_background[xp + yoffset * xr];
+		for (int i = 0; i < xr; i++, xp++) {
+			fb[xp] = blend(
+				konsole_background[xp + yoffset * xr],
+				fb[xp],
+				KONSOLE_ALPHA);
+		}
 	
 	// clean up the current cursor line
 	for (int i = 0; i < cols; i++)
@@ -271,7 +310,7 @@ void Konsole::render(void* screen, Uint32 *fb)
 			}
 			temp[k] = 0;
 			if (j * font->h() - yoffset >= 0)
-				font->printxy(p, fb, start * (font->w_int()), j * font->h() - yoffset, cc, 0.8f, temp);
+				font->printxy(p, fb, start * (font->w_int()), j * font->h() - yoffset, cc, KONSOLE_ALPHA, temp);
 			start += k;
 			if (i >= cols || data[j * cols + i].ch == 0) break;
 			cc = data[j*cols + i].color;
@@ -281,8 +320,8 @@ void Konsole::render(void* screen, Uint32 *fb)
 	
 	// place the cursor:
 	if (get_ticks() / 500 % 2 && font->h() * cur_y - 1 - yoffset >= 0) {
-		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y - yoffset, 0x00ff00, 0.8f, "_");
-		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y - 1 - yoffset, 0x00ff00, 0.8f, "_");
+		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y - yoffset, 0x00ff00, KONSOLE_ALPHA, "_");
+		font->printxy(p, fb, font->w_int() * cur_x, font->h() * cur_y - 1 - yoffset, 0x00ff00, KONSOLE_ALPHA, "_");
 	}
 #endif
 }
@@ -319,6 +358,12 @@ bool Konsole::handle_keycode( int code, bool shift )
 		if (buffpos < (int) strlen(buffer)) ++buffpos;
 		return true;
 	}
+	if (code == SDLK_UP || code == SDLK_KP8) {
+		history_prev();
+	}
+	if (code == SDLK_DOWN || code == SDLK_KP2) {
+		history_next();
+	}
 	if (code == SDLK_DELETE || code == SDLK_KP_PERIOD) {
 		if (buffpos < (int) strlen(buffer)) {
 			for (int i = buffpos; buffer[i]; i++) {
@@ -328,6 +373,8 @@ bool Konsole::handle_keycode( int code, bool shift )
 		return true;
 	}
 	if (code == SDLK_RETURN || code == SDLK_KP_ENTER) {
+		history_add(buffer, buffpos);
+		selected_history = NULL;
 		putchar('\n');
 		//execute the command
 		execute(buffer);
@@ -390,6 +437,50 @@ bool Konsole::handle_keycode( int code, bool shift )
 	}
 	return false;
 #endif
+}
+
+void Konsole::remember_from_history(void)
+{
+	if (!selected_history) return;
+	strcpy(buffer, selected_history->line);
+	buffpos = selected_history->pos;
+}
+
+void Konsole::history_prev(void)
+{
+	if (!selected_history) {
+		selected_history = history;
+		if (!selected_history) return;
+		remember_from_history();
+	} else {
+		if (selected_history->prev) {
+			selected_history = selected_history->prev;
+			remember_from_history();
+		}
+	}
+}
+
+void Konsole::history_next(void)
+{
+	if (!selected_history) return;
+	if (selected_history->next) {
+		selected_history = selected_history->next;
+		remember_from_history();
+	} else {
+		buffer[0] = 0;
+		buffpos = 0;
+		selected_history = NULL;
+	}
+}
+
+void Konsole::history_add(const char *command, int pos)
+{
+	HistoryEntry *e = new HistoryEntry(command, pos);
+	if (history) {
+		history->next = e;
+		e->prev = history;
+	}
+	history = e;
 }
 
 char Konsole::try_char(int code, bool shift)
