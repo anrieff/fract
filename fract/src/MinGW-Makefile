@@ -17,12 +17,16 @@ INCLUDES=\
 	cpu.h\
 	credits.h\
 	cross_vars.h\
+	cvar.h\
+	cvarlist.h\
+	cvars.h\
 	fract.h\
 	gfx.h\
 	hierarchy.h\
 	idnames.h\
 	infinite_plane.h\
 	konsole.h\
+	konsole_commands.h\
 	md5.h\
 	memory.h\
 	mesh.h\
@@ -40,6 +44,7 @@ INCLUDES=\
 	shaders.h\
 	shadows.h\
 	sphere.h\
+	string_array.h\
 	thorus.h\
 	threads.h\
 	tracer.h\
@@ -59,10 +64,13 @@ OBJECTS=\
 	common.o\
 	cpu.o\
 	credits.o\
+	cvar.o\
+	cvars.o\
 	fract.o\
 	gfx.o\
 	infinite_plane.o\
 	konsole.o\
+	konsole_commands.o\
 	md5.o\
 	memory.o\
 	mesh.o\
@@ -77,6 +85,7 @@ OBJECTS=\
 	shaders.o\
 	shadows.o\
 	sphere.o\
+	string_array.o\
 	thorus.o\
 	threads.o\
 	tracer.o\
