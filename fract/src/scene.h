@@ -199,7 +199,7 @@ public:
 	OutroCapturer(int scene_no, int frame, double time);
 	~OutroCapturer();
 	void check(int scene_no, int frame, double time);
-	Uint32 * OutroCapturer::get_image(void);
+	Uint32 * get_image(void);
 };
 
 #endif // __SCENE_H__
