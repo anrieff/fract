@@ -28,5 +28,7 @@ int cmd_cmdlist(int argc, char **argv);
 int cmd_cvarlist(int argc, char **argv);
 int cmd_list(int argc, char **argv);
 int cmd_fancy(int argc, char **argv);
+int cmd_title(int argc, char **argv);
+
 
 #endif // __CONSOLE_COMMANDS_H__

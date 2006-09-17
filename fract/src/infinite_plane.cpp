@@ -37,7 +37,6 @@
 
 const double Area_const_isotrophic = 1.61;
 const double Area_const_anisotrophic = 4.12;
-double Area_const;
 int do_mipmap  = 1;
 FilteringInfo def_finfo;
 
@@ -195,7 +194,7 @@ void choose_texture(const Vector& cur, int xr, int yr, double cx, double cxi, do
 		the area is acceptable or we reached using 1x1 texture.
 	*/
 	if (do_mipmap)
-	while (parea>Area_const && *xtex<end_tex) {
+	while (parea>CVars::area_const && *xtex<end_tex) {
 		(*xtex)++; (*xandmask)/=2; (*xshl)--;
 		parea /= 4.0;
 		}
@@ -428,10 +427,13 @@ void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, const Vector& in_tt, c
 
 void infinite_plane_perframe_init(void)
 {
-	if (CVars::anisotrophic) {
-		Area_const = Area_const_anisotrophic;
-	} else {
-		Area_const = Area_const_isotrophic;
+	if (CVars::area_const == Area_const_anisotrophic ||
+		   CVars::area_const == Area_const_isotrophic || CVars::area_const == 0.0) {
+		if (CVars::anisotrophic) {
+			CVars::area_const = Area_const_anisotrophic;
+		} else {
+			CVars::area_const = Area_const_isotrophic;
+		}
 	}
 }
 

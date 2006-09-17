@@ -36,6 +36,7 @@ CommandStruct allcommands[] = {
 	{ "cvarlist", cmd_cvarlist },
 	{ "list", cmd_list },
 	{ "fancy", cmd_fancy },
+	{ "title", cmd_title },
 };
 
 int cmdcount(void)
@@ -522,96 +523,221 @@ char Konsole::try_char(int code, bool shift)
 	return 0;
 }
 
-static void cleanup(int argc, char **argv)
-{
-	for (int i = 0; i < argc; i++)
-		free(argv[i]);
-	free(argv);
-}
+class KonsoleCmdParser {
+	int okstatus;
+	
+	struct CommandInfo {
+		int argc;
+		char **argv;
+		CommandInfo() { argc = 0; argv = NULL; }
+		~CommandInfo ()
+		{
+			if (argv) {
+				for (int i = 0; i < argc; i++)
+					free(argv[i]);
+				free(argv);
+			}
+		}
+	};
+	
+	int parse(const char *rawcmd)
+	{
+		// first, see how much commands we've got here...
+		cmdcount = 0;
+		
+		/*
+		 * state meaning: bit 0 - open doublequote
+		 *                bit 1 - open signequote
+		 *                bit 2 - backslash prefix
+		 */
+		int state = 0; 
+		int l = strlen(rawcmd);
+		int semipos[192], semicount = 0;
+		bool nonwhite = false;
+		
+		for (int i = 0; i < l; i++) {
+			int newstate = state & ~4; // clear backslash
+			
+			switch (rawcmd[i]) {
+				case '"':
+				{
+					if (!(state & 4)) newstate ^= 1;
+					break;
+				}
+				case '\'':
+				{
+					if (!(state & 4)) newstate ^= 2;
+					break;
+				}
+				case '\\':
+				{
+					if (!(state & 4)) newstate |= 4;
+					break;
+				}
+				case ';': // this may be a command delimiter
+					// but we can't be sure
+				{
+					if (state == 0) {
+						semipos[semicount++] = i;
+						if (nonwhite) { // last cmd contains something useful...
+							cmdcount++;
+						}
+					}
+					break;
+				}
+				default: {
+					if (!isspace(rawcmd[i])) nonwhite = true;
+					break;
+				}
+			}
+			state = newstate;
+		}
+		if (state) { // bad line ending - missing " ?
+			return state;
+		}
+		semipos[semicount++] = l; // insert an imaginary semicolon at the end
+		if (nonwhite) cmdcount++;
+		
+		
+		if (0 == cmdcount) return 0;
+		
+		// iterate commands
+		command = new CommandInfo[semicount]; // one command for each semicolon
+		int start = 0;
+		char scratch[192];
+		for (int i = 0; i < semicount; i++) { //parse each command
+			bool ws = true;
+			int state = 0; // state has the same meaning as in the above case
+			int & argc = command[i].argc;
+			int k = 0;
+			for (int j = start; j < semipos[i]; j++) {
+				int newstate = state & ~4; // clear backslash
+				switch (rawcmd[j]) {
+					case '"':
+					{
+						if (!(state & 4)) newstate ^= 1;
+						break;
+					}
+					case '\'':
+					{
+						if (!(state & 4)) newstate ^= 2;
+						break;
+					}
+					case '\\':
+					{
+						if (!(state & 4)) newstate |= 4;
+						break;
+					}
+					default:
+					{
+						if (isspace(rawcmd[j]) && state == 0) {
+							if (!ws) {
+								ws = true;
+								scratch[k++] = 1;
+							}
+						} else {
+							ws = false;
+							scratch[k++] = rawcmd[j];
+						}
+					}
+				}
+				state = newstate;
+			}
+			if (state) return state;
+			
+			
+			if (k == 0 || scratch[k-1] != 1) {
+				scratch[k++] = 1;
+			}
+			scratch[k] = 0;
+			// scratch now contains... "<arg0>\001<arg1>\001<arg3>\001....<argn>\001\000"
+			for (int j = 0; j < k; j++) {
+				if (scratch[j] == 1) argc++;
+			}
+			
+			// now split the big line into seperate args...
+			command[i].argv = (char **) malloc(sizeof (char *) * argc);
+			int x = 0;
+			int cc = 0;
+			while (scratch[x]) {
+				int y = x;
+				while (scratch[y] != 1) y++;
+				scratch[y] = 0;
+				command[i].argv[cc] = (char*) malloc(sizeof(char*) * (y-x+1));
+				strcpy(command[i].argv[cc], &scratch[x]);
+				cc++;
+				x = y + 1;
+			}
+			start = semipos[i]+1;
+		}
+		return 0;
+	}
+public:
+	int cmdcount;
+	CommandInfo *command;
+	
+	KonsoleCmdParser(const char *rawcmd)
+	{
+		cmdcount = 0;
+		command = NULL;
+		okstatus = parse(rawcmd);
+	}
+	~KonsoleCmdParser() { if (command) delete [] command; }
+	bool valid() const
+	{
+		return okstatus == 0;
+	}
+	const char *error_message() const
+	{
+		switch (okstatus) {
+			case 0: return "No error";
+			case 1: return "Parse error: missing terminating \"";
+			case 2: return "Parse error: missing terminating '";
+			case 4: return "Parse error: missing character after \\";
+			default: return "Unknown parse error";
+		}
+	}
+};
 
 int Konsole::execute(const char *rawcmd)
 {
-	// see if the command line contains multiple commands, delimited by ';'s
-	
-	if (strchr(rawcmd, ';')) {
-		char *t = (char *) alloca(sizeof(char) * (strlen(rawcmd) + 1));
-		strcpy(t, rawcmd);
-		int lasti = 0;
-		int n = strlen(t);
-		for (int i = 0; i < n; i++) {
-			if (t[i] == ';') {
-				t[i] = 0;
-				int r = execute(t + lasti);
-				if (r) return r;
-				lasti = i+1;
-			}
-		}
-		return execute(t + lasti); // execute the last command on the line 
+	KonsoleCmdParser parser(rawcmd);
+	if (!parser.valid()) {
+		konsole.write("%s\n", parser.error_message());
+		return -1;
 	}
 	
-	// split the command into arguments...
-	int argc, n; char **argv;
-	
-	argc = 0;
-	n = (int) strlen(rawcmd);
-	bool whitespace = true;
-	for (int i = 0; i <= n; i++) {
-		if (i == n || isspace(rawcmd[i])) {
-			whitespace = true;
-		} else {
-			if (whitespace) {
-				argc++;
-			}
-			whitespace = false;
-		}
-	}
-	if (!argc) return 0;
-	argv = (char**) malloc(sizeof(char*) * argc);
-	int start = -1;
-	argc = 0;
-	for (int i = 0; i <= n; i++) {
-		if (i == n || isspace(rawcmd[i])) {
-			if (start >= 0 && !whitespace) {
-				int length = i - start;
-				argv[argc-1] = (char *) malloc(sizeof(char) * (length + 1));
-				memcpy(argv[argc-1], rawcmd+start, length * sizeof(char));
-				argv[argc-1][length] = 0;
-			}
-			whitespace = true;
-		} else {
-			if (whitespace) {
-				argc++;
-				start = i;
-			}
-			whitespace = false;
-		}
-	}
-	
-	
-	for (unsigned i = 0; i < sizeof(allcommands)/sizeof(allcommands[0]); i++) {
-		if (0 == strcmp(argv[0], allcommands[i].cmdname)) {
-			int r = allcommands[i].exec_fn(argc, argv);
-			cleanup(argc, argv);
-			return r;
-		}
-	}
-	CVar *cvar = find_cvar_by_name(argv[0]);
-	if (cvar) {
-		if (argc == 1) {
-			konsole.write("%s is %s\n", argv[0], cvar->to_string());
-		} else {
-			if (!cvar->set_value(argv[1])) {
-				konsole.write("Can't set %s to %s - value is invalid.\n", argv[0], argv[1]);
-				cleanup(argc, argv);
-				return 1;
+	int res = 0;
+	for (int i = 0; i < parser.cmdcount; i++) {
+		bool found = false;
+		for (unsigned j = 0; j < sizeof(allcommands)/sizeof(allcommands[0]); j++) {
+			if (0 == strcmp(parser.command[i].argv[0], allcommands[j].cmdname)) {
+				int r = allcommands[j].exec_fn(parser.command[i].argc, parser.command[i].argv);
+				if (r) res = r;
+				found = true;
 			}
 		}
-		cleanup(argc, argv);
-		return 0;
+		if (found) continue;
+		
+		CVar *cvar = find_cvar_by_name(parser.command[i].argv[0]);
+		if (cvar) {
+			if (parser.command[i].argc == 1) {
+				konsole.write("%s is %s\n", parser.command[i].argv[0], cvar->to_string());
+			} else {
+				if (!cvar->set_value(parser.command[i].argv[1])) {
+					konsole.write("Can't set %s to %s - value is invalid.\n", 
+							parser.command[i].argv[0], parser.command[i].argv[1]);
+					res = 1;
+					continue;
+				}
+			}
+			continue;
+		}
+		konsole.write("No such cvar or command: `%s'\n", parser.command[i].argv[0]);
+		res = -1;
+		
 	}
-	konsole.write("No such cvar or command: `%s'\n", rawcmd);
-	cleanup(argc, argv);
-	return -1;
+	return res;
 }
 
 void Konsole::set_color(int new_color)

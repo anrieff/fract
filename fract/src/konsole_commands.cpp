@@ -8,6 +8,9 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
+#ifdef ACTUALLYDISPLAY
+#include <SDL/SDL.h>
+#endif
 
 #include <string.h>
 #include "cvar.h"
@@ -152,5 +155,29 @@ int cmd_fancy(int argc, char **argv)
 		return 0;
 	}
 	konsole.fancy();
+	return 0;
+}
+
+int cmd_title(int argc, char **argv)
+{
+	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+		konsole.write("changes window title (in windowed mode)\n");
+		return 0;
+	}
+#ifdef ACTUALLYDISPLAY
+	if (argc < 2) {
+		char *t, *i;
+		SDL_WM_GetCaption(&t, &i);
+		konsole.write("Current title is \"%s\"\n", t);
+	} else {
+		char t[200] = {0};
+		for (int i = 1; i < argc; i++)
+		{
+			if (i > 1) strcat(t, " ");
+			strcat(t, argv[i]);
+		}
+		SDL_WM_SetCaption(t, "");
+	}
+#endif
 	return 0;
 }
