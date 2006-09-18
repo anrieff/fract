@@ -55,7 +55,7 @@ SSE_ALIGN(Uint32 framebuffer[RES_MAXX*RES_MAXY]);
 
 #ifdef DEBUG_MIPMAPS
 unsigned mips_colors[] = {
-/*      0 -gray   1-blue    2-red     3-green   4-purple  5-yellow  6-cyan    7-white   8-blueish 9-orange */        
+/*      0 -gray   1-blue    2-red     3-green   4-purple  5-yellow  6-cyan    7-white   8-blueish 9-orange */
 	0x777777, 0x3333cc, 0xcc3333, 0x11ff11, 0xee22ee, 0xffff00, 0x00ffff, 0xffffff, 0x0077ff, 0xffcc22
 };
 #endif
@@ -506,7 +506,6 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	option_add("--developer");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }

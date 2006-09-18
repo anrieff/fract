@@ -906,6 +906,22 @@ void shader_shutters(Uint32 *fb, Uint32 col, int resx, int resy, float amount)
 	}
 }
 
+static inline unsigned limit255(unsigned x) { return (x >= 256) ? 255 : x; }
+
+void shader_clippedgamma(Uint32 *fb, int resx, int resy, double multiplier)
+{
+	unsigned m = (unsigned)(multiplier * 65535u);
+
+	for (int j = 0; j < resy; j++) {
+		Uint32* fbl = &fb[j*resx];
+		for (int i = 0; i < resx; i++)
+			fbl[i] = 
+			/* B */ (limit255(((fbl[i] & 0xff) * m) >> 16))              + 
+			/* G */ (limit255((((fbl[i] >> 8) & 0xff) * m) >> 16) << 8 ) +
+			/* R */ (limit255((((fbl[i] >>16) & 0xff) * m) >> 16) << 16) ;
+	}
+}
+
 void shader_gamma(Uint32 *fb, int resx, int resy, float multiplier, int thread_idx, int threads_count)
 {
 	unsigned m = (unsigned)(multiplier * 255u);

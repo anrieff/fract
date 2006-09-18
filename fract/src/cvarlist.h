@@ -28,3 +28,4 @@ DECLARE_VARIABLE(double, beta        , 0.0  , "camera rotation around XZ");
 DECLARE_VARIABLE(bool,   bilinear    , false, "bilinear filtering toggle");
 DECLARE_VARIABLE(bool,   anisotrophic, true , "anisotrophic-like filtering toggle");
 DECLARE_VARIABLE(double, area_const  , 0.0  , "mipmap selection area unit");
+DECLARE_VARIABLE(double, brightness  , 1.0  , "final image brightness");

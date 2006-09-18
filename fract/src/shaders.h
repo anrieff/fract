@@ -131,4 +131,7 @@ void shader_gamma(Uint32 *fb, int resx, int resy, float multiplier, int thread_i
 // Multiplies the pixels by the given gamma (0-1) and copy
 void shader_gamma_cpy(Uint32 *src, Uint32 *dest, int resx, int resy, float multiplier, int thread_idx = 0, int thread_count = 1);
 
+// Multiplies the pixels by the given gamma (0-infinity)
+void shader_clippedgamma(Uint32 *fb, int resx, int resy, double multiplier);
+
 #endif //__SHADERS_H__

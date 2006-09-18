@@ -28,15 +28,20 @@ const int KONSOLE_DEFAULT_COLOR = 0xcccccc;
 const float KONSOLE_ALPHA = 0.75f;
 const double POPUP_TIME = 0.5; // in seconds
 
+#define CMD(x) { #x, cmd_##x }
+
 CommandStruct allcommands[] = {
-	{ "exit", cmd_exit },
-	{ "help", cmd_help },
-	{ "cpu", cmd_cpu },
-	{ "cmdlist", cmd_cmdlist },
-	{ "cvarlist", cmd_cvarlist },
-	{ "list", cmd_list },
-	{ "fancy", cmd_fancy },
-	{ "title", cmd_title },
+	CMD(exit),
+	CMD(help),
+	CMD(cpu),
+	CMD(cmdlist),
+	CMD(cvarlist),
+	CMD(list),
+	CMD(fancy),
+	CMD(title),
+	CMD(inc),
+	CMD(mul),
+	CMD(toggle),
 };
 
 int cmdcount(void)

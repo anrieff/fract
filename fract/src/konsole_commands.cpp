@@ -26,22 +26,41 @@
 
 #define QUICK_HELP (argc > 1 && !strcmp(QUICKHELP_STRING, argv[1]))
 
+const char *cmd_quickhelp[] = {
+	"exit|quits the program",
+	"help|displays help about commands or cvars",
+	"cpu|displays info about the CPU",
+	"cmdlist|lists all commands",
+	"cvarlist|list all cvars",
+	"list|list all cvars and commands",
+	"fancy|changes console background",
+	"title|changes window title (in windowed mode)",
+	"inc|increments an integer cvar",
+	"mul|multiplies real cvar by some number",
+	"toggle|toggles an bool variable",
+	
+	
+	""
+};
+
+static const char * get_quickhelp(const char *cmd)
+{
+	int n = strlen(cmd);
+	for (unsigned i = 0; cmd_quickhelp[i][0]; i++) {
+		if (!strncmp(cmd, cmd_quickhelp[i], n) && cmd_quickhelp[i][n] == '|')
+			return (cmd_quickhelp[i] + n + 1);
+	}
+	return "(no help available)";
+}
+
 int cmd_exit(int argc, char **argv)
 {
-	if (QUICK_HELP) {
-		konsole.write("quits the program\n");
-		return 0;
-	}
 	konsole.exit();
 	return 0;
 }
 
 int cmd_help(int argc, char **argv)
 {
-	if (QUICK_HELP) {
-		konsole.write("dispays help about commands or cvars\n");
-		return 0;
-	}
 	konsole.write("Like every good 3D thing, fract has a console\n");
 	konsole.write("It is used to execute commands or change\n");
 	konsole.write("console variables (cvars)\n");
@@ -55,10 +74,6 @@ int cmd_help(int argc, char **argv)
 
 int cmd_cpu(int argc, char **argv)
 {
-	if (QUICK_HELP) {
-		konsole.write("displays info about the CPU\n");
-		return 0;
-	}
 	konsole.write("CPU Info:\n");
 	konsole.write("   Detected # of CPUs: %d\n", get_processor_count());
 	konsole.write("   Used CPUs: %d\n", cpu.count);
@@ -93,7 +108,6 @@ static void list_things(bool list_commands, bool list_cvars, const char *filter)
 	int maxlen = arr.get_max_length();
 	arr.sort();
 	
-	char *exec = (char *) alloca(5 + maxlen);
 	
 	for (int i = 0; i < arr.size(); i++) {
 		bool iscmd = arr.get_traits(i) == NULL;
@@ -105,10 +119,7 @@ static void list_things(bool list_commands, bool list_cvars, const char *filter)
 			konsole.write(" ");
 		konsole.write(" - ");
 		if (iscmd) {
-			strcpy(exec, arr.get_string(i));
-			strcat(exec, " ");
-			strcat(exec, QUICKHELP_STRING);
-			konsole.execute(exec);
+			konsole.write("%s\n", get_quickhelp(arr.get_string(i)));
 		} else {
 			const CVar *cvar = reinterpret_cast<const CVar *>(arr.get_traits(i));
 			konsole.set_color(0x777777);
@@ -122,50 +133,30 @@ static void list_things(bool list_commands, bool list_cvars, const char *filter)
 
 int cmd_cmdlist(int argc, char **argv)
 {
-	if (QUICK_HELP) {
-		konsole.write("lists all commands\n");
-		return 0;
-	}
 	list_things(true, false, argc > 1 ? argv[1] : "");
 	return 0;
 }
 
 int cmd_cvarlist(int argc, char **argv)
 {
-	if (QUICK_HELP) {
-		konsole.write("lists all cvars\n");
-		return 0;
-	}
 	list_things(false, true, argc > 1 ? argv[1] : "");
 	return 0;
 }
 
 int cmd_list(int argc, char **argv) 
 {
-	if (QUICK_HELP) {
-		konsole.write("lists all cvars and commands\n");
-		return 0;
-	}
 	list_things(true, true, argc > 1 ? argv[1] : "");
 	return 0;
 }
 
 int cmd_fancy(int argc, char **argv)
 {
-	if (QUICK_HELP) {
-		konsole.write("makes console background look fancy\n");
-		return 0;
-	}
 	konsole.fancy();
 	return 0;
 }
 
 int cmd_title(int argc, char **argv)
 {
-	if (QUICK_HELP) {
-		konsole.write("changes window title (in windowed mode)\n");
-		return 0;
-	}
 #ifdef ACTUALLYDISPLAY
 	if (argc < 2) {
 		char *t, *i;
@@ -181,5 +172,69 @@ int cmd_title(int argc, char **argv)
 		SDL_WM_SetCaption(t, "");
 	}
 #endif
+	return 0;
+}
+
+int cmd_inc(int argc, char **argv)
+{
+	if (argc != 2) {
+		konsole.write("Usage: inc <cvar>\n");
+		return 1;
+	}
+	CVar *cvar = find_cvar_by_name(argv[1]);
+	if (!cvar) {
+		konsole.write("inc: no such cvar: `%s'\n", argv[1]);
+		return 2;
+	}
+	switch (cvar->type) {
+		case CVar::TYPE_INT: cvar->value_int[0]++; break;
+		case CVar::TYPE_BOOL: cvar->value_bool[0] = !cvar->value_bool[0]; break;
+		case CVar::TYPE_DOUBLE: cvar->value_double[0]++; break;
+		default: return 3;
+	}
+	return 0;
+}
+
+int cmd_mul(int argc, char **argv)
+{
+	if (argc != 3) {
+		konsole.write("Usage: mul <cvar> <multiplier>\n");
+		return 1;
+	}
+	double m;
+	if (1 != sscanf(argv[2], "%lf", &m)) {
+		konsole.write("mul: bad argument: `%s'\n", argv[2]);
+		return 2;
+	}
+	CVar *cvar = find_cvar_by_name(argv[1]);
+	if (!cvar) {
+		konsole.write("mul: no such cvar: `%s'\n", argv[1]);
+		return 2;
+	}
+	switch (cvar->type) {
+		case CVar::TYPE_INT: cvar->value_int[0] = (int) (cvar->value_int[0] * m); break;
+		case CVar::TYPE_BOOL: konsole.write("mul: invalid variable type!\n"); return 3;
+		case CVar::TYPE_DOUBLE: cvar->value_double[0] *= m; break;
+		default: return 4;
+	}
+	return 0;
+}
+
+int cmd_toggle(int argc, char **argv)
+{
+	if (argc != 2) {
+		konsole.write("Usage: toggle <cvar>\n");
+		return 1;
+	}
+	CVar *cvar = find_cvar_by_name(argv[1]);
+	if (!cvar) {
+		konsole.write("toggle: no such cvar: `%s'\n", argv[1]);
+		return 2;
+	}
+	if (cvar->type != CVar::TYPE_BOOL) {
+		konsole.write("toggle: invalid variable type!\n");
+		return 3;
+	}
+	cvar->value_bool[0] = !cvar->value_bool[0];
 	return 0;
 }

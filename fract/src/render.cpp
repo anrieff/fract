@@ -184,6 +184,9 @@ void postframe_do(void)
 	prof_enter(PROF_ANTIALIAS);
 	antialias(framebuffer);
 	prof_leave(PROF_ANTIALIAS);
+	if (CVars::brightness != 1.0) {
+		shader_clippedgamma(framebuffer, xres(), yres(), CVars::brightness);
+	}
 	if (pp_state) {
 		bool have_mt_shader = cpu.count > 1 && 0 != (pp_state & SUPPORTED_MT_SHADERS);
 		int st_pp_state = pp_state;
