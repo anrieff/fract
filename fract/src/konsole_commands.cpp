@@ -24,9 +24,11 @@
 #include <malloc.h>
 #endif
 
+#define QUICK_HELP (argc > 1 && !strcmp(QUICKHELP_STRING, argv[1]))
+
 int cmd_exit(int argc, char **argv)
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+	if (QUICK_HELP) {
 		konsole.write("quits the program\n");
 		return 0;
 	}
@@ -36,7 +38,7 @@ int cmd_exit(int argc, char **argv)
 
 int cmd_help(int argc, char **argv)
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+	if (QUICK_HELP) {
 		konsole.write("dispays help about commands or cvars\n");
 		return 0;
 	}
@@ -53,7 +55,7 @@ int cmd_help(int argc, char **argv)
 
 int cmd_cpu(int argc, char **argv)
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+	if (QUICK_HELP) {
 		konsole.write("displays info about the CPU\n");
 		return 0;
 	}
@@ -120,7 +122,7 @@ static void list_things(bool list_commands, bool list_cvars, const char *filter)
 
 int cmd_cmdlist(int argc, char **argv)
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+	if (QUICK_HELP) {
 		konsole.write("lists all commands\n");
 		return 0;
 	}
@@ -130,7 +132,7 @@ int cmd_cmdlist(int argc, char **argv)
 
 int cmd_cvarlist(int argc, char **argv)
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+	if (QUICK_HELP) {
 		konsole.write("lists all cvars\n");
 		return 0;
 	}
@@ -140,7 +142,7 @@ int cmd_cvarlist(int argc, char **argv)
 
 int cmd_list(int argc, char **argv) 
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+	if (QUICK_HELP) {
 		konsole.write("lists all cvars and commands\n");
 		return 0;
 	}
@@ -150,7 +152,7 @@ int cmd_list(int argc, char **argv)
 
 int cmd_fancy(int argc, char **argv)
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+	if (QUICK_HELP) {
 		konsole.write("makes console background look fancy\n");
 		return 0;
 	}
@@ -160,7 +162,7 @@ int cmd_fancy(int argc, char **argv)
 
 int cmd_title(int argc, char **argv)
 {
-	if (!strcmp(QUICKHELP_STRING, argv[1])) {
+	if (QUICK_HELP) {
 		konsole.write("changes window title (in windowed mode)\n");
 		return 0;
 	}
