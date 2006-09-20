@@ -823,7 +823,7 @@ void shader_object_glow(Uint32 *fb, Uint8 * glowbuff, Uint32 glow_color, int res
 	prof_leave(PROF_SHADER2);
 }
 
-static int sqrt_tab[65536];
+static unsigned char sqrt_tab[65536];
 
 void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy, int thread_idx, int threads_count)
 {
@@ -854,10 +854,10 @@ void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy, int thread_idx,
 
 	if (sqrt_tab[65535] == 0) {
 		for (int i = 0; i < 65536; i++)
-			sqrt_tab[i] = (int) sqrt((float)i);
+			sqrt_tab[i] = (unsigned char) sqrt((float)i);
 	}
 	prof_enter(PROF_SHADER1);
-	int p = 0;
+	int p = thread_idx * resx;
 	for (int j = thread_idx; j < resy; j += threads_count) {
 		for (int i = 0; i < resx; i++, p++) {
 			mydest[p] = 0;
@@ -884,6 +884,7 @@ void shader_sobel(Uint32 *src, Uint32 *dest, int resx, int resy, int thread_idx,
 				mydest[p] |= orle << k;
 			}
 		}
+		p += (threads_count-1)*resx;
 	}
 	prof_leave(PROF_SHADER1);
 	prof_enter(PROF_SHADER2);

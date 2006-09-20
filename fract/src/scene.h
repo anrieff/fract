@@ -163,12 +163,14 @@ class OutroCapturer;
  * 
  * This class is used to load scenes, precalculate associated resources, render sequences
  * and then free the allocated resources. Typical usage:
- * <code>
+ *
+ * @code
  * Scene scene("MyScene.fsv");
  * scene.init();
  * scene.run();
  * scene.close();
- * </code>
+ * @endcode
+ *
  * optionally, you can pass a pointer to a FPSWatch to run() which will cause the time to
  * be measured
 */
