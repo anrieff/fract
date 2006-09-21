@@ -445,6 +445,7 @@ void AdvancedTab::GenerateGUI(void)
 				      wxPoint(32, 98),
 				      wxSize(84, -1));
 	wxArrayString a_cmbAntialiasing;
+	a_cmbAntialiasing.Add("default");
 	a_cmbAntialiasing.Add("none");
 	a_cmbAntialiasing.Add("4xlo-fi");
 	a_cmbAntialiasing.Add("4xhi-fi");
@@ -452,7 +453,7 @@ void AdvancedTab::GenerateGUI(void)
 	a_cmbAntialiasing.Add("5xAAA");
 	a_cmbAntialiasing.Add("10xAAA");
 	a_cmbAntialiasing.Add("16xAAA");
-	m_cmbAntialiasing = new wxComboBox(this, cmbAntialiasing, "none",
+	m_cmbAntialiasing = new wxComboBox(this, cmbAntialiasing, "default",
 					   wxPoint(120, 94),
 					   wxSize(130, -1),
 					a_cmbAntialiasing, wxCB_READONLY | wxCB_DROPDOWN);
@@ -542,7 +543,7 @@ void AdvancedTab::Rebuild(void)
 		wxString q = m_cmbResolution->GetValue();
 		a += "--xres=" + q.BeforeFirst('x') + " ";
 	}
-	if (m_cmbAntialiasing->GetValue() != "none") {
+	if (m_cmbAntialiasing->GetValue() != "default") {
 		a += "--fsaa=" + m_cmbAntialiasing->GetValue()  + " ";
 	}
 	if (m_cmbDontUse->GetValue() != "") {
