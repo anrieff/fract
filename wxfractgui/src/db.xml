@@ -1,11 +1,29 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <FractDB>
 	<results>
+		<result>
+			<description>Conroe (Core 2 Duo), i965p</description>
+			<score>83.83</score>
+			<cpu_mhz>3600</cpu_mhz>
+			<mem_mhz>800</mem_mhz>
+		</result>
+		<result>
+			<description>X2 (O/C-ed), 512K cache, nForce4</description>
+			<score>50.62</score>
+			<cpu_mhz>2750</cpu_mhz>
+			<mem_mhz>550</mem_mhz>
+		</result>
 		<result>
 			<description>Opteron 165 (Dual-core), 400, nForce4</description>
 			<score>32.77</score>
 			<cpu_mhz>1800</cpu_mhz>
 			<mem_mhz>400</mem_mhz>
+		</result>
+		<result>
+			<description>Pentium 630 (P-4 Prescott), i955X, HT enabled</description>
+			<score>31.31</score>
+			<cpu_mhz>3850</cpu_mhz>
+			<mem_mhz>800</mem_mhz>
 		</result>
 		<result>
 			<description>Mac Mini, CPU: Core Duo 1.66Ghz (2MB L2)</description>
@@ -32,6 +50,12 @@
 			<mem_mhz>400</mem_mhz>
 		</result>
 		<result>
+			<description>Yonah (Core Solo) 1MB L2, i945pm</description>
+			<score>16.28</score>
+			<cpu_mhz>1460</cpu_mhz>
+			<mem_mhz>533</mem_mhz>
+		</result>
+		<result>
 			<description>Pentium M (Dothan), 400 FSB, i855PM</description>
 			<score>16.27</score>
 			<cpu_mhz>1700</cpu_mhz>
@@ -56,5 +80,5 @@
 			<mem_mhz>100</mem_mhz>
 		</result>
 	</results>
-	<date>2006-08-30</date>
+	<date>2006-11-30</date>
 </FractDB>
