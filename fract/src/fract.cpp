@@ -319,13 +319,16 @@ void kbd_do(int *ShouldExit)
 					konsole.toggle();
 					continue;
 				}
+				bool shift = keystate[SDLK_LSHIFT] || keystate[SDLK_RSHIFT];
 				if (konsole.visible()) {
-					bool shift = keystate[SDLK_LSHIFT] || keystate[SDLK_RSHIFT];
 					if (konsole.handle_keycode(e.key.keysym.sym, shift)) {
 						if (konsole.wants_exit())
 							*ShouldExit = RUN_CANCELLED;
 						continue;
 					}
+				} else {
+					if (konsole.key_bound(e.key.keysym.sym, shift))
+						continue;
 				}
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
 					CVars::bilinear = !CVars::bilinear;
@@ -506,6 +509,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
+	option_add("--developer");
+	option_add("--scene=data/empty.fsv");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }

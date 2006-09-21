@@ -38,9 +38,51 @@ const char *cmd_quickhelp[] = {
 	"inc|increments an integer cvar",
 	"mul|multiplies real cvar by some number",
 	"toggle|toggles an bool variable",
-	
+	"bind|bind a key to an action or shows current binding",
+	"unbindall|removes all bindings",
 	
 	""
+};
+
+const char *cmd_detailedhelp[] = {
+	"help|"
+			"Usage: help [command]\n\n"
+			"Displays help for the given command.\n",
+	"cmdlist|"
+			"Usage: cmdlist [prefix]\n\n"
+			"Lists all commands, matching the given\n"
+			"prefix (or all commands if no prefix is given).\n",
+	"cvarlist|"
+			"Usage: cvarlist [prefix]\n\n"
+			"Lists all cvars, matching the given\n"
+			"prefix (or all cvars if no prefix is given).\n",
+	"list|"
+			"Usage: list [prefix]\n\n"
+			"Lists all cvars/commands, matching the\n"
+			"given prefix (or everything, when no prefix is given).\n",
+	"fancy|"
+			"Try it - you'll see.\n",
+	"title|"
+			"Usage: title [new title]\n\n"
+			"Sets the given text as window title or just shows \n"
+			"the current title, if no text is given. Useful in\n"
+			"windowed mode only.\n",
+	"inc|"
+			"Usage: inc <integral cvar>\n\nIncrements an integer cvar by 1.\n",
+	"mul|"
+			"Usage: mul <real cvar> <multiplier>\n\nMultiplies a real cvar by the given value.\n",
+	"toggle|"
+			"Usage: toggle <bool cvar>\n\nToggles (reversed the value of) a boolean cvar.\n",
+	"bind|"
+			"Usage: bind\n or    bind <key>\n or    bind <key> <what-to-do>\n\n"
+			"Used to bind a key to some action.\n"
+			"The first form (no params) just shows all bindings.\n"
+			"The second form shows the binding for the given key.\n"
+			"The thirt form sets or changes the binding for the given key.\n"
+			"\nExample: bind q \"toggle bilinear\"\n",
+	"unbindall|"
+			"Usage: unbindall\n\nRemoves all key bindings.\n",
+	"",
 };
 
 static const char * get_quickhelp(const char *cmd)
@@ -53,6 +95,16 @@ static const char * get_quickhelp(const char *cmd)
 	return "(no help available)";
 }
 
+static const char * get_fullhelp(const char *cmd)
+{
+	int n = strlen(cmd);
+	for (unsigned i = 0; cmd_detailedhelp[i][0]; i++) {
+		if (!strncmp(cmd, cmd_detailedhelp[i], n) && cmd_detailedhelp[i][n] == '|')
+			return (cmd_detailedhelp[i] + n + 1);
+	}
+	return "No help available for this command.";
+}
+
 int cmd_exit(int argc, char **argv)
 {
 	konsole.exit();
@@ -61,14 +113,26 @@ int cmd_exit(int argc, char **argv)
 
 int cmd_help(int argc, char **argv)
 {
-	konsole.write("Like every good 3D thing, fract has a console\n");
-	konsole.write("It is used to execute commands or change\n");
-	konsole.write("console variables (cvars)\n");
-	konsole.write("Typing the cvar name alone gives its value\n");
-	konsole.write("Cvar, followed by some value assigns it to the cvar\n");
-	konsole.write("To get a full list of cvars, type `cvarlist'\n");
-	konsole.write("Commands are more complicated. Type `help <command>'\n");
-	konsole.write("to get more information\n");
+	if (argc == 1) {
+		konsole.write("Like every good 3D thing, fract has a console\n");
+		konsole.write("It is used to execute commands or change\n");
+		konsole.write("console variables (cvars)\n");
+		konsole.write("Typing the cvar name alone gives its value\n");
+		konsole.write("Cvar, followed by some value assigns it to the cvar\n");
+		konsole.write("To get a full list of cvars, type `cvarlist'\n");
+		konsole.write("Commands are more complicated. Type `help <command>'\n");
+		konsole.write("to get more information\n");
+		return 0;
+	}
+	if (!strcmp(argv[1], "me") || !strcmp(argv[1], "me!")) {
+		konsole.write("Only GOD can help you.\n");
+		return 0;
+	}
+	if (argc > 2) {
+		konsole.write("You are asking too much.\n");
+		return 0;
+	}
+	konsole.write("%s\n", get_fullhelp(argv[1]));
 	return 0;
 }
 
@@ -236,5 +300,58 @@ int cmd_toggle(int argc, char **argv)
 		return 3;
 	}
 	cvar->value_bool[0] = !cvar->value_bool[0];
+	return 0;
+}
+
+int cmd_bind(int argc, char **argv)
+{
+	switch (argc) {
+		case 1:
+		{
+			for (int i = 0; i < konsole.get_keys_count(); i++)
+				konsole.write("\"%s\" is bound to \"%s\"\n", 
+					      konsole.get_keys()[i].key, konsole.get_keys()[i].binding);
+			if (!konsole.get_keys_count())
+				konsole.write("No keybindings exist; bind something!\n");
+			break;
+		}
+		case 2:
+		{
+			bool found = false;
+			for (int i = 0; i < konsole.get_keys_count(); i++) {
+				if (!strcmp(argv[1], konsole.get_keys()[i].key)) {
+					found = true;
+					konsole.write("\"%s\" is bound to \"%s\"\n",
+						konsole.get_keys()[i].key, konsole.get_keys()[i].binding);
+				}
+			}
+			if (!found)
+				konsole.write("\"%s\" is not bound\n", argv[1]);
+			break;
+		}
+		default:
+		{
+			char cmd[200];
+			cmd[0] = 0;
+			for (int i = 2; i < argc; i++) {
+				if (i > 2) strcat(cmd, " ");
+				strcat(cmd, argv[i]);
+			}
+			KeyBinding kb(argv[1], cmd);
+			if (!KeyBinding::key_exists(argv[1])) {
+				konsole.write("No such key: `%s'\n", argv[1]);
+				return 1;
+			} else {
+				konsole.add_key(kb);
+			}
+			break;
+		}
+	}
+	return 0;
+}
+
+int cmd_unbindall(int argc, char **argv)
+{
+	konsole.keys_unbind_all();
 	return 0;
 }

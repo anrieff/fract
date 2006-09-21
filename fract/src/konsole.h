@@ -34,6 +34,14 @@ struct HistoryEntry {
 	~HistoryEntry();
 };
 
+struct KeyBinding {
+	char key[8];
+	char binding[200];
+	KeyBinding(){}
+	KeyBinding(const char *, const char *);
+	static bool key_exists(const char *);
+};
+
 class Konsole {
 	int lines, cols;
 	int xr, yr;
@@ -48,6 +56,8 @@ class Konsole {
 	double stroketime;
 	Font *font;
 	HistoryEntry *history, *selected_history;
+	KeyBinding *keys;
+	int keys_size;
 	
 	void advance(void);
 	void putchar(char c);
@@ -56,7 +66,6 @@ class Konsole {
 	void history_add(const char *command, int);
 	void history_prev(void);
 	void history_next(void);
-	char try_char(int code, bool shift);
 public:
 	Konsole();
 	~Konsole();
@@ -75,6 +84,11 @@ public:
 	void set_color(int new_color);
 	void set_default_color(void);
 	int execute(const char *cmd);
+	void add_key(const KeyBinding &);
+	KeyBinding *get_keys(void);
+	int get_keys_count(void) const;
+	void keys_unbind_all(void);
+	bool key_bound(int code, bool shift);
 };
 
 extern Konsole konsole;

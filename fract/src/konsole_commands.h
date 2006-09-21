@@ -32,6 +32,8 @@ int cmd_title(int argc, char **argv);
 int cmd_inc(int argc, char **argv);
 int cmd_mul(int argc, char **argv);
 int cmd_toggle(int argc, char **argv);
+int cmd_bind(int argc, char **argv);
+int cmd_unbindall(int argc, char **argv);
 
 
 #endif // __CONSOLE_COMMANDS_H__

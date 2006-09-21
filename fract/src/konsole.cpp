@@ -27,6 +27,7 @@
 const int KONSOLE_DEFAULT_COLOR = 0xcccccc;
 const float KONSOLE_ALPHA = 0.75f;
 const double POPUP_TIME = 0.5; // in seconds
+const int max_keys = 200;
 
 #define CMD(x) { #x, cmd_##x }
 
@@ -42,12 +43,70 @@ CommandStruct allcommands[] = {
 	CMD(inc),
 	CMD(mul),
 	CMD(toggle),
+	CMD(bind),
+	CMD(unbindall),
 };
 
 int cmdcount(void)
 {
 	return (int) (sizeof(allcommands)/sizeof(allcommands[0]));
 }
+
+static char translate_key(int code, bool shift)
+{
+#ifdef ACTUALLYDISPLAY
+	if (code >= SDLK_a && code <= SDLK_z) {
+		char base = shift ? 'A' : 'a';
+		return base + (code - SDLK_a);
+	}
+	if (shift) {
+		switch (code) {
+			case SDLK_1:            return '!';
+			case SDLK_2:            return '@';
+			case SDLK_3:            return '#';
+			case SDLK_4:            return '$';
+			case SDLK_5:            return '%';
+			case SDLK_6:            return '^';
+			case SDLK_7:            return '&';
+			case SDLK_8:            return '*';
+			case SDLK_9:            return '(';
+			case SDLK_0:            return ')';
+			case SDLK_MINUS:        return '_';
+			case SDLK_EQUALS:       return '+';
+			case SDLK_LEFTBRACKET:  return '{';
+			case SDLK_RIGHTBRACKET: return '}';
+			case SDLK_SEMICOLON:    return ':';
+			case SDLK_QUOTE:        return '\"';
+			case SDLK_BACKSLASH:    return '|';
+			case SDLK_SLASH:        return '?';
+			case SDLK_COMMA:        return '<';
+			case SDLK_PERIOD:       return '>';
+		}
+	} else {
+		if (code >= SDLK_SPACE && code <= SDLK_BACKQUOTE) 
+			return (char) code;
+	}
+	
+#endif
+	return 0;
+}
+
+static const char* translate_compound(int code)
+{
+	static char bla[10];
+	bla[0] = 0;
+	if (code >= SDLK_F1 && code <= SDLK_F12) {
+		sprintf(bla, "f%d", 1 + (code - SDLK_F1));
+	}
+	if (code == SDLK_SPACE)
+		return "space";
+	
+	return bla;
+}
+
+/**
+ * @class HistoryEntry
+ */ 
 
 HistoryEntry::HistoryEntry(const char *theline, int thepos)
 {
@@ -63,6 +122,36 @@ HistoryEntry::~HistoryEntry()
 	delete line;
 }
 
+/**
+ * @class KeyBinding
+ */
+  
+KeyBinding::KeyBinding(const char *a, const char *b)
+{
+	strcpy(key, a);
+	strcpy(binding, b);
+	if (key[0] == 'F' && key[1] >= '1' && key[1] <= '9')
+		key[0] = 'f';
+}
+
+bool KeyBinding::key_exists(const char *s)
+{
+	// check for F..
+	if ((s[0] == 'f' || s[0] == 'F') && 
+		    ((s[1] == '1' && (s[2] == '1' || s[2] == '2')) ||
+		    (s[2] == 0) && s[1] >= '0' && s[1] <= '9')) return true;
+	
+	if (!strcasecmp(s, "space")) return true;
+	
+	if (s[1] == 0 && (s[0] >= 32 && s[0] <= 126)) return true;
+	
+	return false;
+}
+
+/**
+ * @class Konsole
+ */ 
+
 Konsole::Konsole()
 {
 	selected_history = history = NULL;
@@ -74,6 +163,7 @@ Konsole::Konsole()
 	stroketime = -1000.0;
 	_exit = false;
 	fancy_level = 0;
+	keys = new KeyBinding[max_keys];
 }
 
 Konsole::~Konsole()
@@ -82,9 +172,11 @@ Konsole::~Konsole()
 	if (data) delete [] data;
 	if (buffer) delete [] buffer;
 	if (konsole_background) delete [] konsole_background;
+	if (keys) delete [] keys;
 	data = NULL;
 	konsole_background = NULL;
 	buffer = NULL;
+	keys = NULL;
 }
 
 void Konsole::init(int xres, int yres, Font *font_in)
@@ -337,7 +429,7 @@ bool Konsole::handle_keycode( int code, bool shift )
 #ifndef ACTUALLYDISPLAY
 	return false;
 #else
-	char c = try_char(code, shift);
+	char c = translate_key(code, shift);
 	if (c != 0) {
 		//putchar(c);
 		int n = strlen(buffer);
@@ -487,45 +579,6 @@ void Konsole::history_add(const char *command, int pos)
 		e->prev = history;
 	}
 	history = e;
-}
-
-char Konsole::try_char(int code, bool shift)
-{
-#ifdef ACTUALLYDISPLAY
-	if (code >= SDLK_a && code <= SDLK_z) {
-		char base = shift ? 'A' : 'a';
-		return base + (code - SDLK_a);
-	}
-	if (shift) {
-		switch (code) {
-			case SDLK_1:            return '!';
-			case SDLK_2:            return '@';
-			case SDLK_3:            return '#';
-			case SDLK_4:            return '$';
-			case SDLK_5:            return '%';
-			case SDLK_6:            return '^';
-			case SDLK_7:            return '&';
-			case SDLK_8:            return '*';
-			case SDLK_9:            return '(';
-			case SDLK_0:            return ')';
-			case SDLK_MINUS:        return '_';
-			case SDLK_EQUALS:       return '+';
-			case SDLK_LEFTBRACKET:  return '{';
-			case SDLK_RIGHTBRACKET: return '}';
-			case SDLK_SEMICOLON:    return ':';
-			case SDLK_QUOTE:        return '\"';
-			case SDLK_BACKSLASH:    return '|';
-			case SDLK_SLASH:        return '?';
-			case SDLK_COMMA:        return '<';
-			case SDLK_PERIOD:       return '>';
-		}
-	} else {
-		if (code >= SDLK_SPACE && code <= SDLK_BACKQUOTE) 
-			return (char) code;
-	}
-	
-#endif
-	return 0;
 }
 
 class KonsoleCmdParser {
@@ -763,6 +816,48 @@ void Konsole::exit(void)
 bool Konsole::wants_exit() 
 {
 	return _exit;
+}
+
+void Konsole::add_key(const KeyBinding& kb)
+{
+	if (keys_size == max_keys) {
+		printf("%s: too many key bindings!\n", __FUNCTION__);
+		return;
+	}
+	keys[keys_size++] = kb;
+}
+
+KeyBinding* Konsole::get_keys(void)
+{
+	return keys;
+}
+
+int Konsole::get_keys_count(void) const
+{
+	return keys_size;
+}
+
+bool Konsole::key_bound(int code, bool shift)
+{
+	char keyname[10];
+	keyname[1] = 0;
+	keyname[0] = translate_key(code, shift);
+	if (keyname[0] == 0) {
+		strcpy(keyname, translate_compound(code));
+		if (keyname[0] == 0) return false;
+	}
+	for (int i = 0; i < keys_size; i++) {
+		if (!strcmp(keys[i].key, keyname)) {
+			execute(keys[i].binding);
+			return true;
+		}
+	}
+	return false;
+}
+
+void Konsole::keys_unbind_all(void)
+{
+	keys_size = 0;
 }
 
 //////// data...
