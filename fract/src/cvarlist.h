@@ -29,3 +29,5 @@ DECLARE_VARIABLE(bool,   bilinear    , false, "bilinear filtering toggle");
 DECLARE_VARIABLE(bool,   anisotrophic, true , "anisotrophic-like filtering toggle");
 DECLARE_VARIABLE(double, area_const  , 0.0  , "mipmap selection area unit");
 DECLARE_VARIABLE(double, brightness  , 1.0  , "final image brightness");
+DECLARE_VARIABLE(int,    v_ores      , 16   , "voxel outer image sampling size");
+DECLARE_VARIABLE(double, v_ires      , 0.5  , "voxel inner image sampling multiplier");
