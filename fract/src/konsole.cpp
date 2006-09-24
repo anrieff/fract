@@ -11,6 +11,7 @@
  ***************************************************************************/
  
 #include "MyGlobal.h"
+#include "common.h"
 #include "konsole.h"
 #include "konsole_commands.h"
 #include "cvar.h"
@@ -141,7 +142,7 @@ bool KeyBinding::key_exists(const char *s)
 		    ((s[1] == '1' && (s[2] == '1' || s[2] == '2')) ||
 		    (s[2] == 0) && s[1] >= '0' && s[1] <= '9')) return true;
 	
-	if (!strcasecmp(s, "space")) return true;
+	if (!strcmp_without_case(s, "space")) return true;
 	
 	if (s[1] == 0 && (s[0] >= 32 && s[0] <= 126)) return true;
 	
