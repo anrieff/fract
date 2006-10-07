@@ -19,6 +19,7 @@
 #include "vector3.h"
 #include "triangle.h"
 #include "array.h"
+#include "progress.h"
 
 #define DEFAULT_MAX_TREE_DEPTH		30
 #define DEFAULT_MAX_TRIS_PER_LEAF	15
@@ -85,7 +86,7 @@ class SDTree {
 	int stat_nodes, stat_leafs, stat_maxdepth, stat_largest_leaf; // for debug
 	
 	void init_default(void);
-	void build(SDTreeNode *, const Array<int>&, int depth);
+	void build(SDTreeNode *, const Array<int>&, int depth, Task & task);
 	int testdivision(const Array<int>& in,
 			 BBox &l, BBox &r,
 			 double x,

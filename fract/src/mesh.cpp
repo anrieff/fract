@@ -29,6 +29,7 @@
 #include "mesh.h"
 #include "triangle.h"
 #include "memory.h"
+#include "progress.h"
 
 Mesh mesh[MAX_OBJECTS];
 int mesh_count;
@@ -294,8 +295,8 @@ static void addedge(Vector vertices[], Mesh::EdgeInfo edges[], int & edgc, int a
 	for (int i = 0; i < edgc; i++) if (edges[i].ai == a && edges[i].bi == b) {
 		if (edges[i].nc != 1) {
 #ifdef DEBUG
-			printf("addedge: Warning, while adding edge, unexpected number of allready added normals (%d)\n", 
-			       edges[i].nc);
+			//printf("addedge: Warning, while adding edge, unexpected number of allready added normals (%d)\n", 
+			  //     edges[i].nc);
 #endif
 			return;
 		}
@@ -321,6 +322,7 @@ static void addedge(Vector vertices[], Mesh::EdgeInfo edges[], int & edgc, int a
 */
 bool Mesh::read_from_obj(const char *fn)
 {
+	Task task(READOBJ, __FUNCTION__);
 	FILE *f;
 	int base = get_triangle_base();
 	char basedir[100];
@@ -518,6 +520,7 @@ bool Mesh::read_from_obj(const char *fn)
 /*
 	Optimize vertices and remake normal map
 */	
+	task.set_steps(vc);
 	map_size = 0;
 	for (int i = 0; i < vc; i++) {
 		bool dup = false;
@@ -530,6 +533,7 @@ bool Mesh::read_from_obj(const char *fn)
 		if (!dup) {
 			vert_map[map_size++] = i;
 		}
+		if (i % 64 == 0) task += 64;
 	}
 	Vector *vertexlist = (Vector*) sse_malloc(sizeof(Vector)*map_size);
 	for (int i = 0; i < map_size; i++)
@@ -548,6 +552,7 @@ bool Mesh::read_from_obj(const char *fn)
 	Normalize the mesh size
 	
 */
+	task.finish();
 	recalc();
 	double maxd = vmax[0]-vmin[0] > vmax[1]-vmin[1] ? vmax[0]-vmin[0]:vmax[1]-vmin[1];
 	maxd = maxd < vmax[2]-vmin[2] ? vmax[2]-vmin[2]: maxd;

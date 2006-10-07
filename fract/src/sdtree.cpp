@@ -13,6 +13,7 @@
 #include "random.h"
 #include "common.h"
 #include "memory.h"
+#include "progress.h"
 
 
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -152,6 +153,8 @@ void SDTree::init(Triangle xbase[], int xcount)
 
 void SDTree::build_tree(void)
 {
+	Task task(TREEBUILD, __FUNCTION__);
+	task.set_steps(32);
 	if (!base || !triangle_count) return;
 	if (root)
 		delete root;
@@ -164,7 +167,7 @@ void SDTree::build_tree(void)
 		a += i;
 		root->bbox.add(base[i]);
 	}
-	build(root, a, 0);
+	build(root, a, 0, task);
 #ifdef DEBUG
 	printf("SDTree statistics:\n");
 	printf("\tMax depth: %d\n", stat_maxdepth);
@@ -175,9 +178,10 @@ void SDTree::build_tree(void)
 #endif
 }
 
-void SDTree::build(SDTreeNode *node, const Array<int>& a, int depth)
+void SDTree::build(SDTreeNode *node, const Array<int>& a, int depth, Task & task)
 {
 	stat_nodes++;
+	if (depth == 5) ++task;
 	if (depth > stat_maxdepth) stat_maxdepth = depth;
 	if (depth > max_tree_depth || a.size() <= max_tris_per_leaf) {
 		// make a leaf node
@@ -216,8 +220,8 @@ void SDTree::build(SDTreeNode *node, const Array<int>& a, int depth)
 		node->left->bbox = l;
 		node->right->bbox = r;
 		
-		build(node->left, xa, depth + 1);
-		build(node->right, xb, depth + 1);
+		build(node->left, xa, depth + 1, task);
+		build(node->right, xb, depth + 1, task);
 	}
 }
 

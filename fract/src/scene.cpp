@@ -171,6 +171,7 @@ void Scene::precalc(void)
 	// This will get us close to the calculation performance of using SSE,
 	// but the integrated version will still be faster because of its integration.
 	if ( !cpu.sse ) {
+		Task task(RCPARRAY, "precalc::rcparray");
 		if ((sqrtsqrt = (int *) malloc(MAX_DIST*sizeof(int))) == NULL) {
 			printf("Cannot get memory for precalculated sqrtsqrt array!\n");
 			exit(1);
@@ -178,14 +179,14 @@ void Scene::precalc(void)
 		// precalculate distance array (double sqrt calculations)
 		for (i=0;i<MAX_DIST*PDIVIZOR;i+=PDIVIZOR) {
 			sqrtsqrt[i/PDIVIZOR] = (int) (lightformulae_tiny(i+7)*65536.0);
-	#ifdef ACTUALLYDISPLAY
-			if ((i&(__512-1))==0) 
-				intro_progress(screen, prog_dist_precalc_base + prog_dist_precalc * i / (MAX_DIST*PDIVIZOR));
-	#endif
+			if ((i&(__512-1))==0)
+				task.progress((double) i / (MAX_DIST * PDIVIZOR));
 		}
 		//printf("Last value: %d\n", sqrtsqrt[MAX_DIST-1]);
 	} else sqrtsqrt = NULL;
 	if (BackgroundMode == BACKGROUND_MODE_FLOOR) {
+		Task task(MIPGEN, "precalc::textures");
+		task.set_steps(8);
 		// precalculate smaller (and possibly larger) textures
 		//gridify_texture(tex/*, 16, 0x33ff77, 0xff1234*/);
 		T[0] = tex;
@@ -193,12 +194,10 @@ void Scene::precalc(void)
 		sz = MAX_TEXTURE_SIZE/2;
 		i=0;
 		while (sz) {
+			task.inc();
 			i++;
 			T[i-1].shrink(T[i]);
 			sz/=2;
-	#ifdef ACTUALLYDISPLAY
-			intro_progress(screen, prog_text_precalc_base + prog_text_precalc*i/log2(MAX_TEXTURE_SIZE)); 
-	#endif
 		}
 		end_tex = i;
 	#ifdef DEBUG_MIPMAPS
@@ -221,7 +220,9 @@ void Scene::init(void)
 #ifdef ACTUALLYDISPLAY
 	if (!design) {
 		sprintf(msg, "Loading [%s]...", scenefilename);
-		intro_progress_init(screen, msg);	
+		intro_progress_init(screen, msg);
+	} else {
+		intro_progress_init(screen, "Creating scene...");
 	}
 #else
 	printf("%s: ", scenefilename);
@@ -390,6 +391,7 @@ void Scene::close(void)
 }
 
 #ifdef ACTUALLYDISPLAY
+
 void Scene::hwaccel_init(void)
 {
 	SDL_VideoInfo *vi;
@@ -448,6 +450,7 @@ void Scene::videoinit(void)
 		printf("Unable to set %dx%d resolution...%s!\n", (parallel?def_resx*2+8:def_resx), def_resy, SDL_GetError());
 		exit(1);
 	}
+	progressman.init(screen);
 		
 	SDL_WM_SetCaption("Anrieff's Fractal", "");
 	if (!font0.init(default_font, DEFAULT_FONT_XSIZE, DEFAULT_FONT_YSIZE)) {

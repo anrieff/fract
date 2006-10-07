@@ -27,7 +27,7 @@
       <terminal>true</terminal>
       <directoryradio>executable</directoryradio>
       <customdirectory>/</customdirectory>
-      <programargs>--developer --voxel --no-overlay</programargs>
+      <programargs>--no-sse --no-mmx2 --no-mmx --scene=data/teapot.fsv --developer</programargs>
       <autocompile>true</autocompile>
       <envvars/>
     </run>

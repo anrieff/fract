@@ -193,6 +193,7 @@ void init_fract_array(void)
 
 void init_program(void)
 {
+	estimate_progress();
 	common_init();
 	thor_init();
 	config.init();
@@ -201,6 +202,9 @@ void init_program(void)
 
 void close_program(void)
 {
+#ifdef DEBUG
+	progressman.taskstats();
+#endif
 	Scene::videoclose();
 	gfx_close();
 	bitmap_close();
@@ -509,8 +513,6 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	option_add("--developer");
-	option_add("--scene=data/empty.fsv");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }

@@ -23,6 +23,7 @@
 #include "cpu.h"
 #include "fract.h"
 #include "rgb2yuv.h"
+#include "progress.h"
 
 
 int bestmethod=0;
@@ -195,19 +196,27 @@ void rgb2yuv_close(void)
 // the parameter is to specify --benchmark mode. If set, all conversion functions are run one minute unconditionally.
 void yuv_benchmark(int benchmark)
 {
+	Task task(YUVBENCH, __FUNCTION__);
+	task.set_steps( 3 + cpu.mmx + cpu.mmx2 + cpu.sse );
 	int maxfps = 0;
 	int timetorun;
 	timetorun = (benchmark?BENCH_LARGE_TICKS:BENCHTICKS);
 	printf("Benchmarking RGB-to-YUV conversion functions:\n");
-	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86, USE_X86, "_X86", &maxfps, timetorun);
+	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86, USE_X86, "_X86", &maxfps, timetorun); task++;
 #ifdef USE_ASSEMBLY
-	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86_ASM, USE_X86_ASM, "_X86_ASM", &maxfps, timetorun);
-	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86_FPU, USE_X86_FPU, "_X86_FPU", &maxfps, timetorun);
+	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86_ASM, USE_X86_ASM, "_X86_ASM", &maxfps, timetorun); task++;
+	benchmark_function((__convert_fn_t) ConvertRGB2YUV_X86_FPU, USE_X86_FPU, "_X86_FPU", &maxfps, timetorun); task++;
 #endif	
-	if (cpu.mmx)
-		benchmark_function((__convert_fn_t) ConvertRGB2YUV_MMX, USE_MMX, "_MMX", &maxfps, timetorun);
-	if (cpu.mmx2)
+	if (cpu.mmx) {
+		benchmark_function((__convert_fn_t) ConvertRGB2YUV_MMX, USE_MMX, "_MMX", &maxfps, timetorun); 
+		task++;
+	}
+	if (cpu.mmx2) {
 		benchmark_function((__convert_fn_t) ConvertRGB2YUV_MMX2, USE_MMX2, "_MMX2", &maxfps, timetorun);
-	if (cpu.mmx2 && cpu.sse) 
+		task++;
+	}
+	if (cpu.mmx2 && cpu.sse) {
 		benchmark_function((__convert_fn_t) ConvertRGB2YUV_SSE, USE_SSE, "_SSE", &maxfps, timetorun);
+		task++;
+	}
 }
