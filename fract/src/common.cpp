@@ -42,20 +42,26 @@ int power_of_2(int x)
 
 	I have *NO* idea how this thing works
 */
-#if (__GNUC__ < 4)
+
+/*
+ * Note (anrieff): The code in its original version didn't work with gcc4 
+ * (presumably due to aliasing issues). Using an union instead of those
+ * magical `* ((uint*)&val)' casts now works out correctly for gcc ver 3 and 4.
+ */
 #define uint unsigned int
 static inline float fastpower_minus_quarter(float val)
 {
-    const float magicValue = 1331185664.0;
-    float tmp = (float) *((uint*)&val);
-    tmp = (tmp * -0.25) + magicValue;
-    uint tmp2 = (uint) tmp;
-    return *(float*)&tmp2;
+	const float magicValue = 1331185664.0;
+	union {
+		float as_float;
+		uint as_int;
+	} value;
+	value.as_float = val;
+	float tmp = (float) value.as_int;
+	tmp = (tmp * -0.25) + magicValue;
+	value.as_int = (uint) tmp;
+	return value.as_float;
 }
-#else
-#define fastpower_minus_quarter(x) (1.0f/sqrt(sqrt(x)))
-// turns out that GCC 4.0 breaks at the above function; TODO
-#endif
 
 // calculates the formula darkening which should be due to the distance from the light source
 float lightformulae_tiny(float x)

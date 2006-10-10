@@ -97,12 +97,13 @@ static const char* translate_compound(int code)
 {
 	static char bla[10];
 	bla[0] = 0;
+#ifdef ACTUALLYDISPLAY
 	if (code >= SDLK_F1 && code <= SDLK_F12) {
 		sprintf(bla, "f%d", 1 + (code - SDLK_F1));
 	}
 	if (code == SDLK_SPACE)
 		return "space";
-	
+#endif
 	return bla;
 }
 

@@ -157,7 +157,7 @@ int save_context(const char *fn)
 	fprintf(f, "\n# Light source coordinates:\n");
 	write_triplet(f, "Light", lx, ly, lz);
 	fprintf(f, "\n# Shadowing quality:\n");
-	fprintf(f, "ShadowQuality=%s\n");
+	fprintf(f, "ShadowQuality=%s\n", squalities[g_shadowquality]);
 	fprintf(f, "\n# User position information:\n");
 	write_triplet1(f, "User", cur);
 	fprintf(f, "alpha=%.6lf\n", CVars::alpha);

@@ -171,6 +171,7 @@ public:
 	*** OB_TRIANGLE
 	**/
 	virtual OBTYPE get_type(bool generic = true) const = 0;
+	virtual ~Object() {}
 };
 
 /**
@@ -191,6 +192,7 @@ public:
 	 * @param opt   - optional optimization parameter
 	*/ 
 	virtual bool sintersect(const Vector & start, const Vector & dir, int opt = 0) = 0;
+	virtual ~ShadowCaster() {}
 };
 
 struct CompareStruct {

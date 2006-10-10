@@ -98,6 +98,7 @@ void outline_to_screen(Uint16 *sbuffer, Vector pt[], int sides, Uint16 color, Ve
 
 struct AbstractDrawer {
 	virtual inline bool draw_line(int,int,int) { return false; }
+	virtual ~AbstractDrawer() {}
 };
 
 /**

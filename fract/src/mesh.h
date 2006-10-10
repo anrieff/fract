@@ -73,6 +73,8 @@ public:
 	
 	/// Translate the primitive with the given movement vector
 	virtual void translate(const Vector & movement) = 0;
+	
+	virtual ~Inscribed() {}
 
 	void * operator new(size_t);
 	void operator delete(void *);
