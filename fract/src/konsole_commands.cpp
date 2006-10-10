@@ -40,6 +40,7 @@ const char *cmd_quickhelp[] = {
 	"toggle|toggles an bool variable",
 	"bind|bind a key to an action or shows current binding",
 	"unbindall|removes all bindings",
+	"where|prints the current camera location",
 	
 	""
 };
@@ -353,5 +354,12 @@ int cmd_bind(int argc, char **argv)
 int cmd_unbindall(int argc, char **argv)
 {
 	konsole.keys_unbind_all();
+	return 0;
+}
+
+extern Vector cur;
+int cmd_where(int argc, char **argv)
+{
+	konsole.write("Camera is at (%.3lf, %.3lf, %.3lf)\n", cur.x, cur.y, cur.z);
 	return 0;
 }

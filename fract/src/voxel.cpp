@@ -556,6 +556,13 @@ void show_light(Uint32 *fb, int xr, int yr)
 		fb[xr * y + x ] = 0xffffff;
 }
 
+struct RasterSample {
+	int y;
+	Uint32 color;
+};
+
+RasterSample rsa[RES_MAXX * RES_MAXY];
+
 void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & ti, Vector & tti)
 {
 	// FIXME for multithreading 
@@ -563,6 +570,7 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	int xr = xsize_render(xres());
 	int yr = ysize_render(yres());
 	memset(fb, 0, xr * yr * 4);
+	memset(rsa, 0xee, xr * yr * sizeof(RasterSample));
 	
 	Vector W[3];
 	W[0] = tt;
@@ -574,12 +582,6 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	for (int k = 0; k < NUM_VOXELS; k++) {
 		for (int j = 0; j < yr; j += n) {
 			for (int i = 0; i < xr; i += n) {
-/*				Vector cp = tt + ti * i + tti * j;
-				Vector res;
-				if (vox[k].hierarchy.ray_intersect(cur, cp, res) < 1e6) {
-					fb[j*xr+i] = vox[k].texture[(int)res[0] + (((int)res[2])*vox[k].size)];
-				}
-				*/
 				Vector cp = tt + ti * i + tti * j;
 				Vector res[4];
 				bool good = true;
@@ -600,20 +602,35 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 					rhs.scale(1.0 / m);
 					for (int c = 0; c < m; c++, lhs += rhs) {
 						float fx = lhs[0], fy = lhs[2];
-						clip_coords(fx, fy, vox[k].size);
-/*						lhs[1] = get_height(vox[k].heightmap, 
-								vox[k].size,
-								fx, fy, 0);*/
-						lhs[1] = vox[k].heightmap[(int)fx + (((int) fy)*vox[k].size)];
-						int xx, yy;
-						if (project_point(&xx, &yy, lhs, cur, W, xr,yr)) {
-							if (xx < 0 || xx >= xr-1 || yy < 0 || yy >= yr-1) continue;
-							unsigned t = 
-									vox[k].texture[(int)fx +
-									(((int)fy)*vox[k].size)];
-							unsigned pp = xx + xr * yy;
-							fb[pp + xr + 1] = fb[pp + xr] = fb[pp + 1] = fb[pp] = t;
+						clip_coords(fx, fy, vox[k].size-2);
+						if (CVars::bilinear) {
+							lhs[1] = get_height(vox[k].heightmap, 
+									vox[k].size,
+									fx, fy, 0);
+						} else {
+							lhs[1] = vox[k].heightmap[(int)fx + (((int) fy)*vox[k].size)];
 						}
+						int xx, yy;
+						if (!project_point(&xx, &yy, lhs, cur, W, xr,yr)) continue;
+						if (xx < 0 || xx >= xr-1 || yy < 0 || yy >= yr-1) continue;
+						unsigned t;
+						if (CVars::bilinear) {
+							int o = (int) fx + (((int)fy)*vox[k].size);
+							Uint32 *p = vox[k].texture;
+							Uint32 x0y0 = p[o];
+							Uint32 x1y0 = p[o + 1];
+							Uint32 x0y1 = p[o + vox[k].size];
+							Uint32 x1y1 = p[o + 1 + vox[k].size];
+							t = bilinea_p5(x0y0, x1y0, x0y1, x1y1, 
+								0xffff & (unsigned) (fx*65536.0f),
+								0xffff & (unsigned) (fy*65536.0f));
+						} else {
+							t = vox[k].texture[(int)fx + (((int)fy)*vox[k].size)];
+						}
+							
+									
+						unsigned pp = xx + xr * yy;
+						fb[pp + xr + 1] = fb[pp + xr] = fb[pp + 1] = fb[pp] = t;
 					}
 				}
 			}
