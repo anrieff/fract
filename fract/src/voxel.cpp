@@ -559,18 +559,107 @@ void show_light(Uint32 *fb, int xr, int yr)
 struct RasterSample {
 	int y;
 	Uint32 color;
+	void set(int _y, Uint32 _color) { y = _y; color = _color; }
 };
 
 RasterSample rsa[RES_MAXX * RES_MAXY];
 
+static void stage1_interpolate(int x0, int y0, Uint32 c0, int x1, int y1, Uint32 c1, int xr, int index_y)
+{
+	if (x0 == x1) {
+		rsa[x1 + index_y * xr].set(y1, c1);
+		return;
+	}
+	int inc = x1 > x0 ? +1 : -1;
+	int r0, g0, b0, rd, gd, bd;
+	
+	b0 = c0 & 0xff;
+	bd = (c1 & 0xff) - b0;
+	c0 >>= 8;
+	c1 >>= 8;
+	g0 = c0 & 0xff;
+	gd = (c1 & 0xff) - g0;
+	c0 >>= 8;
+	c1 >>= 8;
+	r0 = c0 & 0xff;
+	rd = (c1 & 0xff) - r0;
+	int idx = index_y * xr;
+	int ende = x1 + inc;
+	int div = (int) (65536.0/(x1-x0));
+	int yinc = (y1-y0)*inc*div;
+	int rinc = rd * div;
+	int ginc = gd * div;
+	int binc = bd * div;
+	int y = y0 << 16;
+	int r = r0 << 16;
+	int g = g0 << 16;
+	int b = b0 << 16;
+	
+//	if (CVars::fast_interpol) {
+		for (int i = x0; i != ende; i += inc, y += yinc, r += rinc, g += ginc, b += binc) {
+			rsa[idx + i].set(y/65536, ((r/65536) << 16)|((g/65536) << 8)|(b/65536));
+		}
+//	} else {
+	
+//		for (int i = x0; i != ende; i += inc) {
+//			y = y0 + (y1-y0) * (i-x0) / (x1-x0);
+//			r = r0 + rd * (i-x0) / (x1-x0);
+//			g = g0 + gd * (i-x0) / (x1-x0);
+//			b = b0 + bd * (i-x0) / (x1-x0);
+//			rsa[idx + i].set(y, (r << 16)|(g << 8)|b);
+//		}
+//	}
+}
+
+static void stage2_interpolate(Uint32 *fb, int xr, int x, RasterSample & prev, RasterSample & cur)
+{
+	fb += x;
+	if (cur.y == prev.y)
+	{
+		fb[cur.y + xr] = cur.color;
+		return;
+	}
+	int inc = cur.y > prev.y ? +1 : -1;
+	int ende = cur.y + inc;
+	Uint32 c0 = prev.color, c1 = cur.color;
+	int r0, g0, b0, rd, gd, bd;
+	
+	b0 = c0 & 0xff;
+	bd = (c1 & 0xff) - b0;
+	c0 >>= 8;
+	c1 >>= 8;
+	g0 = c0 & 0xff;
+	gd = (c1 & 0xff) - g0;
+	c0 >>= 8;
+	c1 >>= 8;
+	r0 = c0 & 0xff;
+	rd = (c1 & 0xff) - r0;
+
+	int div = (int) (65536.0/(cur.y - prev.y));
+	int ri = rd * div;
+	int gi = gd * div;
+	int bi = bd * div;
+	int r = r0 << 16;
+	int g = g0 << 16;
+	int b = b0 << 16;
+	for (int i = prev.y; i != ende; i += inc, r += ri, g += gi, b += bi) {
+		fb[i * xr] = ((r/65536) << 16)|((g/65536) << 8)|(b/65536);
+	}
+}
+
 void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & ti, Vector & tti)
 {
+	prof_enter(PROF_BUFFER_CLEAR);
+	if (CVars::v_ires > 1.0)
+		CVars::v_ires = 1.0;
 	// FIXME for multithreading 
 	if (thread_index) return;
 	int xr = xsize_render(xres());
 	int yr = ysize_render(yres());
 	memset(fb, 0, xr * yr * 4);
 	memset(rsa, 0xee, xr * yr * sizeof(RasterSample));
+	prof_leave(PROF_BUFFER_CLEAR);
+	
 	
 	Vector W[3];
 	W[0] = tt;
@@ -580,6 +669,9 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	int n = CVars::v_ores;
 	int m = (int) (n * CVars::v_ires);
 	for (int k = 0; k < NUM_VOXELS; k++) {
+		
+		/* Stage 1 : Data gathering */
+		prof_enter(PROF_STAGE1);
 		for (int j = 0; j < yr; j += n) {
 			for (int i = 0; i < xr; i += n) {
 				Vector cp = tt + ti * i + tti * j;
@@ -596,11 +688,15 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 				}
 				if (!good) continue;
 				for (int r = 0; r < m; r++) {
+					int realy = (int) (j + r / CVars::v_ires);
 					Vector lhs = res[0] + (res[2] - res[0]) * ((double)r / m);
 					Vector rhs = res[1] + (res[3] - res[1]) * ((double)r / m);
 					rhs -= lhs;
 					rhs.scale(1.0 / m);
-					for (int c = 0; c < m; c++, lhs += rhs) {
+					int lastx=0, lasty=0;
+					int lastvalid=-2;
+					Uint32 lastcolor=0;
+					for (int c = 0; c <= m; c++, lhs += rhs) {
 						float fx = lhs[0], fy = lhs[2];
 						clip_coords(fx, fy, vox[k].size-2);
 						if (CVars::bilinear) {
@@ -610,10 +706,9 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 						} else {
 							lhs[1] = vox[k].heightmap[(int)fx + (((int) fy)*vox[k].size)];
 						}
-						int xx, yy;
+						int xx, yy;Uint32 color=0xff0000;
 						if (!project_point(&xx, &yy, lhs, cur, W, xr,yr)) continue;
 						if (xx < 0 || xx >= xr-1 || yy < 0 || yy >= yr-1) continue;
-						unsigned t;
 						if (CVars::bilinear) {
 							int o = (int) fx + (((int)fy)*vox[k].size);
 							Uint32 *p = vox[k].texture;
@@ -621,20 +716,44 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 							Uint32 x1y0 = p[o + 1];
 							Uint32 x0y1 = p[o + vox[k].size];
 							Uint32 x1y1 = p[o + 1 + vox[k].size];
-							t = bilinea_p5(x0y0, x1y0, x0y1, x1y1, 
-								0xffff & (unsigned) (fx*65536.0f),
-								0xffff & (unsigned) (fy*65536.0f));
+							color = bilinea_p5(x0y0, x1y0, x0y1, x1y1, 
+									0xffff & (unsigned) (fx*65536.0f),
+									0xffff & (unsigned) (fy*65536.0f));
 						} else {
-							t = vox[k].texture[(int)fx + (((int)fy)*vox[k].size)];
+							color = vox[k].texture[(int)fx + (((int)fy)*vox[k].size)];
 						}
-							
-									
-						unsigned pp = xx + xr * yy;
-						fb[pp + xr + 1] = fb[pp + xr] = fb[pp + 1] = fb[pp] = t;
+						if (lastvalid == c-1) {
+							stage1_interpolate(
+									lastx, lasty, lastcolor,
+									xx,    yy,    color,
+									xr, realy);
+						}
+						lastx = xx;
+						lasty = yy;
+						lastvalid = c;
+						lastcolor = color;
 					}
 				}
 			}
 		}
+		prof_leave(PROF_STAGE1);
+		
+		/* Stage 2 : Raster & fill */
+		prof_enter(PROF_STAGE2);
+		for (int i = 0; i < xr; i++) {
+			int lj = -1;
+			for (int j = 0; j < yr; j++) {
+				RasterSample &rs = rsa[i + j * xr];
+				if ((unsigned)rs.y != 0xeeeeeeee) {
+					if (lj == -1) { lj = j; continue; }
+					//
+					stage2_interpolate(fb, xr, i, rsa[i + lj * xr], rs);
+					//
+					lj = j;
+				}
+			}
+		}
+		prof_leave(PROF_STAGE2);
 	}
 }
 
@@ -790,8 +909,6 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 #else
 	int xr = xsize_render(xres());
 	int yr = ysize_render(yres());
-	int xr2 = xr/2;
-	int yr2 = yr/2;
 	gti = ti;
 	gtti= tti;
 
@@ -909,12 +1026,14 @@ Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
 
 void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index, InterlockedInt&)
 {
+	prof_enter(PROF_RENDER_VOXEL);
 	voxel_light_recalc(thread_index);
 	if (voxel_rendering_method) {
 		voxel_single_frame_do2(fb, thread_index, tt, ti, tti);
 	} else {
 		voxel_single_frame_do1(fb, thread_index, tt, ti, tti);
 	}
+	prof_leave(PROF_RENDER_VOXEL);
 }
 void voxel_frame_init(void)
 {

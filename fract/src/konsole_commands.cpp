@@ -360,6 +360,6 @@ int cmd_unbindall(int argc, char **argv)
 extern Vector cur;
 int cmd_where(int argc, char **argv)
 {
-	konsole.write("Camera is at (%.3lf, %.3lf, %.3lf)\n", cur.x, cur.y, cur.z);
+	konsole.write("Camera is at (%.3lf, %.3lf, %.3lf)\n", cur[0], cur[1], cur[2]);
 	return 0;
 }

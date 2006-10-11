@@ -897,9 +897,7 @@ void render_single_frame_do(void)
 	
 	if (cpu.count==1) {
 		InterlockedInt i1 = 0, i2 = 0;
-		prof_enter(PROF_RENDER_FLOOR);
 		render_background(ptr, xr, yr, tt, ti, tti, 0, i1);
-		prof_leave(PROF_RENDER_FLOOR);
 
 		tt = t0;
 

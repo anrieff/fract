@@ -21,7 +21,7 @@ User.x=422.00000
 User.y=90.00000
 User.z=301.00000
 alpha=4.922389
-beta=0.000100
+beta=-0.500100
 
 # Physics (1=on)
 Physics=1

@@ -8,7 +8,7 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
-//#define MAKE_PROFILING
+#define MAKE_PROFILING
 
 #define MAX_PROF_ENTRIES 256
 
@@ -104,6 +104,8 @@ int  prof_get_cpu_speed(void);
 #define PROF_ADDRESS_GENERATE	0x73
 #define PROF_INTERPOL_INIT	0x74
 #define PROF_INTERPOLATE	0x75
+#define PROF_STAGE1		0x76
+#define PROF_STAGE2		0x77
 
 // PROF_MERGE_BUFFERS
 // none

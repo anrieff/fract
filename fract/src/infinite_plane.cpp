@@ -193,15 +193,16 @@ void choose_texture(const Vector& cur, int xr, int yr, double cx, double cxi, do
 		four times less area. So we get lower texture sizes and divide the area by 4 each time, until
 		the area is acceptable or we reached using 1x1 texture.
 	*/
-	if (do_mipmap)
-	while (parea>CVars::area_const && *xtex<end_tex) {
-		(*xtex)++; (*xandmask)/=2; (*xshl)--;
-		parea /= 4.0;
+	if (do_mipmap) {
+		while (parea>CVars::area_const && *xtex<end_tex) {
+			(*xtex)++; (*xandmask)/=2; (*xshl)--;
+			parea /= 4.0;
 		}
-		else
-	for (i=0;i<2;i++) {
-		(*xtex)++; (*xandmask)/=2; (*xshl)--;
-		parea /= 4.0;
+	} else {
+		for (i=0;i<2;i++) {
+			(*xtex)++; (*xandmask)/=2; (*xshl)--;
+			parea /= 4.0;
+		}
 	}
 	(*xandmask)--;
 	*notmask = (0xffffffff >> (LOG2_TEXTURE_AREA+*xtex)) << (LOG2_TEXTURE_AREA+*xtex);
@@ -440,10 +441,12 @@ void infinite_plane_perframe_init(void)
 void render_infinite_plane(Uint32 *frame_buffer, int xr, int yr, Vector& tt, Vector& ti, Vector& tti, 
 			   int start_line, InterlockedInt &lock)
 {
+	prof_enter(PROF_RENDER_FLOOR);
 	if (cpu.sse) {
 		render_infinite_plane_sse(frame_buffer, xr, yr, tt, ti, tti, start_line, lock);
 	} else {
 		render_infinite_plane_p5(frame_buffer, xr, yr, tt, ti, tti, start_line, lock);
 	}
+	prof_leave(PROF_RENDER_FLOOR);
 }
 

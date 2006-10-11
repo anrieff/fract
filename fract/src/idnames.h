@@ -71,6 +71,8 @@ const IdNameStruct IdName[] = {
 	{ PROF_ADDRESS_GENERATE,"addr. generate"},
 	{ PROF_INTERPOL_INIT,	"interpol. init"},
 	{ PROF_INTERPOLATE,	"interpolation"	},
+	{ PROF_STAGE1,		"voxel stage1"  },
+	{ PROF_STAGE2,		"voxel stage2"  },
 	{ 0x66604213	,	"hahaha"	} // sentinel, used to mark the end
 };
 
