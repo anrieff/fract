@@ -75,6 +75,7 @@ OBJECTS=\
 	memory.o\
 	mesh.o\
 	profile.o\
+	progress.o\
 	random.o\
 	render.o\
 	resultoutput.o\
