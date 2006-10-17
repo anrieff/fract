@@ -21,6 +21,7 @@
 #include "antialias.h"
 #include "cmdline.h"
 #include "common.h"
+#include "cvars.h"
 #include "fract.h"
 #include "gfx.h"
 #include "profile.h"
@@ -487,7 +488,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 			const float rnss[3] = {1.0, 1 / 7.0f, 1 / 13.0f };
 #if SHADOW_TYPE == ST_FIXED
 			shadow_mul += _shadow_test(i, l, 0);
-			if (g_shadowquality > 0) {
+			if (CVars::shadowquality > 0) {
 				double R = light_radius;
 				shadow_mul += _shadow_test(i, l + Vector( +R, 0.0, 0.0), 1);
 				shadow_mul += _shadow_test(i, l + Vector( -R, 0.0, 0.0), 2);
@@ -495,7 +496,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 				shadow_mul += _shadow_test(i, l + Vector(0.0,  -R, 0.0), 4);
 				shadow_mul += _shadow_test(i, l + Vector(0.0, 0.0,  +R), 5);
 				shadow_mul += _shadow_test(i, l + Vector(0.0, 0.0,  -R), 6);
-				if (g_shadowquality > 1) {
+				if (CVars::shadowquality > 1) {
 					double R1 = R * 0.707106781186;
 					shadow_mul += _shadow_test(i, l + Vector(+R1, +R1, 0.0), 7);
 					shadow_mul += _shadow_test(i, l + Vector(-R1, -R1, 0.0), 8);
@@ -506,7 +507,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 				}
 			}
 			
-			shadow_mul *= rnss[g_shadowquality]; 
+			shadow_mul *= rnss[CVars::shadowquality]; 
 
 #else 
 			for (int q = 0; q < SHADOW_SAMPLES; q++) {

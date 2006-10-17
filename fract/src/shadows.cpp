@@ -35,8 +35,6 @@ int g_biasmethod = 1;
 ShadowCaster* occluders[2000];
 const int max_neighs = 7;
 
-int g_shadowquality = 1;
-
 const double YOFFSET = 0.125;
 
 
@@ -1092,15 +1090,32 @@ static void render_shadows_raster(Uint32 *target_framebuffer, Uint16 *sbuffer, i
 	
 }
 
-static float _shadow_test(const Vector & I, const Vector & light, int opt)
+static float _shadow_test(const Vector & I, const Vector & light, int opt, int la[])
 {
 	Vector dir;
 	dir.make_vector(light, I);
 	dir.norm();
+	
+	int &last = la[opt];
+	
+	if (last != -1) {
+		if (last & 0x10000) {
+			if (mesh[last & 0xffff].sintersect(I, dir, opt)) return 0.0f;
+		} else {
+			if (sp[last].sintersect(I, dir, opt)) return 0.0f;
+		}
+	}
+	
 	for (int i = 0; i < spherecount; i++)
-		if (sp[i].sintersect(I, dir, opt)) return 0.0f;
+		if (sp[i].sintersect(I, dir, opt)) {
+			last = i;
+			return 0.0f;
+		}
 	for (int i = 0; i < mesh_count; i++)
-		if (mesh[i].sintersect(I, dir, opt)) return 0.0f;
+		if (mesh[i].sintersect(I, dir, opt)) {
+			last = 0x10000 | i;
+			return 0.0f;
+		}
 	return 1.0f;
 }
 
@@ -1109,35 +1124,37 @@ static void render_shadows_raytracing(Uint32 *target_framebuffer, Uint16 *sbuffe
 {
 	int i, j;
 	Vector l(lx, ly, lz);
-	
+
+	int lastobjecta[16];
+	for (i = 0; i < 16; i++)
+		lastobjecta[i] = -1;	
 	while ((j = rowint++) < yr) {
-		Object * lastobj = NULL;
 		Uint16 *s = sbuffer + (j * xr);
 		for (i = 0; i < xr; i++) {
 			Vector I = plane_cast(cur, mtt + mti * i + mtti * j);
 			const float rnss[3] = {1.0, 1 / 7.0f, 1 / 13.0f };
 			float shadow_mul = 0.0;
-			shadow_mul += _shadow_test(I, l, 0);
-			if (g_shadowquality > 0) {
+			shadow_mul += _shadow_test(I, l, 0, lastobjecta);
+			if (CVars::shadowquality > 0) {
 				double R = light_radius;
-				shadow_mul += _shadow_test(I, l + Vector( +R, 0.0, 0.0), 1);
-				shadow_mul += _shadow_test(I, l + Vector( -R, 0.0, 0.0), 2);
-				shadow_mul += _shadow_test(I, l + Vector(0.0,  +R, 0.0), 3);
-				shadow_mul += _shadow_test(I, l + Vector(0.0,  -R, 0.0), 4);
-				shadow_mul += _shadow_test(I, l + Vector(0.0, 0.0,  +R), 5);
-				shadow_mul += _shadow_test(I, l + Vector(0.0, 0.0,  -R), 6);
-				if (g_shadowquality > 1) {
+				shadow_mul += _shadow_test(I, l + Vector( +R, 0.0, 0.0), 1, lastobjecta);
+				shadow_mul += _shadow_test(I, l + Vector( -R, 0.0, 0.0), 2, lastobjecta);
+				shadow_mul += _shadow_test(I, l + Vector(0.0,  +R, 0.0), 3, lastobjecta);
+				shadow_mul += _shadow_test(I, l + Vector(0.0,  -R, 0.0), 4, lastobjecta);
+				shadow_mul += _shadow_test(I, l + Vector(0.0, 0.0,  +R), 5, lastobjecta);
+				shadow_mul += _shadow_test(I, l + Vector(0.0, 0.0,  -R), 6, lastobjecta);
+				if (CVars::shadowquality > 1) {
 					double R1 = R * 0.707106781186;
-					shadow_mul += _shadow_test(I, l + Vector(+R1, +R1, 0.0), 7);
-					shadow_mul += _shadow_test(I, l + Vector(-R1, -R1, 0.0), 8);
-					shadow_mul += _shadow_test(I, l + Vector(+R1, 0.0, +R1), 9);
-					shadow_mul += _shadow_test(I, l + Vector(-R1, 0.0, -R1), 10);
-					shadow_mul += _shadow_test(I, l + Vector(0.0, +R1, +R1), 11);
-					shadow_mul += _shadow_test(I, l + Vector(0.0, -R1, -R1), 12);
+					shadow_mul += _shadow_test(I, l + Vector(+R1, +R1, 0.0), 7, lastobjecta);
+					shadow_mul += _shadow_test(I, l + Vector(-R1, -R1, 0.0), 8, lastobjecta);
+					shadow_mul += _shadow_test(I, l + Vector(+R1, 0.0, +R1), 9, lastobjecta);
+					shadow_mul += _shadow_test(I, l + Vector(-R1, 0.0, -R1), 10, lastobjecta);
+					shadow_mul += _shadow_test(I, l + Vector(0.0, +R1, +R1), 11, lastobjecta);
+					shadow_mul += _shadow_test(I, l + Vector(0.0, -R1, -R1), 12, lastobjecta);
 				}
 			}
 			
-			shadow_mul = 1.0f - shadow_mul * rnss[g_shadowquality];
+			shadow_mul = 1.0f - shadow_mul * rnss[CVars::shadowquality];
 			s[i] = shadow_intensity * shadow_mul;
 		}
 	}

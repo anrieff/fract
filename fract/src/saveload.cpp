@@ -157,7 +157,7 @@ int save_context(const char *fn)
 	fprintf(f, "\n# Light source coordinates:\n");
 	write_triplet(f, "Light", lx, ly, lz);
 	fprintf(f, "\n# Shadowing quality:\n");
-	fprintf(f, "ShadowQuality=%s\n", squalities[g_shadowquality]);
+	fprintf(f, "ShadowQuality=%s\n", squalities[CVars::shadowquality]);
 	fprintf(f, "\n# User position information:\n");
 	write_triplet1(f, "User", cur);
 	fprintf(f, "alpha=%.6lf\n", CVars::alpha);
@@ -575,7 +575,7 @@ int load_context(const char *fn)
 				case 0xadf1: get_int_triple (line, &lx, &ly, &lz); break;
 				
 			/* SHADOWING QUALITY */
-				case 0x00aa: get_shadow_quality(line, &g_shadowquality); break;
+				case 0x00aa: get_shadow_quality(line, &CVars::shadowquality); break;
 				
 			/* CAMERA */
 				case 0x4b9e: get_vector(line, cur); break;

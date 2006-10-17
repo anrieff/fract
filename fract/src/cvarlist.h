@@ -32,4 +32,5 @@ DECLARE_VARIABLE(double, brightness  , 1.0  , "final image brightness");
 DECLARE_VARIABLE(int,    v_ores      , 16   , "voxel outer image sampling size");
 DECLARE_VARIABLE(double, v_ires      , 0.5  , "voxel inner image sampling multiplier");
 DECLARE_VARIABLE(int,    shadow_algo , 0    , "0 - raster shadow algo, 1 - raytracing");
+DECLARE_VARIABLE(int,    shadowquality,  1  , "shadow quality selector");
 

@@ -697,6 +697,12 @@ bool Mesh::fullintersect(const Vector & start, const Vector &dir, int opt)
 	char ctx[128];
 	if (!testintersect(start, dir)) return false;
 	
+	int i = lastind[opt];
+	int base = get_triangle_base();
+
+	if (i >= 0 && i < triangle_count)
+		if (trio[base + i].intersect(dir, start, ctx)) return true;
+	
 	if (g_speedup && iprimitive) {
 		l_all_tests++;
 		bool res = iprimitive->testintersect(start, dir);
@@ -711,12 +717,6 @@ bool Mesh::fullintersect(const Vector & start, const Vector &dir, int opt)
 	}
 	
 
-	
-	int i = lastind[opt];
-	int base = get_triangle_base();
-
-	if (i >= 0 && i < triangle_count)
-		if (trio[base + i].intersect(dir, start, ctx)) return true;
 	
 	bool found = false;
 	for (i = 0; i < triangle_count; i++) {
