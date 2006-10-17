@@ -20,14 +20,14 @@
   <kdevautoproject>
     <general>
       <activetarget>src/fract</activetarget>
-      <useconfiguration>optimized</useconfiguration>
+      <useconfiguration>debug</useconfiguration>
     </general>
     <run>
       <mainprogram>src/fract</mainprogram>
       <terminal>true</terminal>
       <directoryradio>executable</directoryradio>
       <customdirectory>/</customdirectory>
-      <programargs>--developer --voxel --scene=data/empty.fsv --cpus=1</programargs>
+      <programargs>--developer --scene=data/teapot.fsv -w --no-shadows</programargs>
       <autocompile>true</autocompile>
       <envvars/>
     </run>

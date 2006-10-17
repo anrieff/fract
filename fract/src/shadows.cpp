@@ -42,6 +42,7 @@ const double YOFFSET = 0.125;
 
 static float rowstart[RES_MAXY][2], rowincrease[RES_MAXY][2];
 static int ceilmax, floormin; // ending row for ceiling, starting row for floor in the image
+static InterlockedInt rowint;
 
 
 static inline float face(const vec2f& a, const vec2f& b, const vec2f& c) 
@@ -968,6 +969,8 @@ void render_shadows_init(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, in
 	
 	shadows_precalc(xr, yr, mtt, mti, mtti);
 	
+	rowint = 0;
+	
 }
 
 static Allocator<PolyContext> allocator(ALLOCATOR_NEW_DELETE);
@@ -975,7 +978,7 @@ static Allocator<PolyContext> allocator(ALLOCATOR_NEW_DELETE);
 Array<node_info> node_arr;
 #endif
 
-void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
+static void render_shadows_raster(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
 		    const Vector& mtt, const Vector& mti, const Vector& mtti, int thread_idx)
 {
 	Vector ml(lx, ly, lz);
@@ -1087,4 +1090,64 @@ void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr,
 		}
 	}
 	
+}
+
+static float _shadow_test(const Vector & I, const Vector & light, int opt)
+{
+	Vector dir;
+	dir.make_vector(light, I);
+	dir.norm();
+	for (int i = 0; i < spherecount; i++)
+		if (sp[i].sintersect(I, dir, opt)) return 0.0f;
+	for (int i = 0; i < mesh_count; i++)
+		if (mesh[i].sintersect(I, dir, opt)) return 0.0f;
+	return 1.0f;
+}
+
+static void render_shadows_raytracing(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
+		    const Vector& mtt, const Vector& mti, const Vector& mtti, int thread_idx)
+{
+	int i, j;
+	Vector l(lx, ly, lz);
+	
+	while ((j = rowint++) < yr) {
+		Object * lastobj = NULL;
+		Uint16 *s = sbuffer + (j * xr);
+		for (i = 0; i < xr; i++) {
+			Vector I = plane_cast(cur, mtt + mti * i + mtti * j);
+			const float rnss[3] = {1.0, 1 / 7.0f, 1 / 13.0f };
+			float shadow_mul = 0.0;
+			shadow_mul += _shadow_test(I, l, 0);
+			if (g_shadowquality > 0) {
+				double R = light_radius;
+				shadow_mul += _shadow_test(I, l + Vector( +R, 0.0, 0.0), 1);
+				shadow_mul += _shadow_test(I, l + Vector( -R, 0.0, 0.0), 2);
+				shadow_mul += _shadow_test(I, l + Vector(0.0,  +R, 0.0), 3);
+				shadow_mul += _shadow_test(I, l + Vector(0.0,  -R, 0.0), 4);
+				shadow_mul += _shadow_test(I, l + Vector(0.0, 0.0,  +R), 5);
+				shadow_mul += _shadow_test(I, l + Vector(0.0, 0.0,  -R), 6);
+				if (g_shadowquality > 1) {
+					double R1 = R * 0.707106781186;
+					shadow_mul += _shadow_test(I, l + Vector(+R1, +R1, 0.0), 7);
+					shadow_mul += _shadow_test(I, l + Vector(-R1, -R1, 0.0), 8);
+					shadow_mul += _shadow_test(I, l + Vector(+R1, 0.0, +R1), 9);
+					shadow_mul += _shadow_test(I, l + Vector(-R1, 0.0, -R1), 10);
+					shadow_mul += _shadow_test(I, l + Vector(0.0, +R1, +R1), 11);
+					shadow_mul += _shadow_test(I, l + Vector(0.0, -R1, -R1), 12);
+				}
+			}
+			
+			shadow_mul = 1.0f - shadow_mul * rnss[g_shadowquality];
+			s[i] = shadow_intensity * shadow_mul;
+		}
+	}
+}
+
+void render_shadows(Uint32 *target_framebuffer, Uint16 *sbuffer, int xr, int yr, 
+		    const Vector& mtt, const Vector& mti, const Vector& mtti, int thread_idx)
+{
+	if (CVars::shadow_algo == 0)
+		render_shadows_raster(target_framebuffer, sbuffer, xr, yr, mtt, mti, mtti, thread_idx);
+	else
+		render_shadows_raytracing(target_framebuffer, sbuffer, xr, yr, mtt, mti, mtti, thread_idx);
 }

@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include "cvars.h"
 #include "mesh.h"
 #include "triangle.h"
 #include "memory.h"
@@ -580,6 +581,8 @@ bool Mesh::read_from_obj(const char *fn)
 #ifdef DEBUG
 	printf("%s: Loaded, %d triangles\n", fn, triangle_count);
 #endif
+	if (triangle_count > 2500)
+		CVars::shadow_algo = 1;
 	return true;
 }
 
