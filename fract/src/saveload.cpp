@@ -23,6 +23,7 @@
 #include "cvars.h"
 #include "fract.h"
 #include "mesh.h"
+#include "light.h"
 #include "scene.h"
 #include "sphere.h"
 #include "saveload.h"
@@ -35,9 +36,6 @@
 /* ------------------------------------ export section ------------------------------------ */
 extern int spherecount;
 extern Sphere sp[];
-extern int lx;
-extern int ly;
-extern int lz;
 extern Vector cur;
 extern int Physics;
 extern int CollDetect;
@@ -155,7 +153,7 @@ int save_context(const char *fn)
 		fprintf(f, "Background.type=Voxel\n");
 	}
 	fprintf(f, "\n# Light source coordinates:\n");
-	write_triplet(f, "Light", lx, ly, lz);
+	write_triplet(f, "Light", light.p[0], light.p[1], light.p[2]);
 	fprintf(f, "\n# Shadowing quality:\n");
 	fprintf(f, "ShadowQuality=%s\n", squalities[CVars::shadowquality]);
 	fprintf(f, "\n# User position information:\n");
@@ -200,7 +198,7 @@ void record_do(double time)
 			cur[0], cur[1], cur[2],
 			CVars::alpha,
 			CVars::beta,
-			(double) lx, (double) ly, (double) lz,
+			light.p[0], light.p[1], light.p[2],
 			pp_state,
 			shader_param);
 	} else	{
@@ -279,7 +277,7 @@ double get_real(char *s)
 			return 0.0;
 			}
 }
-
+/*
 static void get_int_triple(char *s, int *x, int *y, int *z)
 {
 	int i=0;
@@ -291,6 +289,7 @@ static void get_int_triple(char *s, int *x, int *y, int *z)
 	if (s[0]=='y') *y = get_int(s);
 	if (s[0]=='z') *z = get_int(s);
 }
+*/
 
 static void get_vector(char *s, Vector &a)
 {
@@ -572,7 +571,9 @@ int load_context(const char *fn)
 				case 0x404d: SceneType = 
 					strstr(line, "TimeBased") ? TIME_BASED : FRAME_BASED; break;
 			/* LIGHT */
-				case 0xadf1: get_int_triple (line, &lx, &ly, &lz); break;
+				case 0xadf1: get_vector (line, light.p); 
+					light.reposition();
+				break;
 				
 			/* SHADOWING QUALITY */
 				case 0x00aa: get_shadow_quality(line, &CVars::shadowquality); break;
@@ -687,9 +688,8 @@ bool load_frame(int frame_no, double time, int mySceneType, int loopmode, int& l
 		if (cd[frame_no].is_106) {
 			check_state(system_pp_state, cd[frame_no].pp_state);
 			shader_param = cd[frame_no].shader_param;
-			lx = (int) (cd[frame_no].light[0]);
-			ly = (int) (cd[frame_no].light[1]);
-			lz = (int) (cd[frame_no].light[2]);
+			light.p = cd[frame_no].light;
+			light.reposition();
 		}
 		return true;
 	}
@@ -715,9 +715,11 @@ bool load_frame(int frame_no, double time, int mySceneType, int loopmode, int& l
 		if (cd[l].is_106) {
 			check_state(system_pp_state, cd[l].pp_state);
 			shader_param = cd[l].shader_param * (1 - f) + cd[r].shader_param * f;
-			lx = (int) (cd[l].light[0] * (1 - f) + cd[r].light[0] * f);
-			ly = (int) (cd[l].light[1] * (1 - f) + cd[r].light[1] * f);
-			lz = (int) (cd[l].light[2] * (1 - f) + cd[r].light[2] * f);
+			light.p = Vector(
+				cd[l].light[0] * (1-f) + cd[r].light[0] * f,
+				cd[l].light[1] * (1-f) + cd[r].light[1] * f,
+				cd[l].light[2] * (1-f) + cd[r].light[2] * f);
+			light.reposition();
 		}
 		return true;
 	}

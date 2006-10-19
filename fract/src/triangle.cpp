@@ -27,6 +27,7 @@
 #include "mesh.h"
 #include "vector3.h"
 #include "vectormath.h"
+#include "light.h"
 
 // ********************** GLOBAL STORAGE ***********************************/
 Triangle trio[MAX_TRIANGLES];
@@ -177,7 +178,7 @@ double Triangle::intersection_dist(void *IntersectContext) const
 	return tic->dist;
 }
 
-Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& light, double rlsrcp,
+Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, double rlsrcp,
 		float &opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
 {
 	Vector CI;
@@ -211,7 +212,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& light, d
 	}
 
 	Vector lightray;
-	lightray.make_vector(vertex[0], light);
+	lightray.make_vector(vertex[0], L);
 	float cp = -(Normal * lightray);
 
 	// should we find the intersection point?
@@ -220,11 +221,12 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& light, d
 		// find the crossing point I of "ray" and the triangle
 		I.macc(vertex[0], a, tic->u);
 		I += b * tic->v;
+		
 	}
 	// if the triangle is lit...
 	if (cp > 0.0f) {
 		Vector LI;
-		LI.make_vector(I, light);
+		LI.make_vector(I, L);
 
 		ray_one = ray* - fsqrt(rlsrcp);
 
@@ -250,6 +252,13 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& light, d
 		product *= product;
 		product *= product;
 		product *= product;
+		
+		if (light.mode == LIGHTMAP) {
+			float xm = 1.0f - light.shadow_density(I);
+			product *= xm;
+			cp *= xm;
+		}
+		
 		intensity = specular * product + diffuse*cp + ambient;
 	}
 	Uint32 kolor;
@@ -505,7 +514,7 @@ void create_triangle_array(void)
 		mesh[0].translate(Vector(120, 10, 200));
 		mesh[0].bound(1, daFloor, daCeiling);
 		mesh[0].translate(Vector(0, 1, 0));
-		mesh[0].set_flags( 0, 0.26, 0.5, TYPE_OR, 0xdbf6e3);
+		mesh[0].set_flags( NORMAL_MAP, 0.26, 0.5, TYPE_OR, 0xdbf6e3);
 		mesh_count = 1;
 
 	} else {

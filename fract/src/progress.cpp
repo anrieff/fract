@@ -47,14 +47,22 @@ ProgressManager::ProgressManager()
 
 void ProgressManager::reset(void)
 {
+	full_reset();
+	for (unsigned i = 0; i < sizeof(taskinfo) / sizeof(taskinfo[0]); i++)
+		if (taskinfo[i].conditional)
+			total += taskinfo[i].weight;
+}
+
+void ProgressManager::full_reset(const char * message)
+{
 	n = 0;
 	total = 0;
 	current = 0;
 	lupdate = -1;
 	memset(taskdone, 0, sizeof(taskdone));
-	for (unsigned i = 0; i < sizeof(taskinfo) / sizeof(taskinfo[0]); i++)
-		if (taskinfo[i].conditional)
-			total += taskinfo[i].weight;
+	if (message) {
+		intro_progress_init((SDL_Surface*)surface, message);
+	}
 }
 
 void ProgressManager::init(void *surface)
@@ -65,6 +73,15 @@ void ProgressManager::init(void *surface)
 void ProgressManager::add_weight(double addage)
 {
 	total += addage;
+}
+
+void ProgressManager::task_add_weight(double weight, const char * procname)
+{
+	strcpy(taskname, procname);
+	task_current = 0;
+	task_total = weight;
+	taskstart = bTime();
+	update();
 }
 
 void ProgressManager::task_add(TaskID id, const char * procname)
@@ -81,11 +98,7 @@ void ProgressManager::task_add(TaskID id, const char * procname)
 			current += taskinfo[i].weight;
 		}
 	}
-	strcpy(taskname, procname);
-	task_current = 0;
-	task_total = weight;
-	taskstart = bTime();
-	update();
+	task_add_weight(weight, procname);
 }
 
 void ProgressManager::task_set(double percent)
@@ -130,6 +143,15 @@ void ProgressManager::taskstats(void)
 }
 
 ProgressManager progressman;
+
+Task::Task(double weight, ProgressManager *pm)
+{
+	this->pm = pm;
+	pm->task_add_weight(weight, "blah");
+	steps = 1;
+	cstep = 0;
+	finished = false;
+}
 
 Task::Task(TaskID id, const char * fn, ProgressManager * pm)
 {

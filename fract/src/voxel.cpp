@@ -30,6 +30,7 @@
 #include "vector3.h"
 #include "vectormath.h"
 #include "voxel.h"
+#include "light.h"
 
 //#define BENCH
 
@@ -48,7 +49,7 @@ info_t vxInput[NUM_VOXELS] = {
 
 extern Vector cur;
 extern double fov;
-extern int vframe, lx, ly, lz;
+extern int vframe;
 extern bool WantToQuit;
 
 #ifdef ACTUALLYDISPLAY
@@ -69,7 +70,7 @@ const int render_dist_min = 300;
 const int render_dist_max = 1500;
 bool reciprocals_precalculated = false;
 float adapt = 10.0f;
-Vector gti, gtti, light;
+Vector gti, gtti;
 int voxel_rendering_method = 0, shadow_casting_method = 0;
 bool light_moving = true;
 bool must_recalc_light;
@@ -288,23 +289,23 @@ void voxel_light_recalc1(int thread_idx)
 			float exi = sd % 2 == 0 ? dir : 0  ;
 			float eyi = sd % 2 == 0 ? 0   : dir;
 			for (int i = 0; i < rollsize; i++, ex+=exi,ey+=eyi) if (i % cpu.count== thread_idx) {
-				float x = lx, y = lz;
-				float dst = sqrt(sqr(ex-lx) + sqr(ey-lz));
+				float x = lx(), y = lz();
+				float dst = sqrt(sqr(ex-lx()) + sqr(ey-lz()));
 				float rcp_dst = 1.0f / dst;
-				float xi= (ex-lx) * rcp_dst;
-				float yi= (ey-lz) * rcp_dst;
+				float xi= (ex-lx()) * rcp_dst;
+				float yi= (ey-lz()) * rcp_dst;
 				float min_cotg = 1e19;
 				int idist = 1;
 				for (int tt = (int) dst; tt > 0; --tt, idist += 10, x += xi, y += yi) {
 					clip_coords(x, y, size-1);
 					int index = (((int) y) * size) + (int) x;
-					float vDist = ly - get_height(vox[k].heightmap, size, x, y, FLOOR_LOW);
+					float vDist = light.p[1] - get_height(vox[k].heightmap, size, x, y, FLOOR_LOW);
 					float new_cotg = sMul*vDist * prec_rcp_x[idist];
 					if (new_cotg < min_cotg) {
 						min_cotg = new_cotg;
 						//Vector ray(lx - x, ly-height, lz-y);
 						float *vec = &vox[k].normal_map[index*__4];
-						float vX = lx - x, vZ = lz - y;
+						float vX = lx() - x, vZ = lz() - y;
 						float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 
 						float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
@@ -334,7 +335,7 @@ static inline float fast_reciprocal_square_root(float val)
 
 static inline bool point_is_in_shadow(vox_t *v, int x, int z)
 {
-	Vector l(lx, ly, lz);
+	Vector l = light.p;
 	Vector p(x, v->heightmap[x + z * v->size], z);
 	Vector o;
 	double d1 = l.distto(p);
@@ -375,8 +376,8 @@ void subdivshadow(vox_t *v, int x, int z, int sz)
 			tex_paint_scale(v, index, x, z, iambient);
 		} else {
 			float *vec = &(v->normal_map[index*__4]);
-			float vX = lx - x, vZ = lz - z;
-			float vDist = ly - v->heightmap[index];
+			float vX = lx() - x, vZ = lz() - z;
+			float vDist = light.p[1] - v->heightmap[index];
 			float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 			float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
 			tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
@@ -386,8 +387,8 @@ void subdivshadow(vox_t *v, int x, int z, int sz)
 			tex_paint_scale(v, index, x, z, iambient);
 		} else {
 			float *vec = &(v->normal_map[index*__4]);
-			float vX = lx - x, vZ = lz - z;
-			float vDist = ly - v->heightmap[index];
+			float vX = lx() - x, vZ = lz() - z;
+			float vDist = light.p[1] - v->heightmap[index];
 			float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 			float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
 			tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
@@ -398,8 +399,8 @@ void subdivshadow(vox_t *v, int x, int z, int sz)
 			tex_paint_scale(v, index, x, z, iambient);
 		} else {
 			float *vec = &(v->normal_map[index*__4]);
-			float vX = lx - x, vZ = lz - z;
-			float vDist = ly - v->heightmap[index];
+			float vX = lx() - x, vZ = lz() - z;
+			float vDist = light.p[1] - v->heightmap[index];
 			float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 			float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
 			tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
@@ -409,8 +410,8 @@ void subdivshadow(vox_t *v, int x, int z, int sz)
 			tex_paint_scale(v, index, x, z, iambient);
 		} else {
 			float *vec = &(v->normal_map[index*__4]);
-			float vX = lx - x, vZ = lz - z;
-			float vDist = ly - v->heightmap[index];
+			float vX = lx() - x, vZ = lz() - z;
+			float vDist = light.p[1] - v->heightmap[index];
 			float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 			float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
 			tex_paint_scale(v, index, x, z, iambient + dbl2int16(fabs(mul)));
@@ -433,8 +434,8 @@ void subdivshadow(vox_t *v, int x, int z, int sz)
 				for (int i = 0; i < sz; i++, index++) {
 //					float ll = light.distto(c);
 					float *vec = &(v->normal_map[index*__4]);
-					float vX = lx - x, vZ = lz - z;
-					float vDist = ly - v->heightmap[index];
+					float vX = lx() - x, vZ = lz() - z;
+					float vDist = light.p[1] - v->heightmap[index];
 					float ll = sqrt(vX*vX + vZ*vZ + vDist*vDist);
 
 					float mul = (vX*vec[0]+ vDist*vec[1] + vZ * vec[2]) * 5.0 * prec_rsqrt_x[(int)(ll*RESOLUTION)];
@@ -453,7 +454,6 @@ void subdivshadow(vox_t *v, int x, int z, int sz)
 
 void voxel_light_recalc2(int thread_idx)
 {
-	light = Vector(lx, ly, lz);
 	int k, size;
 
 	for (k = 0; k < NUM_VOXELS; k++) {
@@ -550,8 +550,7 @@ void show_light(Uint32 *fb, int xr, int yr)
 	Vector w[3];
 	calc_grid_basics(cur, CVars::alpha, CVars::beta, w);
 	int x, y;
-	Vector light(lx, ly, lz);
-	project_point(&x, &y, light, cur, w, xr, yr);
+	project_point(&x, &y, light.p, cur, w, xr, yr);
 	if (x >= 0 && x < xr && y >= 0 && y < yr)
 		fb[xr * y + x ] = 0xffffff;
 }
@@ -1047,8 +1046,9 @@ void voxel_frame_init(void)
 
 	
 	if (light_moving) {
-		lx = (int) (256 + 128 * sin(bTime()*0.1));
-		lz = (int) (256 + 128 * cos(bTime()*0.1));
+		light.p[0] = (256 + 128 * sin(bTime()*0.1));
+		light.p[2] = (256 + 128 * cos(bTime()*0.1));
+		light.reposition();
 		must_recalc_light = true;
 	}
 	if (shadow_casting_method > 2) {

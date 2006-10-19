@@ -33,6 +33,7 @@ struct CVar {
 	const char *to_string(void);
 	const char *get_type_name(void) const;
 	bool set_value(const char *new_value);
+	void check_triggers(void);
 };
 
 void cvars_init(void);

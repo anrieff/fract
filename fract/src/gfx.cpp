@@ -288,7 +288,7 @@ struct introstruct {
 	int last;
 };
 introstruct intro;
-void intro_progress_init(SDL_Surface *p, char * message)
+void intro_progress_init(SDL_Surface *p, const char * message)
 {
 	surface_lock(p);
 	memset(p->pixels, 0, p->w * p->h * sizeof(Uint32));

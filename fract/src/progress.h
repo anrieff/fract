@@ -39,9 +39,9 @@ class ProgressManager {
 	double task_total, task_current;
 	char taskname[128];
 	double taskstart;
-	double tasklengths[32];
-	char tasknames[32][128];
-	bool taskdone[32];
+	double tasklengths[96];
+	char tasknames[96][128];
+	bool taskdone[96];
 	int n;
 	double lupdate;
 	void *surface;
@@ -50,9 +50,11 @@ class ProgressManager {
 public:
 	ProgressManager();
 	void init(void *surface);
+	void full_reset(const char * message = NULL);
 	void reset(void);
 	void add_weight(double addage);
 	void task_add(TaskID taskid, const char *taskname);
+	void task_add_weight(double weight, const char * taskname);
 	void task_set(double percent);
 	void task_done(void);
 	void taskstats(void);
@@ -106,6 +108,7 @@ class Task {
 	ProgressManager *pm;
 	bool finished;
 public:
+	Task(double weight, ProgressManager* pm = &progressman);
 	Task(TaskID id, const char *fun_name, ProgressManager* pm = &progressman);
 	~Task();
 	

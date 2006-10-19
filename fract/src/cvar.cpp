@@ -13,6 +13,7 @@
 #include "cvar.h"
 #include "cvars.h"
 #include "array.h"
+#include "light.h"
 
 /**
  * @class CVar
@@ -62,16 +63,37 @@ const char *CVar::to_string(void)
 bool CVar::set_value(const char *new_value)
 {
 	switch (type) {
-		case TYPE_INT   : return (1 == sscanf(new_value, "%d", value_int));
+		case TYPE_INT: 
+		{
+			int x, r;
+			r = sscanf(new_value, "%d", &x);
+			if (r == 1) {
+				*value_int = x;
+				check_triggers();
+				return true;
+			}
+			return false;
+		}
 		case TYPE_BOOL  :
 		{
 			int x;
 			if (1 != sscanf(new_value, "%d", &x)) return false;
 			if (x < 0 || x > 1) return false;
 			*value_bool = x == 1;
+			check_triggers();
 			return true;
 		}
-		case TYPE_DOUBLE: return (1 == sscanf(new_value, "%lf", value_double));
+		case TYPE_DOUBLE: 
+		{
+			int r; double x;
+			r = sscanf(new_value, "%lf", &x);
+			if (r == 1) {
+				*value_double = x;
+				check_triggers();
+				return true;
+			}
+			return false;
+		}
 		default:
 			return false;
 	}
@@ -117,3 +139,24 @@ const char *CVar::get_type_name(void) const
 	}
 }
 
+void CVar::check_triggers(void)
+{
+	static bool entered = false;
+	if (entered) return;
+	entered = true;
+	if (!strcmp(name, "lmsize")) {
+		CVars::shadow_algo = 2;
+		light.rebuild_lightmaps();
+	}
+	
+	if (!strcmp(name, "shadow_algo")) {
+		(*value_int) %= 3;
+		light.mode = (ShadowMode) CVars::shadow_algo;
+		if (light.points[0].size == 0) {
+			CVars::lmsize = 128;
+			light.rebuild_lightmaps();
+		}
+	}
+	
+	entered = false;
+}

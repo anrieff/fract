@@ -66,9 +66,6 @@ extern int camera_moved;
 extern int loop_mode;
 extern int loops_remaining;
 
-// the light source
-extern int lx, ly, lz;
-
 extern int ysqrd; // light y distance to the current plane (floor or ceiling), squared
 extern int ysqrd_floor, ysqrd_ceil;
 

@@ -34,6 +34,7 @@
 #include "gfx.h"
 #include "infinite_plane.h"
 #include "mesh.h"
+#include "light.h"
 #include "konsole.h"
 #include "object.h"
 #include "profile.h"
@@ -375,8 +376,8 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 	double btm, ttm;
 	Vector obex;
 	
-	ysqrd_ceil = (int) (sqr(daCeiling-ly));
-	ysqrd_floor= (int) (sqr(ly-daFloor)  );
+	ysqrd_ceil = (int) (sqr(daCeiling-light.p[1]));
+	ysqrd_floor= (int) (sqr(light.p[1]-daFloor)  );
 	
 	prof_enter(PROF_PREFRAME_MEMSET);
 	memset(ptr, 0, xsize_render(xres())*ysize_render(yres())*4);
@@ -530,7 +531,7 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
  */
 void bash_preframe(Vector& lw, Vector& tt, Vector& ti, Vector& tti)
 {
-	lw = Vector(lx, ly, lz);
+	lw = light.p;
 	if (stereo_mode == STEREO_MODE_LEFT) {
 		cur -= Vector(stereo_separation * 0.5 * sin(CVars::alpha+M_PI/2), 0, stereo_separation * 0.5 * cos(CVars::alpha+M_PI/2));
 		CVars::alpha -= M_PI/2-atan(stereo_depth / (stereo_separation * 0.5));
@@ -576,7 +577,7 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 	Vector tt = in_tt, tti = in_tti;
 	Vector t;
 	Vector v;
-	Vector lw(lx, ly, lz);
+	Vector lw = light.p;
 	double A, Arcp/*, pdet, pgB*/;
 	char context[128] = {0};
 	float opacity, bopacity;

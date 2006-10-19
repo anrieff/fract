@@ -93,9 +93,6 @@ int loops_remaining=9999;
 int developer = 0;
 int design = 0;
 
-// the light source
-//int lx = 200, ly=100, lz = 500;//FIXME
-int lx = 256, ly = 125, lz = 256;
 double light_angle = 0;
 
 int defaultconfig = 1;

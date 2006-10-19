@@ -26,6 +26,7 @@
 #include "render.h"
 #include "sphere.h"
 #include "vectormath.h"
+#include "light.h"
 
 #include "cross_vars.h"
 
@@ -61,7 +62,7 @@ Uint32 texture_handle_nearest(int x, int y, int level, int ysqrd_raytrace)
 {
  int *adata= (int*) T[level].get_data();
  return integrated(adata[((x & 255)>>level) +
- /*y*/(((y & 255)>>level)<<(LOG2_MAX_TEXTURE_SIZE-level))],x, y, lx, lz, ysqrd_raytrace);
+ /*y*/(((y & 255)>>level)<<(LOG2_MAX_TEXTURE_SIZE-level))],x, y, (int)light.p[0], (int)light.p[2], ysqrd_raytrace);
 }
 
 Uint32 texture_handle_bilinear(double x, double y, int level, int ysqrd_raytrace)
@@ -86,14 +87,14 @@ Uint32 texture_handle_bilinear(double x, double y, int level, int ysqrd_raytrace
  x=ldexp(x, -level); y=ldexp(y, -level);
  x-=floor(x); y-=floor(y);
  if (cpu.sse) {
- 	return igrated(bilinea4(x1y1, x2y1, x1y2, x2y2, (int) (65535.0*x), (int) (65535.0*y)), xi, yi, lx, lz, ysqrd_raytrace);
+	 return igrated(bilinea4(x1y1, x2y1, x1y2, x2y2, (int) (65535.0*x), (int) (65535.0*y)), xi, yi, lx(), lz(), ysqrd_raytrace);
 	} else {
 	return  multiplycolor(
 		multiplycolorf(	x1y1, (1-x)*(1-y))+
 		multiplycolorf(	x2y1,    x *(1-y))+
 		multiplycolorf(	x1y2, (1-x)*   y )+
 		multiplycolorf(	x2y2,    x *   y )
-			, lform(xi, yi, lx, lz, ysqrd_raytrace));
+			, lform(xi, yi, lx(), lz(), ysqrd_raytrace));
 	}
 }
 
@@ -285,8 +286,8 @@ void render_infinite_plane_sse(Uint32 *fb, int xr, int yr, const Vector& in_tt, 
 				fy[i] = cy + i*cyi;
 				fxi[i] = cxi*4;
 				fyi[i] = cyi*4;
-				lightxy1[i] = lx;
-				lightxy1[i+4] = lz;
+				lightxy1[i] = lx();
+				lightxy1[i+4] = lz();
 				lightxy1[i+8] = 1.0;
 				fxyi[  i] = fxi[i];
 				fxyi[4+i] = fyi[i];
@@ -398,7 +399,7 @@ void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, const Vector& in_tt, c
 								ptex[(boffset+xandmask+1)&texandmask	],
 								ptex[(boffset+xandmask+1+_1)&texandmask	],
 								Fx, Fy);
-					*(dptr++) = multiplycolor(Tc, lform(r(gX), r(gY), lx, lz, ysqrd));
+					*(dptr++) = multiplycolor(Tc, lform(r(gX), r(gY), lx(), lz(), ysqrd));
 				} while (--i);
 			} else {
 			// NEAREST NEIGHBOUR FILTER VERSION:
@@ -415,7 +416,7 @@ void render_infinite_plane_p5(Uint32 *fb, int xr, int yr, const Vector& in_tt, c
 									(((unsigned) (Lx)>>xtex) & xandmask) +
 									(((((unsigned)(Ly)>>xtex) & xandmask))<<xshl)
 								],
-							lform(Lx, Ly, lx, lz, ysqrd));
+							lform(Lx, Ly, lx(), lz(), ysqrd));
 					}
 				} while (--i);
 			}

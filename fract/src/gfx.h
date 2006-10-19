@@ -50,7 +50,7 @@ typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
  void surface_unlock(SDL_Surface *screen);
  void paste_raw(SDL_Surface *p, const RawImg& a, int x, int y);
  void intro_progress(SDL_Surface *p, double prog);
- void intro_progress_init(SDL_Surface *p, char * message);
+ void intro_progress_init(SDL_Surface *p, const char * message);
 #endif
 
  int xres(void);
