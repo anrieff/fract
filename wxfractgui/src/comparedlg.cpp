@@ -161,7 +161,9 @@ void FractChart::draw_chart(CompareInfo a[], int n, float (*fun) (CompareInfo&),
 	int per_entry = (sizey-15)/n;
 	
 	for (int i = 0; i < n; i++) {
-		float coeff = (fun(a[i]) - minval) / (maxval - minval);
+		float coeff;
+		if (maxval != minval) coeff = (fun(a[i]) - minval) / (maxval - minval);
+			else coeff = 1.0f;
 		unsigned mycolor = (int) (0xff * (1-coeff)) | (((int) (0xff0000 * coeff))&0xff0000);
 		for (float angle = 0.0f; angle < 2 * M_PI; angle += 0.02f) {
 			int sgx = 10 + (int) ( 10.0f * sin(angle));
