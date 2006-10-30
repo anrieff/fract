@@ -403,6 +403,9 @@
 				RelativePath=".\src\konsole_commands.cpp">
 			</File>
 			<File
+				RelativePath=".\src\light.cpp">
+			</File>
+			<File
 				RelativePath=".\src\md5.cpp">
 			</File>
 			<File
@@ -413,6 +416,9 @@
 			</File>
 			<File
 				RelativePath=".\src\profile.cpp">
+			</File>
+			<File
+				RelativePath=".\src\progress.cpp">
 			</File>
 			<File
 				RelativePath=".\src\random.cpp">
@@ -535,6 +541,9 @@
 			</File>
 			<File
 				RelativePath=".\src\konsole_commands.h">
+			</File>
+			<File
+				RelativePath=".\src\light.h">
 			</File>
 			<File
 				RelativePath=".\src\md5.h">
