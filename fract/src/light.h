@@ -82,7 +82,18 @@ public:
 	PointLight();
 	~PointLight();
 	
-	bool in_shadow(const Vector&);
+	/**
+	 * @brief checks if a point is in shadow
+	 * @param p - the point to check for shadowing
+	 * @returns \
+	 *   0 = no shadow
+	 *   1 = shadowed
+	 *  -1 = entire side of the cubemap is not rendered. This means, the
+	 *       point is not shadowed, and moreover, the intent is that no points
+	 *       nearby could be shadowed. This is intended to specify optimization
+	 *       hints. If you don't need to optimize, just equate -1 with 0.
+	 */
+	int in_shadow(const Vector& p);
 	void rebuild_lightmap(void);
 	
 	/**

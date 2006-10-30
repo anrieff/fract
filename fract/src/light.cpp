@@ -18,6 +18,7 @@
 #include "light.h"
 #include "cross_vars.h"
 #include "progress.h"
+#include "random.h"
 
 static const float divs[3] = { 1.0f, 1 / 7.0f, 1 / 13.0f };
 static const int iterations[3] = { 1, 7, 13 };
@@ -97,8 +98,10 @@ float* PointLight::build_lightmap_side(const Vector &dv)
 			int k = 0;
 			Vector v = dv;
 			for (int l = 0; l < 3; l++)
-				if (v[l] == 0)
-					v[l] = co[k++];
+				if (v[l] == 0) {
+					v[l] = co[k++] + (drandom()*2-1)/size;
+				}
+
 			
 			v.norm();
 			float res = closest_intersection(p, v);
@@ -115,7 +118,7 @@ float* PointLight::build_lightmap_side(const Vector &dv)
 	return a;
 }
 
-bool PointLight::in_shadow(const Vector & point)
+int PointLight::in_shadow(const Vector & point)
 {
 	Vector dir;
 	dir.make_vector(point, p);
@@ -133,7 +136,7 @@ bool PointLight::in_shadow(const Vector & point)
 	
 	dir.scale(1.0 / mc);
 	float * map = maps[bi * 2 + (dir[bi] > 0 ? 0 : 1)];
-	if (!map) return false;
+	if (!map) return -1;
 	
 	int map_coords[2], k = 0;
 	for (int i = 0; i < 3; i++) {
@@ -200,8 +203,11 @@ float Light::shadow_density(const Vector & point)
 {
 	int n = iterations[CVars::shadowquality];
 	int sum = 0;
-	for (int i = 0; i < n; i++)
-		if (points[i].in_shadow(point)) sum++;
+	for (int i = 0; i < n; i++) {
+		int r = points[i].in_shadow(point);
+		if (r == -1) return 0.0f; // optimization hack
+		else sum += r;
+	}
 	return sum * divs[CVars::shadowquality];
 }
 
