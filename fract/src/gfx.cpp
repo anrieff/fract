@@ -286,12 +286,25 @@ struct introstruct {
 	int x, y;
 	int width, height;
 	int last;
+	Uint32 * buff;
+	int bufsize;
+
+	introstruct() { buff = NULL; bufsize = 0; }
+	~introstruct() { if (buff) free(buff); buff = NULL; }
+	void alloc(int size)
+	{
+		if (size > bufsize) {
+			bufsize = size;
+			if (buff) free(buff);
+			buff = (Uint32*) malloc(sizeof(Uint32) * size);
+		}
+	}
 };
-introstruct intro;
+static introstruct intro;
 void intro_progress_init(SDL_Surface *p, const char * message)
 {
-	surface_lock(p);
-	memset(p->pixels, 0, p->w * p->h * sizeof(Uint32));
+	intro.alloc(p->w * p->h);
+	memset(intro.buff, 0, p->w * p->h * sizeof(Uint32));
 	int xr = p->w, yr = p->h;
 	intro.width  = font0.w_int() * strlen(message) + PROG_XSPACE;
 	intro.height = font0.h() + PROG_YSPACE;
@@ -299,7 +312,7 @@ void intro_progress_init(SDL_Surface *p, const char * message)
 		intro.width = xr - 6;
 	intro.x = (xr - intro.width) / 2;
 	intro.y = (yr - intro.height) / 2;
-	Uint32 * pix = (Uint32*) p->pixels;
+	Uint32 * pix = intro.buff;
 	for (int i = 0; i < intro.width; i++) {
 		if (i == 0 || i == intro.width - 1) continue;
 		int _0 = 0;
@@ -329,6 +342,8 @@ void intro_progress_init(SDL_Surface *p, const char * message)
 	font0.printxy(p, pix, intro.x + PROG_XSPACE / 2, intro.y + PROG_YSPACE / 2,
 	       PROG_TEXT_COLOR, 1.0f, message);
 	intro.last = 0;
+	surface_lock(p);
+	memcpy(p->pixels, intro.buff, p->w * p->h * sizeof(Uint32));
 	surface_unlock(p);
 	SDL_Flip(p);
 }
@@ -357,8 +372,7 @@ void intro_progress(SDL_Surface *p, double prog)
 	int ex;
 	ex = (int)((intro.width - 2) * prog);
 	if (prog > 1.0 + 1E-14 || ex <= intro.last) return;
-	surface_lock(p);
-	Uint32 *pix = (Uint32 *) p->pixels;
+	Uint32 *pix = intro.buff;
 	for (int i = intro.last + 1; i <= ex; i++) {
 		Uint32 color = (i/16)%2 ? PROG_INNER_COLOR1 : PROG_INNER_COLOR2;
 		int _0 = (i == 1 || i == intro.width - 2);
@@ -368,6 +382,8 @@ void intro_progress(SDL_Surface *p, double prog)
 			draw_pixeld(pix, intro.x + i, j, multiplycolorf(color, 1 - rel_intensity));
 		}
 	}
+	surface_lock(p);
+	memcpy(p->pixels, intro.buff, p->w * p->h * sizeof(Uint32));
 	surface_unlock(p);
 	SDL_Flip(p);
 	intro.last = ex;
