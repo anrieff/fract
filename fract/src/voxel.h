@@ -13,8 +13,8 @@
 #include "hierarchy.h"
 #include "threads.h"
 
-//#define NUM_VOXELS 2
-#define NUM_VOXELS 1
+#define NUM_VOXELS 2
+//#define NUM_VOXELS 1
 #define MAX_VOXEL_DIST 4000
 #define __4 3
 
@@ -22,7 +22,7 @@
 
 // should be power of two; increasing it makes the shadowcasting faster,
 // but may expose some annoying artifacts
-#define SHADOW_CAST_ACCURACY 8
+#define SHADOW_CAST_ACCURACY 4
 
 #define LIGHT_PRECALC_ACCURACY 1.4142
 
@@ -73,4 +73,4 @@ int voxel_init(void);
 void voxel_close(void);
 void voxel_shoot(void);
 
-void voxel_frame_init(void);
+void voxel_frame_init(const Vector& tt, const Vector &ti, const Vector &tti, Uint32* fb);

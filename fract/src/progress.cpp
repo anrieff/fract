@@ -13,6 +13,7 @@
 #include "gfx.h"
 #include "scene.h"
 #include "cpu.h"
+#include "cmdline.h"
 
 #ifdef ACTUALLYDISPLAY
 #include <SDL/SDL.h>
@@ -22,14 +23,16 @@ struct TaskInfo {
 	TaskID id;
 	double weight;
 	bool conditional;
+	char keydep[30];
 };
 
-const TaskInfo taskinfo[] = {
-	{ READOBJ  ,  50, true  },
-	{ TREEBUILD, 150, true  },
-	{ RCPARRAY ,  30, false },
-	{ MIPGEN   ,   1, false },
-	{ YUVBENCH ,  90, true  },
+static TaskInfo taskinfo[] = {
+	{ READOBJ  ,  50, true  , ""},
+	{ TREEBUILD, 150, true  , ""},
+	{ RCPARRAY ,  30, false , ""},
+	{ MIPGEN   ,   1, false , ""},
+	{ HIERGEN  , 150, true  , "--voxel"},
+	{ YUVBENCH ,  90, true  , ""},
 };
 
 static double findbyid(TaskID id)
@@ -42,15 +45,21 @@ static double findbyid(TaskID id)
 
 ProgressManager::ProgressManager()
 {
-	reset();
+	//reset();
 }
 
 void ProgressManager::reset(void)
 {
 	full_reset();
-	for (unsigned i = 0; i < sizeof(taskinfo) / sizeof(taskinfo[0]); i++)
-		if (taskinfo[i].conditional)
+	for (unsigned i = 0; i < sizeof(taskinfo) / sizeof(taskinfo[0]); i++) {
+		if (taskinfo[i].conditional) {
+			if (taskinfo[i].keydep[0]) {
+				if (!option_exists(taskinfo[i].keydep))
+					taskinfo[i].weight = 1;
+			}
 			total += taskinfo[i].weight;
+		}
+	}
 }
 
 void ProgressManager::full_reset(const char * message)

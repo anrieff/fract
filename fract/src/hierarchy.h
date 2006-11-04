@@ -28,6 +28,7 @@
 #include "common.h"
 
 #define CEIL_MAX 9999
+#define MIN_SIZE 4
 
 /* OUTER_MIPLEVEL
 ** determine the outer mip-level for voxel traversal algorithm
@@ -112,9 +113,12 @@ static float fmin4(float a, float b, float c, float d)
 **/
 class Hierarchy {
 	float *maps[12]; // support textures up to 4096x4096
+	float *umaps[7];
+	float *sdmap;
 	int size;
-	int slog; //log2(size)
-	bool floor;
+	int slog, s; //log2(size)
+	bool is_floor;
+	int blog;
 
 	int raycasts, recursions, tot, eff;
 
@@ -137,6 +141,13 @@ class Hierarchy {
 			return BAD_VAL;
 		return maps[slog][(int) y * size + (int) x];
 	}
+	
+	bool is_ok(int i0, int j0, int i1, int j1, int blocksize, int dx) const;
+	void build_umaps(float *);
+	void free_umaps(void);
+	void process(float &r, int i0, int j0, int i1, int j2, int ll, int dx);
+	bool try_load_map_from_cache(float *map);
+	void insert_map_in_cache(float *map);
 
 public:
 	Hierarchy(){
@@ -144,10 +155,17 @@ public:
 		size = slog = 0;
 		raycasts = recursions = 0;
 		tot = eff = 0;
+		sdmap = NULL;
 	}
 	~Hierarchy() {
-		for (int i=0;i<=slog;i++)
-			free(maps[i]);
+		if (sdmap) {
+			free(sdmap);
+		}
+		sdmap = NULL;
+		for (int i=0;i<=slog;i++) {
+			if (maps[i]) free(maps[i]);
+			maps[i] = NULL;
+		}
 #ifdef DEBUG
 		if (raycasts) {
 			printf("%d raycasts, %d recursions, average %.1Lf recursions per raycast\n",
@@ -165,10 +183,11 @@ public:
 	///                 the difference is in whether the highest or the
 	///                 lowest point is taken
 	/// @returns TRUE on success, FALSE on failure
-	bool build_hierarchy(int thesize, float *thebuff, bool is_floor)
+	bool build_hierarchy(int thesize, float *thebuff, bool is_floor);
+	bool build_hierarchy_old(int thesize, float *thebuff, bool is_floor)
 	{
 		float (*ffun) (float,float,float,float) = is_floor ? fmax4 : fmin4;
-		floor = is_floor;
+		this->is_floor = is_floor;
 		size = thesize;
 		slog = power_of_2(size);
 		int allocsize = 16* size*size;
@@ -240,8 +259,10 @@ public:
 	*/
 	// all comments in this routine assume we're raycasting a floor heightmap. For the ceiling equivallent,
 	// just "reverse" all `below' statements
+	
+	float ray_intersect(const Vector & orig, const Vector & proj, Vector & crossing);
 
-	float ray_intersect(const Vector & orig, const Vector & proj, Vector & crossing)
+	float ray_intersect_old(const Vector & orig, const Vector & proj, Vector & crossing)
 	{
 		++raycasts;
 		bool coords_inited = false;
@@ -252,7 +273,7 @@ public:
 		Vector Camera; // camera is where the first point above the heightfield is
 
 		/* Check for rays which go straight in the sky */
-		if (floor) {
+		if (is_floor) {
 			if (proj[1] > orig[1] && orig[1] > maps[0][0]) {
 				return 1e9;
 			}
@@ -267,7 +288,7 @@ public:
 			Camera = orig;
 			X = (int) orig[0];
 			Z = (int) orig[2];
-			if (floor) {
+			if (is_floor) {
 				if (getheight_bilinear(orig.v[0], orig.v[2]) >= orig.v[1])
 					return 1e9;
 			} else {

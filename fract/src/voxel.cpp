@@ -31,6 +31,7 @@
 #include "vectormath.h"
 #include "voxel.h"
 #include "light.h"
+#include "shaders.h"
 
 //#define BENCH
 
@@ -41,7 +42,8 @@
 info_t vxInput[NUM_VOXELS] = {
 	//{ "data/heightmap_f.fda", "data/aardfdry256.bmp", 0, 0.5, 1},
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
-	{ "data/heightmap_f.fda", "data/aardfdry512.bmp", /*-200*/0, 0.55/*2.5*/, 1},
+	{ "data/down.fda", "data/whitefloor.bmp", /*-200*/0, 0.30/*2.5*/, 1},
+	{ "data/up.fda", "data/whitefloor.bmp", 100, 0.30, 0},
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 };
 
@@ -505,11 +507,12 @@ void voxel_light_recalc2(int thread_idx)
 
 void recalc_miplevel(int thread_idx)
 {
-	int r, g, b, p=0;
+	int r, g, b, p;
 	// FIXME (for multithreading):
 	if (thread_idx) return;
 	int smsize = 1 << HEIGHTFIELD_RAYTRACE_MIPLEVEL;
 	for (int k = 0; k < NUM_VOXELS; k++) {
+		p = 0;
 		int lgsize = vox[k].size / smsize;
 		for (int i = 0; i < lgsize; i++) {
 			for (int j = 0; j < lgsize; j++,p++) {
@@ -542,6 +545,10 @@ void voxel_light_recalc(int thread_idx)
 	}
 	recalc_miplevel(thread_idx);
 	lightOuter.checkout();
+	if (0 == thread_idx) {
+		for (int k = 0; k < NUM_VOXELS; k++)
+			shader_blur(vox[k].texture, vox[k].texture, vox[k].size, vox[k].size, 5);
+	}
 }
 
 
@@ -555,44 +562,77 @@ void show_light(Uint32 *fb, int xr, int yr)
 		fb[xr * y + x ] = 0xffffff;
 }
 
-struct RasterSample {
-	int y;
-	Uint32 color;
-	void set(int _y, Uint32 _color) { y = _y; color = _color; }
-};
 
-RasterSample rsa[RES_MAXX * RES_MAXY];
+//static void subdiv(Vector 
 
-static void stage1_interpolate(int x0, int y0, Uint32 c0, int x1, int y1, Uint32 c1, int xr, int index_y)
-{
-	if (x0 == x1) {
-		rsa[x1 + index_y * xr].set(y1, c1);
-		return;
-	}
-	int inc = x1 > x0 ? +1 : -1;
-	int r0, g0, b0, rd, gd, bd;
+
+struct AdaptiveVoxelRenderer {
+	Uint32 *fb;
+	int xr, yr, ires;
+	Vector tt, ti, tti;
+	Vector W[3];
+	InterlockedInt bruteray;
+
+
+	struct RasterSample {
+		int y;
+		Uint32 color;
+		void set(int _y, Uint32 _color) { y = _y; color = _color; }
+	};
+
+	RasterSample rsa[RES_MAXX * RES_MAXY];
 	
-	b0 = c0 & 0xff;
-	bd = (c1 & 0xff) - b0;
-	c0 >>= 8;
-	c1 >>= 8;
-	g0 = c0 & 0xff;
-	gd = (c1 & 0xff) - g0;
-	c0 >>= 8;
-	c1 >>= 8;
-	r0 = c0 & 0xff;
-	rd = (c1 & 0xff) - r0;
-	int idx = index_y * xr;
-	int ende = x1 + inc;
-	int div = (int) (65536.0/(x1-x0));
-	int yinc = (y1-y0)*inc*div;
-	int rinc = rd * div;
-	int ginc = gd * div;
-	int binc = bd * div;
-	int y = y0 << 16;
-	int r = r0 << 16;
-	int g = g0 << 16;
-	int b = b0 << 16;
+	void init(const Vector &tt, const Vector &ti, const Vector &tti, Uint32 *fb) // single-threaded
+	{
+		//
+		if (CVars::v_ires > 1.0)
+			CVars::v_ires = 1.0;
+
+		this->tt = tt;
+		this->ti = ti;
+		this->tti = tti;
+		this->fb = fb;
+		xr = xsize_render(xres());
+		yr = ysize_render(yres());
+		memset(fb, 0, xr * yr * 4);
+		memset(rsa, 0xee, xr * yr * sizeof(RasterSample));
+		ires = (int) (1 / CVars::v_ires);
+		W[0] = tt;
+		W[1] = tt + ti * xr;
+		W[2] = tt + tti * yr;
+		bruteray = 0;
+	}
+	
+	void stage1_interpolate(int x0, int y0, Uint32 c0, int x1, int y1, Uint32 c1, int index_y)
+	{
+		if (x0 == x1) {
+			rsa[x1 + index_y * xr].set(y1, c1);
+			return;
+		}
+		int inc = x1 > x0 ? +1 : -1;
+		int r0, g0, b0, rd, gd, bd;
+	
+		b0 = c0 & 0xff;
+		bd = (c1 & 0xff) - b0;
+		c0 >>= 8;
+		c1 >>= 8;
+		g0 = c0 & 0xff;
+		gd = (c1 & 0xff) - g0;
+		c0 >>= 8;
+		c1 >>= 8;
+		r0 = c0 & 0xff;
+		rd = (c1 & 0xff) - r0;
+		int idx = index_y * xr;
+		int ende = x1 + inc;
+		int div = (int) (65536.0/(x1-x0));
+		int yinc = (y1-y0)*inc*div;
+		int rinc = rd * div;
+		int ginc = gd * div;
+		int binc = bd * div;
+		int y = y0 << 16;
+		int r = r0 << 16;
+		int g = g0 << 16;
+		int b = b0 << 16;
 	
 //	if (CVars::fast_interpol) {
 		for (int i = x0; i != ende; i += inc, y += yinc, r += rinc, g += ginc, b += binc) {
@@ -608,152 +648,228 @@ static void stage1_interpolate(int x0, int y0, Uint32 c0, int x1, int y1, Uint32
 //			rsa[idx + i].set(y, (r << 16)|(g << 8)|b);
 //		}
 //	}
-}
+	}
 
-static void stage2_interpolate(Uint32 *fb, int xr, int x, RasterSample & prev, RasterSample & cur)
-{
-	fb += x;
-	if (cur.y == prev.y)
+	void stage2_interpolate(int x, RasterSample & prev, RasterSample & cur)
 	{
-		fb[cur.y + xr] = cur.color;
-		return;
-	}
-	int inc = cur.y > prev.y ? +1 : -1;
-	int ende = cur.y + inc;
-	Uint32 c0 = prev.color, c1 = cur.color;
-	int r0, g0, b0, rd, gd, bd;
+		Uint32 *fbo = fb;
+		fbo += x;
+		if (cur.y == prev.y)
+		{
+			fbo[cur.y + xr] = cur.color;
+			return;
+		}
+		int inc = cur.y > prev.y ? +1 : -1;
+		int ende = cur.y + inc;
+		Uint32 c0 = prev.color, c1 = cur.color;
+		int r0, g0, b0, rd, gd, bd;
 	
-	b0 = c0 & 0xff;
-	bd = (c1 & 0xff) - b0;
-	c0 >>= 8;
-	c1 >>= 8;
-	g0 = c0 & 0xff;
-	gd = (c1 & 0xff) - g0;
-	c0 >>= 8;
-	c1 >>= 8;
-	r0 = c0 & 0xff;
-	rd = (c1 & 0xff) - r0;
+		b0 = c0 & 0xff;
+		bd = (c1 & 0xff) - b0;
+		c0 >>= 8;
+		c1 >>= 8;
+		g0 = c0 & 0xff;
+		gd = (c1 & 0xff) - g0;
+		c0 >>= 8;
+		c1 >>= 8;
+		r0 = c0 & 0xff;
+		rd = (c1 & 0xff) - r0;
 
-	int div = (int) (65536.0/(cur.y - prev.y));
-	int ri = rd * div;
-	int gi = gd * div;
-	int bi = bd * div;
-	int r = r0 << 16;
-	int g = g0 << 16;
-	int b = b0 << 16;
-	for (int i = prev.y; i != ende; i += inc, r += ri, g += gi, b += bi) {
-		fb[i * xr] = ((r/65536) << 16)|((g/65536) << 8)|(b/65536);
+		int div = (int) (65536.0/(cur.y - prev.y));
+		int ri = rd * div;
+		int gi = gd * div;
+		int bi = bd * div;
+		int r = r0 << 16;
+		int g = g0 << 16;
+		int b = b0 << 16;
+		for (int i = prev.y; i != ende; i += inc, r += ri, g += gi, b += bi) {
+			fbo[i * xr] = ((r/65536) << 16)|((g/65536) << 8)|(b/65536);
+		}
 	}
-}
+
+	
+	void subdiv(vox_t& vox, Vector corners[4], int size, int starty)
+	{
+		double depths[4], tot = 0;
+		Vector res[4];
+		bool good_corner = false, bad_corner = false;
+		for (int i = 0; i < 4; i++) {
+			tot += depths[i] = vox.hierarchy.ray_intersect(cur, corners[i], res[i]);
+			if (depths[i] > 1e6)
+				bad_corner = true;
+			else
+				good_corner = true;
+		}
+		if (!good_corner) return;
+		tot *= 0.25;
+		
+		bool bad = false;
+		for (int i = 0; i < 4; i++) {
+			if (fabs(depths[i] - tot) > CVars::v_range) {
+				bad = true;
+				break;
+			}
+		}
+		
+		if (!bad || size <= ires) {
+			if (bad_corner) return; //FIXME!!
+			int m = (int) (size * CVars::v_ires);
+			for (int r = 0; r < m; r++) {
+				int realy = (int) (starty + r / CVars::v_ires);
+				Vector lhs = res[0] + (res[2] - res[0]) * ((double)r / m);
+				Vector rhs = res[1] + (res[3] - res[1]) * ((double)r / m);
+				rhs -= lhs;
+				rhs.scale(1.0 / m);
+				int lastx=0, lasty=0;
+				int lastvalid=-2;
+				Uint32 lastcolor=0;
+				for (int c = 0; c <= m; c++, lhs += rhs) {
+					float fx = lhs[0], fy = lhs[2];
+					clip_coords(fx, fy, vox.size-2);
+					if (CVars::bilinear) {
+						lhs[1] = get_height(vox.heightmap, 
+								vox.size,
+								fx, fy, 0);
+					} else {
+						lhs[1] = vox.heightmap[(int)fx + (((int) fy)*vox.size)];
+					}
+					int xx, yy;Uint32 color=0xff0000;
+					if (!project_point(&xx, &yy, lhs, cur, W, xr,yr)) continue;
+					if (xx < 0 || xx >= xr-1 || yy < 0 || yy >= yr-1) continue;
+					if (CVars::bilinear) {
+						int o = (int) fx + (((int)fy)*vox.size);
+						Uint32 *p = vox.texture;
+						Uint32 x0y0 = p[o];
+						Uint32 x1y0 = p[o + 1];
+						Uint32 x0y1 = p[o + vox.size];
+						Uint32 x1y1 = p[o + 1 + vox.size];
+						color = bilinea_p5(x0y0, x1y0, x0y1, x1y1, 
+								0xffff & (unsigned) (fx*65536.0f),
+								0xffff & (unsigned) (fy*65536.0f));
+					} else {
+						color = vox.texture[(int)fx + (((int)fy)*vox.size)];
+					}
+					if (lastvalid == c-1) {
+						stage1_interpolate(
+								lastx, lasty, lastcolor,
+						xx,    yy,    color,
+						realy);
+					}
+					lastx = xx;
+					lasty = yy;
+					lastvalid = c;
+					lastcolor = color;
+				}
+			}
+
+		} else {
+			Vector temp[5];
+			temp[0] = (corners[0] + corners[1]) * 0.5;
+			temp[1] = (corners[0] + corners[2]) * 0.5;
+			temp[2] = (corners[1] + corners[2]) * 0.5;
+			temp[3] = (corners[1] + corners[3]) * 0.5;
+			temp[4] = (corners[2] + corners[3]) * 0.5;
+			
+			Vector xt[4][4] = {
+				{ corners[0], temp[0], temp[1], temp[2] },
+				{ temp[1], corners[1], temp[2], temp[3] },
+				{ temp[1], temp[2], corners[2], temp[4] },
+				{ temp[2], temp[3], temp[4], corners[3] },
+			};
+			for (int i = 0; i < 4; i++)
+				subdiv(vox, xt[i], size/2, starty + (size/2) * (i > 1));
+		}
+		
+	}
+
+	void render(int thread_idx)
+	{
+	
+		// FIXME for multithreading 
+		if (thread_idx) return;
+		
+		int n = CVars::v_ores;
+	//	int m = (int) (n * CVars::v_ires);
+		for (int k = 0; k < NUM_VOXELS; k++) {
+		
+			/* Stage 1 : Data gathering */
+			prof_enter(PROF_STAGE1);
+			for (int j = 0; j < yr; j += n) {
+				for (int i = 0; i < xr; i += n) {
+					Vector cp = tt + ti * i + tti * j;
+					Vector cs[4];
+					for (int corner = 0; corner < 4; corner++) {
+						Vector c = cp;
+						if (corner & 1) c += ti * n;
+						if (corner & 2) c += tti * n;
+						cs[corner] = c;
+					}
+					subdiv(vox[k], cs, n, j);
+				}
+			}
+			prof_leave(PROF_STAGE1);
+		
+			/* Stage 2 : Raster & fill */
+			prof_enter(PROF_STAGE2);
+			for (int i = 0; i < xr; i++) {
+				int lj = -1;
+				for (int j = 0; j < yr; j++) {
+					RasterSample &rs = rsa[i + j * xr];
+					if ((unsigned)rs.y != 0xeeeeeeee) {
+						if (lj == -1) { lj = j; continue; }
+						//
+						stage2_interpolate(i, rsa[i + lj * xr], rs);
+						//
+						lj = j;
+					}
+				}
+			}
+			prof_leave(PROF_STAGE2);
+		}
+	}
+	
+	/*
+	void render(int thread_idx)
+	{
+		int j;
+		
+		while ((j = bruteray++) < yr) {
+			for (int k = 0; k < NUM_VOXELS; k++) {
+				Vector v = tt + tti * j;
+				Uint32 *fbo = &fb[j * xr];
+				for (int i = 0; i < xr; i++, v += ti) {
+					Vector res;
+					double depth = vox[k].hierarchy.ray_intersect(cur, v, res);
+					if (depth > 1e6) continue;
+					float fx = res[0], fy = res[2];
+					clip_coords(fx, fy, vox[k].size-2);
+					if (CVars::bilinear) {
+						int o = (int) fx + (((int)fy)*vox[k].size);
+						Uint32 *p = vox[k].texture;
+						Uint32 x0y0 = p[o];
+						Uint32 x1y0 = p[o + 1];
+						Uint32 x0y1 = p[o + vox[k].size];
+						Uint32 x1y1 = p[o + 1 + vox[k].size];
+						fbo[i] = bilinea_p5(x0y0, x1y0, x0y1, x1y1, 
+								0xffff & (unsigned) (fx*65536.0f),
+								0xffff & (unsigned) (fy*65536.0f));
+					} else {
+						fbo[i] = vox[k].texture[(int)fx + (((int)fy)*vox[k].size)];
+					}
+				}
+			}
+		}
+	}
+	*/
+
+	
+};
+
+static AdaptiveVoxelRenderer adaptive_voxel_renderer;
 
 void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & ti, Vector & tti)
 {
-	prof_enter(PROF_BUFFER_CLEAR);
-	if (CVars::v_ires > 1.0)
-		CVars::v_ires = 1.0;
-	// FIXME for multithreading 
-	if (thread_index) return;
-	int xr = xsize_render(xres());
-	int yr = ysize_render(yres());
-	memset(fb, 0, xr * yr * 4);
-	memset(rsa, 0xee, xr * yr * sizeof(RasterSample));
-	prof_leave(PROF_BUFFER_CLEAR);
-	
-	
-	Vector W[3];
-	W[0] = tt;
-	W[1] = tt + ti * xr;
-	W[2] = tt + tti * yr;
-	
-	int n = CVars::v_ores;
-	int m = (int) (n * CVars::v_ires);
-	for (int k = 0; k < NUM_VOXELS; k++) {
-		
-		/* Stage 1 : Data gathering */
-		prof_enter(PROF_STAGE1);
-		for (int j = 0; j < yr; j += n) {
-			for (int i = 0; i < xr; i += n) {
-				Vector cp = tt + ti * i + tti * j;
-				Vector res[4];
-				bool good = true;
-				for (int corner = 0; corner < 4; corner++) {
-					Vector c = cp;
-					if (corner & 1) c += ti * n;
-					if (corner & 2) c += tti * n;
-					if (vox[k].hierarchy.ray_intersect(cur, c, res[corner]) > 1e6) {
-						good = false;
-						break;
-					}
-				}
-				if (!good) continue;
-				for (int r = 0; r < m; r++) {
-					int realy = (int) (j + r / CVars::v_ires);
-					Vector lhs = res[0] + (res[2] - res[0]) * ((double)r / m);
-					Vector rhs = res[1] + (res[3] - res[1]) * ((double)r / m);
-					rhs -= lhs;
-					rhs.scale(1.0 / m);
-					int lastx=0, lasty=0;
-					int lastvalid=-2;
-					Uint32 lastcolor=0;
-					for (int c = 0; c <= m; c++, lhs += rhs) {
-						float fx = lhs[0], fy = lhs[2];
-						clip_coords(fx, fy, vox[k].size-2);
-						if (CVars::bilinear) {
-							lhs[1] = get_height(vox[k].heightmap, 
-									vox[k].size,
-									fx, fy, 0);
-						} else {
-							lhs[1] = vox[k].heightmap[(int)fx + (((int) fy)*vox[k].size)];
-						}
-						int xx, yy;Uint32 color=0xff0000;
-						if (!project_point(&xx, &yy, lhs, cur, W, xr,yr)) continue;
-						if (xx < 0 || xx >= xr-1 || yy < 0 || yy >= yr-1) continue;
-						if (CVars::bilinear) {
-							int o = (int) fx + (((int)fy)*vox[k].size);
-							Uint32 *p = vox[k].texture;
-							Uint32 x0y0 = p[o];
-							Uint32 x1y0 = p[o + 1];
-							Uint32 x0y1 = p[o + vox[k].size];
-							Uint32 x1y1 = p[o + 1 + vox[k].size];
-							color = bilinea_p5(x0y0, x1y0, x0y1, x1y1, 
-									0xffff & (unsigned) (fx*65536.0f),
-									0xffff & (unsigned) (fy*65536.0f));
-						} else {
-							color = vox[k].texture[(int)fx + (((int)fy)*vox[k].size)];
-						}
-						if (lastvalid == c-1) {
-							stage1_interpolate(
-									lastx, lasty, lastcolor,
-									xx,    yy,    color,
-									xr, realy);
-						}
-						lastx = xx;
-						lasty = yy;
-						lastvalid = c;
-						lastcolor = color;
-					}
-				}
-			}
-		}
-		prof_leave(PROF_STAGE1);
-		
-		/* Stage 2 : Raster & fill */
-		prof_enter(PROF_STAGE2);
-		for (int i = 0; i < xr; i++) {
-			int lj = -1;
-			for (int j = 0; j < yr; j++) {
-				RasterSample &rs = rsa[i + j * xr];
-				if ((unsigned)rs.y != 0xeeeeeeee) {
-					if (lj == -1) { lj = j; continue; }
-					//
-					stage2_interpolate(fb, xr, i, rsa[i + lj * xr], rs);
-					//
-					lj = j;
-				}
-			}
-		}
-		prof_leave(PROF_STAGE2);
-	}
+	adaptive_voxel_renderer.render(thread_index);
 }
 
 Uint32 shootcolr;
@@ -783,7 +899,6 @@ void castray(const Vector & p, Uint32 & color, float & depth, int k)
 	} else {
 		color = 0;
 	}
-	color = (depth < 10000) ? vox[k].texture[((int) cross[2] * vox[k].size + (int) cross[0])%(sqr(vox[k].size))] : 0;
 }
 
 static inline void cached_castray(const Vector & p, int x, int y, Uint32 & color, float & depth, int k)
@@ -959,15 +1074,19 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	//for (int i = 0; i < xr*yr; i++)
 	//	zbuffer[i] = -1.0f;
 	multithreaded_memset(fb, 0, xr*yr, thread_index, cpu.count);
-	float minus_one = -1.0f;
-	unsigned pattern = *(unsigned *) &minus_one;
-	multithreaded_memset(zbuffer, pattern, xr*yr, thread_index, cpu.count);
+	union {
+		float minus_one;
+		unsigned pattern; 
+	} uni;
+		
+	uni.minus_one = -1.0f;
+	multithreaded_memset(zbuffer, uni.pattern, xr*yr, thread_index, cpu.count);
 	Vector xStride = ti * 8.0f,
 	       yStride = tti* 8.0f;
 	Vector walky(tt);
 	bar.checkout();
 	// precalculate the big grid
-	for (int k = 0; k < NUM_VOXELS; k++) {
+	for (int k = NUM_VOXELS-1; k >=0; k--) {
 		int all_rays = 0;
 		for (int j = 0; j < yr; j+=8) {
 			Vector t(walky);
@@ -1034,7 +1153,7 @@ void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vecto
 	}
 	prof_leave(PROF_RENDER_VOXEL);
 }
-void voxel_frame_init(void)
+void voxel_frame_init(const Vector& tt, const Vector &ti, const Vector &tti, Uint32* fb)
 {
 	must_recalc_light = false;
 
@@ -1055,6 +1174,9 @@ void voxel_frame_init(void)
 		shadow_casting_method %= 2;
 		must_recalc_light = true;
 	}
+	if (voxel_rendering_method == 0) {
+		adaptive_voxel_renderer.init(tt, ti, tti, fb);
+	}
 }
 
 void voxel_close(void)
@@ -1066,3 +1188,4 @@ void voxel_shoot(void)
 {
 	shooting = true;
 }
+

@@ -25,6 +25,7 @@ enum TaskID {
 	TREEBUILD,
 	RCPARRAY,
 	MIPGEN,
+	HIERGEN,
 	YUVBENCH,
 };
 

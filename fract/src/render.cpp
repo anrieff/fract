@@ -887,12 +887,14 @@ void render_single_frame_do(void)
 
 	ptr = framebuffer;
 
-	if (BackgroundMode == BACKGROUND_MODE_VOXEL)
-		voxel_frame_init();
 
 	prof_enter(PROF_BASH_PREFRAME);		bash_preframe(lw, tt, ti, tti);			prof_leave(PROF_BASH_PREFRAME);
 	prof_enter(PROF_PREFRAME_DO);		preframe_do( spherebuffer, lw);			prof_leave(PROF_PREFRAME_DO);
 
+	if (BackgroundMode == BACKGROUND_MODE_VOXEL)
+		voxel_frame_init(tt, ti, tti, ptr);
+
+	
 	//save tt's
 	t0 = tt;
 	
