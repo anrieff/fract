@@ -17,7 +17,7 @@
 #include "common.h"
 #include "voxel.h"
 
-
+//#define FAST_HIERARCHY
 
 const char * hierarchy_cache = "data/hcache";
 
@@ -157,133 +157,230 @@ struct PVStruct {
 	bool operator < (const PVStruct & r) const { return f < r.f; }
 };
 
-static Task *buildtask;
-static int task_num = 0;
 
-/*
+#ifndef FAST_HIERARCHY
+
+static float fmax4(float a, float b, float c, float d)
+{
+	float ff = a;
+	ff = b > ff ? b : ff;
+	ff = c > ff ? c : ff;
+	ff = d > ff ? d : ff;
+	return ff;
+}
+
+static float fmin4(float a, float b, float c, float d)
+{
+	float ff = a;
+	ff = b < ff ? b : ff;
+	ff = c < ff ? c : ff;
+	ff = d < ff ? d : ff;
+	return ff;
+}
+
 bool Hierarchy::build_hierarchy(int thesize, float *thebuff, bool is_floor)
 {
+	float (*ffun) (float,float,float,float) = is_floor ? fmax4 : fmin4;
 	this->is_floor = is_floor;
 	size = thesize;
-	slog = power_of_2(size) - power_of_2(MIN_SIZE); // min size is 4
-	s = slog + 2;
-	
-	
-	sdmap = (float*) malloc(size * size * s * sizeof(float));
-	
-	for (int i = 0; i < size; i++)
-		for (int j = 0; j < size; j++)
-			sdmap[(i * size + j) * s] = thebuff[i * size + j];
-		
-	if (task_num == 0) {
-		buildtask = new Task(HIERGEN, __FUNCTION__);
-		buildtask->set_steps(((1 << (slog+2))-2) * NUM_VOXELS * size);
-	}
-	Task &task = *buildtask;
-	
- 	PVStruct all[768];
-	int as = 0;
-	for (int i = 0; i < size; i++) {
-		for (int j = 0; j < size; j++) {
-			int k = 0;
-			float t = thebuff[i * size + j];
-			while (k < as && all[k].f != t) k++;
-			if (k == as) {
-				all[as].f = t;
-				all[as++].c = 1;
-			} else {
-				all[k].c++;
+	slog = power_of_2(size);
+	int allocsize = 16* size*size;
+		//maps[slog ] = thebuff;
+
+	int csize = size * 2;
+	for (int i= slog; i>=0; i--) {
+		allocsize /= 4;
+		int oldsize = csize;
+		csize /= 2;
+
+		maps[i] = (float *) malloc(allocsize);
+		if (maps[i] == NULL) {
+			i++;
+			while (i < slog) {
+				free(maps[i]);
+				i++;
 			}
-			assert(as < 768);
+			return false;
 		}
-	}
-	
-	sort(all, as);
-	
-	int * imap = (int*) malloc(size * size * sizeof(int));
-	for (int i = 0; i < size * size; i++) {
-		float f = thebuff[i];
-		imap[i] = 0;
-		while (all[imap[i]].f != f) imap[i]++;
-	}
-	
-	int dx = MIN_SIZE + 1;
-	
-	for (int k = 1; k <= slog + 1; k++, dx = (dx-1)*2 + 1) {
-		int offsets[2048];
-		for (int i = 0; i <= dx; i++) {
-			int base = i*i;
-			int j = 0;
-			while (base + j*j < dx*dx) j++;
-			offsets[i] = j-1;
+
+			// memory allocated; fill with usefull info
+		if (i == slog) {
+			memcpy(maps[i], thebuff, allocsize);
+			continue;
 		}
-		int counts[768] = {0};
-		int i0 = 0, j0 = 0;
-		for (int i = 0; i < size; i++) {
-			for (int j = 0; j < size; j++) {
-				if (is_ok(i0, j0, i, j, 1, dx)) {
-					counts[imap[i*size+j]]++;
-				}
+		int p = 0;
+		for (int y = 0; y < csize; y++)
+			for (int x = 0; x < csize; x++,p++) {
+			maps[i][p] = ffun(
+					maps[i+1][( y * 2      * oldsize) + x * 2    ],
+			maps[i+1][( y * 2      * oldsize) + x * 2 + 1],
+			maps[i+1][((y * 2 + 1) * oldsize) + x * 2    ],
+			maps[i+1][((y * 2 + 1) * oldsize) + x * 2 + 1]
+					 );
 			}
-		}
-		for (; i0 < size; i0++) {
-			
-			bool up = i0 % 2 == 0;
-			j0 = up ? 0 : size - 1;
-			int jend = up ? size : -1;
-			int jinc = up ? +1 : -1;
-			for (; j0 != jend; j0 += jinc) {
-				if (j0 != (up ? 0 : size-1)) {
-					for (int id = -dx; id <= dx; id++) if (i0 + id >= 0 && i0 + id < size) {
-						int m = offsets[id<0?-id:id];
-						int x = j0 - jinc - jinc * m;
-						int y = i0 + id;
-						if (x >= 0 && x < size) {
-							counts[imap[y * size + x]]--;
-						}
-						x = j0 + jinc * m;
-						if (x >= 0 && x < size) {
-							counts[imap[y * size + x]]++;
-						}
-					}
-				}
-				int t;
-				if (is_floor) {
-					t = as-1;
-					while (counts[t] <= 0) t--;
-				} else {
-					t = 0;
-					while (counts[t] <= 0) t++;
-				}
-				sdmap[(i0*size+j0)*s+k] = all[t].f;
-			}
-			j0 = up ? size - 1 : 0;
-			for (int jd = -dx; jd <= dx; jd++) if (j0 + jd >= 0 && j0 + jd < size) {
-				int m = offsets[jd < 0 ? -jd : jd];
-				int y = i0 - 1 - m;
-				int x = j0 + jd;
-				if (y >= 0 && y < size) {
-					counts[imap[y * size + x]]--;
-				}
-				y = i0 + m;
-				if (y >= 0 && y < size) {
-					counts[imap[y * size + x]]++;
-				}
-			}
-			task += (1 << k);
-		}
-		
-	}
-	
-	free(imap);
-	
-	if (++task_num == NUM_VOXELS) {
-		delete buildtask;
 	}
 	return true;
 }
-*/
 
+static bool pred_less(float a, float b) { return a < b; }
+static bool pred_more(float a, float b) { return a > b; }
+
+
+// this ugly macro is used by the Ray-heightfield intersection routine, DON'T DELETE!
+#define INTERNAL 			float maxd = fmin(tMaxXsm, tMaxZsm); \
+					cdist += 0.0001;\
+					X = (int) (Camera[0] + cdist * diff0); \
+					Z = (int) (Camera[2] + cdist * diff2); \
+					Y = Yi + cdist * diff1; \
+					if (enter_d == fromX) { \
+						tMaxX = cdist + tDeltaX; \
+						tMaxZ = cdist + (((stepZ+1)>>1)+Z-(Camera[2] + cdist * diff2))*rcpdiff2; \
+} \
+					if (enter_d == fromZ) { \
+						tMaxX = cdist + (((stepX+1)>>1)+X-(Camera[0] + cdist * diff0))*rcpdiff0; \
+						tMaxZ = cdist + tDeltaZ; \
+} \
+					while (tMaxX < maxd || tMaxZ < maxd) { \
+						if (pred(Y, (ilast = maps[slog][X + (Z<<slog)]))) { \
+							crossing = Vector(X, ilast, Z); \
+							return orig.distto(crossing); \
+} \
+						if (tMaxX < tMaxZ) { \
+							Y = Yi + tMaxX * diff1; \
+							if (pred(Y, ilast)) { \
+								crossing =  Vector(X, ilast, Z); \
+								return orig.distto(crossing); \
+} \
+							tMaxX += tDeltaX; \
+							X += stepX; \
+} else { \
+							Y = Yi + tMaxZ * diff1; \
+							if (pred(Y, ilast)) { \
+								crossing = Vector(X, ilast, Z); \
+								return orig.distto(crossing); \
+} \
+							tMaxZ += tDeltaZ; \
+							Z += stepZ; \
+} \
+} \
+
+
+float Hierarchy::ray_intersect(const Vector & orig, const Vector & proj, Vector & crossing)
+{
+	bool (*pred) (float, float) = is_floor ? pred_less : pred_more;
+	++raycasts;
+	bool coords_inited = false;
+	int X, Z, stepX, stepZ, Xsm, Zsm; // all *sm variables are used in the "Large" walk
+	float tMaxX, tMaxZ, tDeltaX, tDeltaZ, last, ilast;
+	float tMaxXsm, tMaxZsm, tDeltaXsm, tDeltaZsm, cdist;
+	EnterDirection enter_d = fromNowhere;
+	Vector Camera; // camera is where the first point above the heightfield is
+
+	/* Check for rays which go straight in the sky */
+	if (is_floor) {
+		if (proj[1] > orig[1] && orig[1] > maps[0][0]) {
+			return 1e9;
+		}
+	} else {
+		if (proj[1] < orig[1] && orig[1] < maps[0][0])
+			return 1e9;
+	}
+
+	/* check whether we are "below" the terrain */
+	if (InTexture(orig.v[0], orig.v[2])) {
+		coords_inited = true;
+		Camera = orig;
+		X = (int) orig[0];
+		Z = (int) orig[2];
+		if (is_floor) {
+			if (getheight_bilinear(orig.v[0], orig.v[2]) >= orig.v[1])
+				return 1e9;
+		} else {
+			if (getheight_bilinear(orig.v[0], orig.v[2]) <= orig.v[1])
+				return 1e9;
+		}
+	} else {
+		X = Z = 0; // make gcc happy
+	}
+	/* traversal vector in diff */
+	Vector diff;
+	diff.make_vector(proj, orig);
+
+		// precalculate stuff...
+	float rcpdiff0 = 1.0f / diff[0], rcpdiff2 = 1.0f / diff[2];
+	float rcp640 = rcpdiff0 * OUTER_SIZE, rcp642 = rcpdiff2 * OUTER_SIZE;
+
+	/* If we're outside the grid, find where we enter it */
+	if (!coords_inited) {
+		float p[4];
+		p[0] =       - orig[0]  * rcpdiff0;
+		p[1] = (size - orig[0]) * rcpdiff0;
+		p[2] =       - orig[2]  * rcpdiff2;
+		p[3] = (size - orig[2]) * rcpdiff2;
+		float best = 1e9;
+		for (int i = 0; i < 4; i++)
+			if (p[i] > 0 && p[i] < best) best = p[i];
+		if (best > 1e6)
+			return 1e9;
+		Camera.macc(orig, diff, best);
+		X = (int) Camera[0];
+		Z = (int) Camera[2];
+	}
+// prepare our OUTER loop
+	int out = slog - OUTER_MIPLEVEL, Gsize = ~(size / OUTER_SIZE - 1);
+	Xsm = X / OUTER_SIZE;
+	Zsm = Z / OUTER_SIZE;
+	Vector cm64 = Camera;
+	cm64.scale(1.0/OUTER_SIZE);
+	stepX = diff[0]>0?+1:-1;
+	stepZ = diff[2]>0?+1:-1;
+	tMaxX = (((stepX+1)>>1)+X-Camera[0])*rcpdiff0;
+	tMaxZ = (((stepZ+1)>>1)+Z-Camera[2])*rcpdiff2;
+	tMaxXsm = (((stepX+1)>>1)+Xsm-cm64[0])*rcp640;
+	tMaxZsm = (((stepZ+1)>>1)+Zsm-cm64[2])*rcp642;
+
+	tDeltaX = fabsf(rcpdiff0);
+	tDeltaZ = fabsf(rcpdiff2);
+	tDeltaXsm = OUTER_SIZE * tDeltaX;
+	tDeltaZsm = OUTER_SIZE * tDeltaZ;
+	float Yi = Camera[1];
+	float Y = Yi, Ysm = Yi, diff0 = diff[0], diff1 = diff[1], diff2 = diff[2];
+	cdist = 0;
+	while ((Xsm & Gsize) == 0 && (Zsm & Gsize) == 0) {
+		if (pred(Ysm, (last = maps[out][Xsm + (Zsm << out)]))) {
+				// possibility for intersection detected, examine closely...
+			INTERNAL
+		}
+		if (tMaxXsm < tMaxZsm) {
+			Ysm = Yi + tMaxXsm * diff1;
+			if (pred(Ysm, last)) {
+				// possibility for intersection detected, examine closely...
+				INTERNAL
+			}
+			cdist = tMaxXsm;
+			enter_d = fromX;
+
+			tMaxXsm += tDeltaXsm;
+			Xsm += stepX;
+		} else {
+			Ysm = Yi + tMaxZsm * diff1;
+			if (pred(Ysm, last)) {
+				// possibility for intersection detected, examine closely...
+				INTERNAL
+			}
+			cdist = tMaxZsm;
+			enter_d = fromZ;
+			tMaxZsm += tDeltaZsm;
+			Zsm += stepZ;
+		}
+	}
+	return 1e9;
+}
+
+#else
+
+static Task *buildtask;
+static int task_num = 0;
 
 bool Hierarchy::build_hierarchy(int thesize, float *thebuff, bool is_floor)
 {
@@ -364,6 +461,7 @@ bool Hierarchy::build_hierarchy(int thesize, float *thebuff, bool is_floor)
 	return true;
 }
 
+
 float Hierarchy::ray_intersect(const Vector & orig, const Vector & proj, Vector & crossing)
 {
 #define INRANGE(v) (v[0]>=0 && v[0] < size-1 && v[2] >= 0 && v[2] < size - 1)
@@ -429,3 +527,4 @@ float Hierarchy::ray_intersect(const Vector & orig, const Vector & proj, Vector 
 	return 1e9;
 }
 
+#endif // FAST_HIERARCHY

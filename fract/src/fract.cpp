@@ -512,7 +512,6 @@ int main(int argc, char *argv[])
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
 	option_add("--developer");
-	option_add("-w");
 	option_add("--voxel");
 	option_add("--no-shadows");
 	option_add("--scene=data/empty.fsv");

@@ -456,6 +456,9 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 		}
 		for (i = 0; i < thors_count; i++) 
 			allobjects += &thor[i];
+		
+		if (BackgroundMode == BACKGROUND_MODE_VOXEL)
+			allobjects += voxel_water_object();
 	} else {
 		for (i = 0; i < tracers_count; i++)
 			allobjects += &tracer[i];

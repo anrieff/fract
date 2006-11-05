@@ -27,6 +27,7 @@ enum OBTYPE {
 	OB_ALL,
 	OB_SPHERE = 0x100,
 	OB_TRIANGLE = 0x200,
+	OB_WATER = 0x400,
 	OB_UNDEFINED = 0xffffffff
 };
 

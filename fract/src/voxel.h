@@ -12,6 +12,7 @@
 #include "vector3.h"
 #include "hierarchy.h"
 #include "threads.h"
+#include "object.h"
 
 #define NUM_VOXELS 2
 //#define NUM_VOXELS 1
@@ -74,3 +75,6 @@ void voxel_close(void);
 void voxel_shoot(void);
 
 void voxel_frame_init(const Vector& tt, const Vector &ti, const Vector &tti, Uint32* fb);
+
+void voxel_water_init(void);
+Object* voxel_water_object(void);

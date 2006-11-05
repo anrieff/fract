@@ -42,8 +42,8 @@
 info_t vxInput[NUM_VOXELS] = {
 	//{ "data/heightmap_f.fda", "data/aardfdry256.bmp", 0, 0.5, 1},
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
-	{ "data/down.fda", "data/whitefloor.bmp", /*-200*/0, 0.30/*2.5*/, 1},
-	{ "data/up.fda", "data/whitefloor.bmp", 100, 0.30, 0},
+	{ "data/down.fda", "data/whitefloor.bmp", /*-200*/0, 0.50/*2.5*/, 1},
+	{ "data/up.fda", "data/whitefloor.bmp", 100, 0.50, 0},
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 };
 
@@ -1016,6 +1016,70 @@ void subdivide(Uint32 * blockPtr, const Vector & base, int x, int y, int size, i
 	}
 }
 
+bool needs_bruteforce(Uint32 * blockPtr, const Vector & base, int x, int y, int size)
+{
+	Uint32 kolor = blockPtr[0] >> 24;
+	bool needs = false, fullrange = false;
+	for (int i = 1; i < 4; i++) {
+		int offs = 0, xx = x, yy = y;
+		if (i & 1) {
+			xx += size;
+			offs += size;
+		}
+		if (i & 2) {
+			yy += size;
+			offs += vox_xr * size;
+		}
+		if (xx >= vox_xr || y >= vox_yr) {
+			needs = true; break;
+		}
+		if (kolor != (blockPtr[offs] >> 24)) {
+			needs = true; 
+			fullrange = true;
+			break;
+		}
+	}
+	if (needs) {
+		int mink = kolor;
+		int maxk = kolor; if (fullrange) { mink = 0; maxk = NUM_VOXELS-1; }
+		/*
+		for (int i = 0; i < size; i++) {
+			if (y + i >= vox_yr) break;
+			for (int j = 0; j < size; j++) {
+				if (x + j >= vox_xr) break;
+				blockPtr[i * vox_xr + j] = 0xff0000;
+			}
+		}
+		//
+		return true;
+		*/
+
+		for (int j = 0; j < size; j++) {
+			Vector p = base + gtti * j;
+			Uint32 *co = &blockPtr[j * vox_xr];
+			if (y + j >= vox_yr) break;
+			for (int i = 0; i < size; i++, p += gti, co++) {
+				if (x + i >= vox_xr) break;
+				if (!fullrange) {
+					float dd;
+					castray(p, *co, dd, mink);
+				} else {
+					Uint32 colors[2];
+					float depths[2];
+					for (int k = mink; k <= maxk; k++) {
+						castray(p, colors[k], depths[k], k);
+					}
+					if (depths[0] < depths[1]) 
+						*co = colors[0];
+					else
+						*co = colors[1];
+				}
+			}
+		}
+	}
+	return needs;
+}
+
 void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & ti, Vector & tti)
 {
 #ifdef __MINGW32__
@@ -1086,33 +1150,46 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	Vector walky(tt);
 	bar.checkout();
 	// precalculate the big grid
-	for (int k = NUM_VOXELS-1; k >=0; k--) {
-		int all_rays = 0;
-		for (int j = 0; j < yr; j+=8) {
-			Vector t(walky);
-			for (int i = 0; i < xr; i+=8, all_rays++) {
-				if (all_rays % cpu.count == thread_index) {
-					shootcolr = shootcolrs[(i/8)%4];
-					castray(t, fb[j*xr+i], zbuffer[j*xr+i], k);
+	
+	int all_rays = 0;
+	for (int j = 0; j < yr; j+=8) {
+		Vector t(walky);
+		for (int i = 0; i < xr; i+=8, all_rays++) {
+			if (all_rays % cpu.count == thread_index) {
+				shootcolr = shootcolrs[(i/8)%4];
+				float bray = 1e10;
+				for (int k = 0; k < NUM_VOXELS; k++) {
+					//castray(t, fb[j*xr+i], zbuffer[j*xr+i], k);
+					float temp;
+					Uint32 tc;
+					castray(t, tc, temp, k);
+					if (tc && temp < bray) {
+						bray = temp;
+						fb[j*xr+i] = tc | (k << 24);
+					}
 				}
-				t += xStride;
+				zbuffer[j * xr + i] = bray;
 			}
-			walky += yStride;
+			t += xStride;
 		}
-		precalculation.checkout();
-		all_rays = 0;
-		shooting = false;
-		walky = tt;
-		// do the raytracing
-		for (int j = 0; j < yr; j+=8) {
-			Vector t(walky);
-			for (int i = 0; i < xr; i+=8, all_rays++) {
-				if (all_rays % cpu.count == thread_index) 
-					subdivide(fb + j*xr + i, t, i, j, 8, k);
-				t += xStride;
+		walky += yStride;
+	}
+	precalculation.checkout();
+	all_rays = 0;
+	shooting = false;
+	walky = tt;
+	// do the raytracing
+	for (int j = 0; j < yr; j+=8) {
+		Vector t(walky);
+		for (int i = 0; i < xr; i+=8, all_rays++) {
+			if (all_rays % cpu.count == thread_index) {
+				if (!needs_bruteforce(fb + j*xr + i, t, i, j, 8)) {
+					subdivide(fb + j*xr + i, t, i, j, 8, fb[j * xr + i] >> 24);
+				}
 			}
-			walky += yStride;
+			t += xStride;
 		}
+		walky += yStride;
 	}
 #endif // __MINGW32__
 }
@@ -1177,6 +1254,7 @@ void voxel_frame_init(const Vector& tt, const Vector &ti, const Vector &tti, Uin
 	if (voxel_rendering_method == 0) {
 		adaptive_voxel_renderer.init(tt, ti, tti, fb);
 	}
+	voxel_water_init();
 }
 
 void voxel_close(void)
@@ -1189,3 +1267,238 @@ void voxel_shoot(void)
 	shooting = true;
 }
 
+
+
+
+/**
+ * @class Water
+ */
+  
+class Water: public Object {
+	float waterlevel;
+	Vector center, rect[4];
+	double radius;
+	bool inited;
+public:
+	Water() { inited = false ; }
+	virtual double get_depth(const Vector &camera)
+	{
+		return 3000.0; // ensure it stays in the background
+	}
+
+	/// If "w" are the three endpoints of the vector projection grid,
+	/// determine whether the object is visible on the screen
+	virtual bool is_visible(const Vector & camera, Vector w[3])
+	{
+		return true;
+	}
+
+	/// Create a convex polygon of 3D points in the `pt' array.
+	/// The polygon must be created in such a way, so that if the
+	/// polygon is rendered in place of the real object, they should
+	/// allocate similar position and sizes on the 2D screen.
+	///
+	/// @returns how many points the resulting polygon has; must be
+	/// &lt; MAX_SPHERE_SIDES
+	virtual int calculate_convex(Vector pt[], const Vector& camera)
+	{
+		for (int i = 0; i < 4; i++)
+			pt[i] = rect[i];
+		return 4;
+	}
+
+	/** Rasterize an object onto the screen. Use the polygon provided
+	 *** by calculate_convex().
+	 ***
+	 *** @param framebuffer - a virtual framebuffer, possibly larger than
+	 ***                     the physically visible; obtain dimensions with
+	 ***                     xsize_render(xres()) and ysize_render(yres())
+	 *** @param color       - unique 16bit nonzero ID for the object; the "color"
+	 ***                      to "paint" on the framebuffer with
+	 *** @param sides       - number of sides on the convex polygon
+	 *** @param pt          - the polygon itself
+	 *** @param camera      - teh camera
+	 *** @param w           - the three endpoints of the vector projection grid
+	 *** @param min_y       - the min. row on the screen, which contains the obj
+	 *** @param max_y       - the max. row on the screen, which contains the obj
+	 **/
+	virtual void map2screen(
+			Uint32 *framebuffer,
+	int color,
+	int sides,
+	Vector pt[],
+	const Vector& camera,
+	Vector w[3],
+	int & min_y,
+	int & max_y) {
+		int L[RES_MAXY], R[RES_MAXY];
+		int ys, ye, bs, be;
+		min_y = ys = accumulate(pt, sides, camera, w, fun_less, 999666111, bs);
+		max_y = ye = accumulate(pt, sides, camera, w, fun_more,-999666111, be);
+		int size = (be + sides - bs) % sides;
+		project_hull_part(L, pt, bs, +1, size, sides, color, camera, w, fun_min);
+		project_hull_part(R, pt, bs, -1, sides - size, sides, color, camera, w, fun_max);
+		map_hull(framebuffer, L, R, ys, ye, color);
+	}
+
+	/** Performs "fast " intersection test:
+	 *** @param ray - Camera look direction (not necessarily unitary)
+	 *** @param camera - the position of the camera
+	 *** @param rls = ray.lengthSqr()
+	 *** @param IntersectContext -
+	 ***        put any data, which may be used in further shading & tracing
+	 ***        here (this is to avoid redundant calculations). You can
+	 ***        safely use at most 128 bytes of the provided memory.
+	 *** @return whether intersection occured
+	 **/
+	virtual bool fastintersect(const Vector& ray, const Vector& camera, const double& rls, void *IntersectContext) const 
+	{
+		Vector t = camera + ray, u;
+		double r;
+		if ((r=vox[0].hierarchy.ray_intersect(camera, t, u)) > 1e6) return false;
+		if (u[1] > waterlevel) return false;
+		if (vox[1].hierarchy.ray_intersect(camera, t, u) < 1e6) return false;
+		
+		*(double*)IntersectContext = r;
+		return true;
+	}
+
+	/// The same as fastintersect, except it doesn't use `rls' and assumes
+	/// that the `ray' vector is unitary
+	virtual bool intersect(const Vector& ray, const Vector &camera,	void *IntersectContext)
+	{
+		Vector t = camera + ray, u;
+		double r;
+		if ((r=vox[0].hierarchy.ray_intersect(camera, t, u)) > 1e6) return false;
+		if (u[1] > waterlevel) return false;
+		if (vox[1].hierarchy.ray_intersect(camera, t, u) < 1e6) return false;
+		
+		*(double*)IntersectContext = r;
+		return true;
+	}
+
+	/// Returns the distance to the intersection, using the stored calculations
+	/// from Intersect or FastIntersect
+	virtual double intersection_dist(void *IntersectContext) const
+	{
+		return *(double*)IntersectContext;
+	}
+
+	/**
+	 *** Performs light, texturemapping, shading and reflections/refractions
+	 *** calculations
+	 ***
+	 *** @param ray          - camera look direction (not necessarily unitary)
+	 *** @param camera       - the camera itself
+	 *** @param light        - light source
+	 *** @param rlsrcp       = 1 / ray.lengthSqr()
+	 *** @param[out] opacity - if the object is not fully opaque, this will
+	 ***                       be in the range (0.0; 1.0)
+	 *** @param IntersectContext - the intersection context as previously
+	 ***                           prepared by Intersect() or FastIntersect()
+	 *** @param iteration - the number of reflections/refractions counter,
+	 ***                    used to prevent infinite raytracing loop
+	 *** @param finfo     - This is used to perform mipmapping on the
+	 ***                    reflections/refractions
+	 **/
+	virtual Uint32 shade(
+			Vector& ray,
+	const Vector& camera,
+	const Vector& light,
+	double rlsrcp,
+	float &opacity,
+	void *IntersectContext,
+	int iteration,
+	FilteringInfo& finfo
+			    )
+	{
+		opacity = 1.00f;
+		double h = (waterlevel - camera[1]) / ray[1];
+		Vector I;
+		I.macc(camera, ray, h);
+		Vector r2 = ray;
+		r2[1] = -r2[1];
+		return blend(0xff, Raytrace(I, r2, false, 1, this, finfo), 0.13f);
+	}
+	/**
+	 *** Called when a secondary reflected or refracted ray has hit the floor/ceiling
+	 *** and Raytrace() wants to know which mipmap level of the floor texture to use.
+	 ***
+	 *** Return a number of the range [0..LOG2_MAX_TEXTURE_SIZE], where 0 is the most
+	 *** detailed level.
+	 ***
+	*** Parameters:
+	 *** @param x0 - the X coordinate where the secondary ray hit the floor
+	 *** @param z0 - the Z coordinate where the secondary ray hit the floor
+	 *** @param fi.camera  - (vector) the camera
+	 *** @param fi.xinc    - (vector) the "x" direction of the vector grid
+	 *** @param fi.yinc    - (vector) the "y" direction of the vector grid
+	 *** @param fi.through - (vector) the point from the vector grid for the originating ray
+	 *** @param fi.lectionType is REFLECTION or REFRACTION
+	 ***
+	 *** If you want to handle the miplevel issue, trace two or more additional rays through
+	 *** the "neighborhood" of `through' and see where they hit. Use the area of the formed
+	 *** triangle to determine the miplevel
+	 ***
+	 *** If you can't or don't want to handle it, return TEX_S or, indeed, any other level.
+	 **/
+	virtual int get_best_miplevel(double x0, double z0, FilteringInfo & fi)
+	{
+		return TEX_S;
+	}
+
+	/**
+	 *** Returns the type of the primitive, the id is like OB_SPHERE,
+	 *** OB_TRIANGLE
+	 **/
+	virtual OBTYPE get_type(bool generic = true) const
+	{
+		return OB_WATER;
+	}
+
+	
+	void init(int _waterlevel)
+	{
+		if (inited) return;
+		inited = true;
+		waterlevel = _waterlevel * vxInput[0].scale;
+		int n = vox[0].size;
+		
+		int mini = n, minj = n, maxi = 0, maxj = 0;
+		
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				if (vox[0].heightmap[i * n + j] <= waterlevel) {
+					if (i < mini) mini = i;
+					if (i > maxi) maxi = i;
+					if (j < minj) minj = j;
+					if (j > maxj) maxj = j;
+				}
+			}
+		}
+		//
+		
+		int xi[4][2] = {
+			{ minj, mini },
+			{ maxj, mini },
+			{ maxj, maxi },
+			{ minj, maxi },
+		};
+		
+		for (int i = 0; i < 4; i++) {
+			rect[i] = Vector(xi[i][0], waterlevel, xi[i][1]);
+		}
+	}
+};
+
+static Water water;
+
+Object* voxel_water_object(void)
+{
+	return &water;
+}
+
+void voxel_water_init(void)
+{
+	water.init(35);
+}

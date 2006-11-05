@@ -46,63 +46,8 @@ struct subdivision_t {
 	int index;
 };
 
-static float fmax4(float a, float b, float c, float d)
-{
-	float ff = a;
-	ff = b > ff ? b : ff;
-	ff = c > ff ? c : ff;
-	ff = d > ff ? d : ff;
-	return ff;
-}
-
-static float fmin4(float a, float b, float c, float d)
-{
-	float ff = a;
-	ff = b < ff ? b : ff;
-	ff = c < ff ? c : ff;
-	ff = d < ff ? d : ff;
-	return ff;
-}
-
 #define InTexture(x,y) (x>=0.0f&&x<size-1&&y>0&&y<size-1)
 
-// this ugly macro is used by the Ray-heightfield intersection routine, DON'T DELETE!
-#define INTERNAL 			float maxd = fmin(tMaxXsm, tMaxZsm); \
-					cdist += 0.0001;\
-					X = (int) (Camera[0] + cdist * diff0); \
-					Z = (int) (Camera[2] + cdist * diff2); \
-					Y = Yi + cdist * diff1; \
-					if (enter_d == fromX) { \
-						tMaxX = cdist + tDeltaX; \
-						tMaxZ = cdist + (((stepZ+1)>>1)+Z-(Camera[2] + cdist * diff2))*rcpdiff2; \
-					} \
-					if (enter_d == fromZ) { \
-						tMaxX = cdist + (((stepX+1)>>1)+X-(Camera[0] + cdist * diff0))*rcpdiff0; \
-						tMaxZ = cdist + tDeltaZ; \
-					} \
-					while (tMaxX < maxd || tMaxZ < maxd) { \
-						if ((ilast = maps[slog][X + (Z<<slog)])>Y) { \
-							crossing = Vector(X, ilast, Z); \
-							return orig.distto(crossing); \
-						} \
-						if (tMaxX < tMaxZ) { \
-							Y = Yi + tMaxX * diff1; \
-							if (Y < ilast) { \
-								crossing =  Vector(X, ilast, Z); \
-								return orig.distto(crossing); \
-							} \
-							tMaxX += tDeltaX; \
-							X += stepX; \
-						} else { \
-							Y = Yi + tMaxZ * diff1; \
-							if (Y < ilast) { \
-								crossing = Vector(X, ilast, Z); \
-								return orig.distto(crossing); \
-							} \
-							tMaxZ += tDeltaZ; \
-							Z += stepZ; \
-						} \
-					} \
 
 /**
 *** @class Hierarchy
@@ -184,49 +129,6 @@ public:
 	///                 lowest point is taken
 	/// @returns TRUE on success, FALSE on failure
 	bool build_hierarchy(int thesize, float *thebuff, bool is_floor);
-	bool build_hierarchy_old(int thesize, float *thebuff, bool is_floor)
-	{
-		float (*ffun) (float,float,float,float) = is_floor ? fmax4 : fmin4;
-		this->is_floor = is_floor;
-		size = thesize;
-		slog = power_of_2(size);
-		int allocsize = 16* size*size;
-		//maps[slog ] = thebuff;
-
-		int csize = size * 2;
-		for (int i= slog; i>=0; i--) {
-			allocsize /= 4;
-			int oldsize = csize;
-			csize /= 2;
-
-			maps[i] = (float *) malloc(allocsize);
-			if (maps[i] == NULL) {
-				i++;
-				while (i < slog) {
-					free(maps[i]);
-					i++;
-				}
-				return false;
-			}
-
-			// memory allocated; fill with usefull info
-			if (i == slog) {
-				memcpy(maps[i], thebuff, allocsize);
-				continue;
-			}
-			int p = 0;
-			for (int y = 0; y < csize; y++)
-				for (int x = 0; x < csize; x++,p++) {
-					maps[i][p] = ffun(
-							maps[i+1][( y * 2      * oldsize) + x * 2    ],
-							maps[i+1][( y * 2      * oldsize) + x * 2 + 1],
-							maps[i+1][((y * 2 + 1) * oldsize) + x * 2    ],
-							maps[i+1][((y * 2 + 1) * oldsize) + x * 2 + 1]
-							);
-				}
-		}
-		return true;
-	}
 
 	enum EnterDirection {
 		fromX, fromZ, fromNowhere
@@ -259,119 +161,8 @@ public:
 	*/
 	// all comments in this routine assume we're raycasting a floor heightmap. For the ceiling equivallent,
 	// just "reverse" all `below' statements
-	
 	float ray_intersect(const Vector & orig, const Vector & proj, Vector & crossing);
 
-	float ray_intersect_old(const Vector & orig, const Vector & proj, Vector & crossing)
-	{
-		++raycasts;
-		bool coords_inited = false;
-		int X, Z, stepX, stepZ, Xsm, Zsm; // all *sm variables are used in the "Large" walk
-		float tMaxX, tMaxZ, tDeltaX, tDeltaZ, last, ilast;
-		float tMaxXsm, tMaxZsm, tDeltaXsm, tDeltaZsm, cdist;
-		EnterDirection enter_d = fromNowhere;
-		Vector Camera; // camera is where the first point above the heightfield is
-
-		/* Check for rays which go straight in the sky */
-		if (is_floor) {
-			if (proj[1] > orig[1] && orig[1] > maps[0][0]) {
-				return 1e9;
-			}
-		} else {
-			if (proj[1] < orig[1] && orig[1] < maps[0][0])
-				return 1e9;
-		}
-
-		/* check whether we are "below" the terrain */
-		if (InTexture(orig.v[0], orig.v[2])) {
-			coords_inited = true;
-			Camera = orig;
-			X = (int) orig[0];
-			Z = (int) orig[2];
-			if (is_floor) {
-				if (getheight_bilinear(orig.v[0], orig.v[2]) >= orig.v[1])
-					return 1e9;
-			} else {
-				if (getheight_bilinear(orig.v[0], orig.v[2]) <= orig.v[1])
-					return 1e9;
-			}
-		} else {
-			X = Z = 0; // make gcc happy
-		}
-		/* traversal vector in diff */
-		Vector diff;
-		diff.make_vector(proj, orig);
-
-		// precalculate stuff...
-		float rcpdiff0 = 1.0f / diff[0], rcpdiff2 = 1.0f / diff[2];
-		float rcp640 = rcpdiff0 * OUTER_SIZE, rcp642 = rcpdiff2 * OUTER_SIZE;
-
-		/* If we're outside the grid, find where we enter it */
-		if (!coords_inited) {
-			float p[4];
-			p[0] =       - orig[0]  * rcpdiff0;
-			p[1] = (size - orig[0]) * rcpdiff0;
-			p[2] =       - orig[2]  * rcpdiff2;
-			p[3] = (size - orig[2]) * rcpdiff2;
-			float best = 1e9;
-			for (int i = 0; i < 4; i++)
-				if (p[i] > 0 && p[i] < best) best = p[i];
-			if (best > 1e6)
-				return 1e9;
-			Camera.macc(orig, diff, best);
-			X = (int) Camera[0];
-			Z = (int) Camera[2];
-		}
-// prepare our OUTER loop
-		int out = slog - OUTER_MIPLEVEL, Gsize = ~(size / OUTER_SIZE - 1);
-		Xsm = X / OUTER_SIZE;
-		Zsm = Z / OUTER_SIZE;
-		Vector cm64 = Camera;
-		cm64.scale(1.0/OUTER_SIZE);
-		stepX = diff[0]>0?+1:-1;
-		stepZ = diff[2]>0?+1:-1;
-		tMaxX = (((stepX+1)>>1)+X-Camera[0])*rcpdiff0;
-		tMaxZ = (((stepZ+1)>>1)+Z-Camera[2])*rcpdiff2;
-		tMaxXsm = (((stepX+1)>>1)+Xsm-cm64[0])*rcp640;
-		tMaxZsm = (((stepZ+1)>>1)+Zsm-cm64[2])*rcp642;
-
-		tDeltaX = fabsf(rcpdiff0);
-		tDeltaZ = fabsf(rcpdiff2);
-		tDeltaXsm = OUTER_SIZE * tDeltaX;
-		tDeltaZsm = OUTER_SIZE * tDeltaZ;
-		float Yi = Camera[1];
-		float Y = Yi, Ysm = Yi, diff0 = diff[0], diff1 = diff[1], diff2 = diff[2];
-		cdist = 0;
-		while ((Xsm & Gsize) == 0 && (Zsm & Gsize) == 0) {
-			if ((last = maps[out][Xsm + (Zsm << out)]) > Ysm) {
-				// possibility for intersection detected, examine closely...
-				INTERNAL
-			}
-			if (tMaxXsm < tMaxZsm) {
-				Ysm = Yi + tMaxXsm * diff1;
-				if (Ysm < last) {
-				// possibility for intersection detected, examine closely...
-					INTERNAL
-				}
-				cdist = tMaxXsm;
-				enter_d = fromX;
-
-				tMaxXsm += tDeltaXsm;
-				Xsm += stepX;
-			} else {
-				Ysm = Yi + tMaxZsm * diff1;
-				if (Ysm < last) {
-				// possibility for intersection detected, examine closely...
-					INTERNAL
-				}
-				cdist = tMaxZsm;
-				enter_d = fromZ;
-				tMaxZsm += tDeltaZsm;
-				Zsm += stepZ;
-			}
-		}
-		return 1e9;
-	}
 };
 
 #endif //__HIERARCHY_H__
