@@ -1,5 +1,3 @@
 #!/bin/bash
-bmp2fda tmpflr.bmp heightmap_f.fda
-bmp2fda tmpcl.bmp  heightmap_c.fda
-mv *.fda ../data
-
+bmp2fda /home/vesko/down.bmp ../data/down.fda
+bmp2fda /home/vesko/up.bmp  ../data/up.fda

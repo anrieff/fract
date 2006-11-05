@@ -17,7 +17,7 @@
 #include "common.h"
 #include "voxel.h"
 
-//#define FAST_HIERARCHY
+#define FAST_HIERARCHY
 
 const char * hierarchy_cache = "data/hcache";
 

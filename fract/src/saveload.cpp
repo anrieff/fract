@@ -1,3 +1,4 @@
+
 /***************************************************************************
  *   Copyright (C) 2004 by Veselin Georgiev                                *
  *   vesko@ViruS                                                           *
@@ -32,6 +33,7 @@
 #include "triangle.h"
 #include "thorus.h"
 #include "tracer.h"
+#include "radiosity.h"
 
 /* ------------------------------------ export section ------------------------------------ */
 extern int spherecount;
@@ -591,6 +593,15 @@ int load_context(const char *fn)
 			/* Textures: */
 				case 0x314d: get_str (line, floor_texture); break;
 				case 0x9bff: /*get_str (line, default_font);*/ break;
+			/* Radiosity options: */
+				case 0x7f0d: rad_spv = get_int(line); break;
+				case 0x2389: rad_stone_lightout = get_real(line); break;
+				case 0x127a: rad_stone_specular = get_real(line); break;
+				case 0x1d8f: rad_water_lightout = get_real(line); break;
+				case 0x0c70: rad_water_specular = get_real(line); break;
+				case 0x2993: rad_light_radius = get_real(line); break;
+				case 0x96fa: rad_light_samples = get_int(line); break;
+				case 0x8ae0: rad_amplification = get_real(line); break;
 			/* Spheres: */
 				case 0x414c: spherecount = get_int (line); break;
 				case 0x1665: get_sphere_info(line, sp + get_index(line)); break;

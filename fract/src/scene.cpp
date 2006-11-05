@@ -115,7 +115,7 @@ int scene_init(void)
 			render_background = render_infinite_plane;
 			break;
 		case BACKGROUND_MODE_VOXEL:
-			developer = 1;
+			//developer = 1;
 			beta_limit_low  = -M_PI/2.0;
 			beta_limit_high = +M_PI/2.0;
 			r = voxel_init();

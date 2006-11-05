@@ -38,6 +38,7 @@
 #include "konsole.h"
 #include "object.h"
 #include "profile.h"
+#include "radiosity.h"
 #include "render.h"
 #include "rgb2yuv.h"
 #include "scene.h"
@@ -527,6 +528,9 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 		dump.save_bmp("prepass_dump.bmp");
 	}
 #endif
+	if (option_exists("--radiosity")) {
+		radiosity_calculate(thread_pool);
+	}
 }
 
 /*

@@ -78,3 +78,5 @@ void voxel_frame_init(const Vector& tt, const Vector &ti, const Vector &tti, Uin
 
 void voxel_water_init(void);
 Object* voxel_water_object(void);
+double voxel_get_waterlevel(void);
+
