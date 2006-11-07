@@ -20,24 +20,6 @@
 #define imin(a,b) ((a)<(b)?(a):(b))
 #define imax(a,b) ((a)>(b)?(a):(b))
 #define inf 999666111
-
-
-int power_of_2(int x);
-float lightformulae_tiny(float x);
-Uint32 bilinea4(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, int x, int y);
-
-// smooth hermite interpolation between the values of a and b (t must be in [0..1])
-template <typename T>
-T hermite(const T& a, const T& b, double t)
-{
-	return a + (a - b) * (-3.0 * t * t + 2.0 * t * t* t);
-}
-
-float perlin(float x, float y);
-
-extern int sqrt_lut[];
-void common_init(void);
-
 #ifdef _MSC_VER
 // returns a with the sign bit changed to match b's
 double copysign(double a, double b);
@@ -56,56 +38,47 @@ double copysign(double a, double b);
 #	endif
 #endif
 
-#ifdef USE_LUT_SQRT
-
-static inline float lut_sqrt(float f)
-{
-	__asm __volatile (
-			"mov	%0,	%%eax\n"
-			"mov	$1,	%%ecx\n"
-			"mov	%%eax,	%%edx\n"
-			"and	$0x7fffff,	%%eax\n"
-			"shr	$23,	%%edx\n"
-			"sub	$127,	%%edx\n"
-			"mov	%1,	%%esi\n"
-			"and	%%edx,	%%ecx\n"
-			"sar	$1,	%%edx\n"
-			"shl	$23,	%%ecx\n"
-			"or	%%ecx,	%%eax\n"
-			"add	$127,	%%edx\n"
-			"shr	$15,	%%eax\n"
-			"shl	$23,	%%edx\n"
-			"mov	(%%esi,	%%eax,	4),	%%eax\n"
-			"or	%%edx,	%%eax\n"
-			"mov	%%eax,	%0\n"
-	:
-			"=m"(f)
-	:
-			"m"(sqrt_lut)
-	:"memory", "eax", "ecx", "edx", "esi"
-	);
-	return f;
-}
-static inline float sse_sqrt(float f)
-{
-	__asm __volatile (
-			"	rsqrtss	%0,	%%xmm0\n"
-			"	rcpss	%%xmm0,	%%xmm0\n"
-			"	movss	%%xmm0,	%0\n"
-	:"=m"(f)
-	::"memory","xmm0"
-	);
-	return f;
-}
-
-	#define fsqrt sse_sqrt
+#ifdef fast_sqrt
+#define fsqrt fast_sqrt
 #else
-	#ifdef fast_sqrt
-		#define fsqrt fast_sqrt
-	#else
-		#define fsqrt sqrt
-	#endif // ifdef fast_sqrt
-#endif // ifdef USE_LUT_SQRT
+#define fsqrt sqrt
+#endif // ifdef fast_sqrt
+
+
+// checks if x is an integral power of 2. If it is not, -1 is returned, else the log2 of x is returned
+int power_of_2(int x);
+
+// calculates the formula darkening which should be due to the distance from the light source
+float lightformulae_tiny(float x);
+
+// bilinear filtering with four colors at the corners and coordinates of the sample point
+// in x, y, 16-bit fixedpoint format
+Uint32 bilinea4(Uint32 x0y0, Uint32 x1y0, Uint32 x0y1, Uint32 x1y1, int x, int y);
+
+/// perlin:
+/// generates fractal perlin noise
+/// @param x - should be in [0..1]
+/// @param y - should be in [0..1]
+/// @returns a float [-1..+1]
+float perlin(float x, float y);
+
+
+void common_init(void);
+
+
+
+// smooth hermite interpolation between the values of a and b (t must be in [0..1])
+template <typename T>
+T hermite(const T& a, const T& b, double t)
+{
+	return a + (a - b) * (-3.0 * t * t + 2.0 * t * t* t);
+}
+
+// min and max templates
+template <typename T>
+static inline T min(T a, T b) { return a < b ? a : b; }
+template <typename T>
+static inline T max(T a, T b) { return a > b ? a : b; }
 
 
 #define SSSTORAGE_SIZE (1024*1024)
@@ -386,7 +359,7 @@ public:
 					sse_free(xdata[i]);
 				else
 					delete xdata[i];
-				xdata[i] = 0; 
+				xdata[i] = 0;
 			}
 		}
 	}

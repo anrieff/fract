@@ -113,62 +113,9 @@ double copysign(double a, double b)
 }
 #endif
 
-#define FSQRT_PRECISION 8
-#define FSQRT_SHIFT (23-FSQRT_PRECISION)
-#define FSQRT_ENTRIES (2*(1<<FSQRT_PRECISION))
-
-int sqrt_lut[FSQRT_ENTRIES];
-
-static void build_sqrt_lut(void)
-{
-	unsigned i;
-	volatile float f;
-	volatile unsigned int *fi = (unsigned int *) &f;
-	for (i = 0; i < FSQRT_ENTRIES / 2; i++) {
-		*fi = 0;
-		*fi = (i << FSQRT_SHIFT) | (127 << 23);
-		f = sqrt(f);
-		sqrt_lut[i] = (*fi & 0x7fffff) ;
-		*fi = (i << FSQRT_SHIFT) | (128 << 23);
-		f = sqrt(f);
-		sqrt_lut[i + FSQRT_ENTRIES/2] = (*fi & 0x7fffff) ;
-		
-	}
-}
-
 void common_init(void)
 {
-	build_sqrt_lut();
 }
-
-/*inline float lut_sqrt(float f)
-{
-	__asm __volatile (
-			"mov	%0,	%%eax\n"
-			"mov	$1,	%%ecx\n"
-			"mov	%%eax,	%%edx\n"
-			"and	$0x7fffff,	%%eax\n"
-			"shr	$23,	%%edx\n"
-			"sub	$127,	%%edx\n"
-			"mov	%1,	%%esi\n"
-			"and	%%edx,	%%ecx\n"
-			"sar	$1,	%%edx\n"
-			"shl	$23,	%%ecx\n"
-			"or	%%ecx,	%%eax\n"
-			"add	$127,	%%edx\n"
-			"shr	$15,	%%eax\n"
-			"shl	$23,	%%edx\n"
-			"mov	(%%esi,	%%eax,	4),	%%eax\n"
-			"or	%%edx,	%%eax\n"
-			"mov	%%eax,	%0\n"
-	:
-			"=m"(f)
-	:
-			"m"(sqrt_lut)
-	:"memory", "eax", "ecx", "edx", "esi"
-			 );
-	return f;
-}*/
 
 #define common_asm
 #include "x86_asm.h"
