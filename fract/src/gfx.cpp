@@ -736,7 +736,7 @@ int accumulate(Vector pt[], int sides, const Vector& c, Vector w[3], bool (*fun)
 void mapsphere(Uint32 *fb, int Ox, int Oy, int color, int sides, Vector pt[], const Vector& c, Vector w[3], sphere *A)
 {
 	int L[RES_MAXY], R[RES_MAXY];
-	int ys, ye, bs, be;
+	int ys, ye, bs = 0, be = 0;
 	ys = accumulate(pt, sides, c, w, fun_less, 999666111, bs);
 	ye = accumulate(pt, sides, c, w, fun_more,-999666111, be);
 	int size = (be + sides - bs) % sides;
@@ -771,7 +771,7 @@ void map_to_screen(
 		int xres, int yres)
 {
 	int L[RES_MAXY], R[RES_MAXY];
-	int ys, ye, bs, be;
+	int ys, ye, bs = 0, be = 0;
 	ys = accumulate(pt, sides, cur, w, fun_less, 999666111, bs);
 	ye = accumulate(pt, sides, cur, w, fun_more,-999666111, be);
 	int size = (be + sides - bs) % sides;

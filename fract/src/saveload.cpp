@@ -602,6 +602,7 @@ int load_context(const char *fn)
 				case 0x2993: rad_light_radius = get_real(line); break;
 				case 0x96fa: rad_light_samples = get_int(line); break;
 				case 0x8ae0: rad_amplification = get_real(line); break;
+				case 0xdf4c: rad_indirect_coeff = get_real(line); break;
 			/* Spheres: */
 				case 0x414c: spherecount = get_int (line); break;
 				case 0x1665: get_sphere_info(line, sp + get_index(line)); break;
