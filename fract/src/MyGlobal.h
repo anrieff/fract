@@ -226,8 +226,5 @@
 #define FPS_UPDATE_INTERVAL 500
 #endif
 
-// select whether to use non-full precision sqrt() function (fsqrt()) instead of the math.h sqrt()
-//#define USE_LUT_SQRT
-
 
 #endif //MYGLOBAL_H
