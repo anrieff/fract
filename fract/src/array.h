@@ -30,7 +30,7 @@ public:
 	}
 	Array (const Array<T> & r)
 	{
-		_kopy();
+		_kopy(r);
 	}
 	Array & operator = (const Array<T> & r)
 	{
@@ -85,6 +85,13 @@ public:
 			delete [] data;
 			data = new T[_cap];
 		}
+	}
+	void erase(int idx)
+	{
+		if (idx < 0 || idx >= _size) return;
+		--_size;
+		for (int i = idx; i < _size; i++)
+			data[i] = data[i+1];
 	}
 private:
 	void _init() {
