@@ -28,6 +28,7 @@
 #include "render.h"
 #include "threads.h"
 #include "vector3.h"
+#include "vector2f.h"
 #include "vectormath.h"
 #include "voxel.h"
 #include "light.h"
@@ -42,12 +43,12 @@
 info_t vxInput[NUM_VOXELS] = {
 	//{ "data/heightmap_f.fda", "data/aardfdry256.bmp", 0, 0.5, 1},
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
-/*	
-//FOR RADIOSITY:
-	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
-	{ "data/up.fda", "data/whitefloor.bmp", 100, 0.50, 0},
-*/
 	
+//FOR RADIOSITY:
+//	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
+//	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
+
+
 //NORMAL
 	{ "data/down.fda", "data/rad_down.bmp", 0, 0.50, 1},
 	{ "data/up.fda", "data/rad_up.bmp", 100, 0.50, 0},
@@ -213,6 +214,7 @@ int voxel_init(void) //returns 0 on success, 1 on failure
 		vox[k].hierarchy.build_hierarchy(vox[k].size, vox[k].heightmap, vox[k].floor);
 	}
 	voxel_precalc();
+	voxel_water_init();
 	return 0;
 }
 
@@ -335,11 +337,17 @@ void voxel_light_recalc1(int thread_idx)
 #define fastrsqrt FastReciprocalSquareRoot
 static inline float fast_reciprocal_square_root(float val)
 {
-    const float magicValue = 1597358720.0f;
-    float tmp = (float) *((uint*)&val);
-    tmp = (tmp * -0.5) + magicValue;
-    uint tmp2 = (uint) tmp;
-    return *(float*)&tmp2;
+	union {
+		float f;
+		uint i;
+	} temp;
+	const float magicValue = 1597358720.0f;
+	temp.f = val;
+	temp.f = (float) temp.i;
+	float tmp = temp.f;
+	tmp = (tmp * -0.5) + magicValue;
+	temp.i = (uint) tmp;
+	return temp.f;
 }
 
 static inline bool point_is_in_shadow(vox_t *v, int x, int z)
@@ -1144,6 +1152,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	//memset(fb, 0, xr*yr*4);
 	//for (int i = 0; i < xr*yr; i++)
 	//	zbuffer[i] = -1.0f;
+	prof_enter(PROF_BUFFER_CLEAR);
 	multithreaded_memset(fb, 0, xr*yr, thread_index, cpu.count);
 	union {
 		float minus_one;
@@ -1156,6 +1165,8 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	       yStride = tti* 8.0f;
 	Vector walky(tt);
 	bar.checkout();
+	prof_leave(PROF_BUFFER_CLEAR);
+	prof_enter(PROF_ADDRESS_GENERATE);
 	// precalculate the big grid
 	
 	int all_rays = 0;
@@ -1182,10 +1193,12 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		walky += yStride;
 	}
 	precalculation.checkout();
+	prof_leave(PROF_ADDRESS_GENERATE);
 	all_rays = 0;
 	shooting = false;
 	walky = tt;
 	// do the raytracing
+	prof_enter(PROF_STAGE1);
 	for (int j = 0; j < yr; j+=8) {
 		Vector t(walky);
 		for (int i = 0; i < xr; i+=8, all_rays++) {
@@ -1198,6 +1211,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		}
 		walky += yStride;
 	}
+	prof_leave(PROF_STAGE1);
 #endif // __MINGW32__
 }
 
@@ -1260,7 +1274,6 @@ void voxel_frame_init(const Vector& tt, const Vector &ti, const Vector &tti, Uin
 	if (voxel_rendering_method == 0) {
 		adaptive_voxel_renderer.init(tt, ti, tti, fb);
 	}
-	voxel_water_init();
 }
 
 void voxel_close(void)
@@ -1282,11 +1295,14 @@ void voxel_shoot(void)
   
 class Water: public Object {
 	float waterlevel;
-	Vector center, rect[4];
+	Vector *bounding_poly; int bpsize;
 	double radius;
 	bool inited;
+	double thistime;
+	double eta;
 public:
-	Water() { inited = false ; }
+	Water() { inited = false ; eta = 0.75; bounding_poly = NULL; bpsize = 0; }
+	~Water() { if (bounding_poly) delete [] bounding_poly; }
 	double get_depth(const Vector &camera)
 	{
 		return 3000.0; // ensure it stays in the background
@@ -1294,14 +1310,22 @@ public:
 
 	bool is_visible(const Vector & camera, Vector w[3])
 	{
-		return true;
+		thistime = bTime();
+		if (bpsize <= 0) return false;
+		
+		for (int i = 0; i < bpsize; i++) {
+			int ui, uj;
+			if (project_point(&ui, &uj, bounding_poly[i], camera, w, xsize_render(xres()), ysize_render(yres())))
+				return true;
+		}
+		return false;
 	}
 
 	int calculate_convex(Vector pt[], const Vector& camera)
 	{
-		for (int i = 0; i < 4; i++)
-			pt[i] = rect[i];
-		return 4;
+		for (int i = 0; i < bpsize; i++)
+			pt[i] = bounding_poly[i];
+		return bpsize;
 	}
 
 	void map2screen(
@@ -1351,6 +1375,15 @@ public:
 	{
 		return *(double*)IntersectContext;
 	}
+	
+	Vector surface(Vector pos)
+	{
+		pos[0] += 2.0 * thistime;
+		pos[2] += 2.6 * thistime;
+		return Vector(0.0035 * sin(pos[0]*0.8) + 0.0045 * cos(pos[0]*0.72), 
+			      0.99,
+			      0.005 * sin(pos[2]*0.50) + 0.0025 * cos(pos[2] * 1.03));
+	}
 
 	Uint32 shade(
 			Vector& ray,
@@ -1363,13 +1396,47 @@ public:
 	FilteringInfo& finfo
 			    )
 	{
-		opacity = 0.25f;
+		prof_enter(PROF_SOLVE3D);
+		opacity = 1.0f;
 		double h = (waterlevel - camera[1]) / ray[1];
 		Vector I;
 		I.macc(camera, ray, h);
 		Vector r2 = ray;
-		r2[1] = -r2[1];
-		return blend(0xff, Raytrace(I, r2, false, 1, this, finfo), 0.13f);
+		
+		r2.norm();
+		
+		Vector n = surface(I);
+		
+		double cosI = n * r2;
+		//result = fresnel * upwards + (1 - fresnel) * downwards
+		double fresnel = 0.9 + 0.8 * cosI; 
+		
+		double k = 1.0 - eta * eta * (1.0 - cosI * cosI);
+		Uint32 downwards_color = 0, upwards_color = 0;
+		prof_leave(PROF_SOLVE3D);
+		prof_enter(PROF_RAYTRACE);
+		if (k >= 0) {
+			Vector down = r2 * eta - n * (eta * cosI + sqrt(k));
+			Vector res;
+			double temp = vox[0].hierarchy.ray_intersect(I, I + down, res);
+			if (temp < 1e6) {
+				downwards_color = vox[0].texture[(((int) res[2]) * vox[0].size) + (int) res[0]];
+			}
+		}
+		Vector up = r2 - n * ((n * r2) *2);
+		float mind = 1e6;
+		for (int w = 0; w < 2; w++) {
+			Vector res;
+			float temp = vox[w].hierarchy.ray_intersect(I, I + up, res);
+			if (temp < mind) {
+				mind = temp;
+				upwards_color = vox[w].texture[(((int) res[2]) * vox[0].size) + (int) res[0]];
+			}
+		}
+		prof_leave(PROF_RAYTRACE);
+		
+		return blend(upwards_color, downwards_color, fresnel);
+		
 	}
 	int get_best_miplevel(double x0, double z0, FilteringInfo & fi)
 	{
@@ -1389,29 +1456,37 @@ public:
 		waterlevel = _waterlevel * vxInput[0].scale;
 		int n = vox[0].size;
 		
-		int mini = n, minj = n, maxi = 0, maxj = 0;
+		const int probe_step = 2;
 		
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < n; j++) {
-				if (vox[0].heightmap[i * n + j] <= waterlevel) {
-					if (i < mini) mini = i;
-					if (i > maxi) maxi = i;
-					if (j < minj) minj = j;
-					if (j > maxj) maxj = j;
+		int dirs[8][2] = { 
+			{ -1, -1 }, { -1, 0 }, { -1, 1 }, { 0, 1 },
+			{  1,  1 }, {  1, 0 }, {  1, -1}, { 0, -1}
+		};
+		Array<vec2f> arr;
+		
+		for (int i = 0; i < n / probe_step; i++) {
+			for (int j = 0; j < n / probe_step; j++) {
+				if (vox[0].heightmap[(i*n+j)*probe_step] > waterlevel) continue;
+				bool works = false;
+				for (int q = 0; q < 8; q++) {
+					int ii = i + dirs[q][0];
+					int jj = j + dirs[q][1];
+					if (ii < 0 || ii >= n / probe_step || jj < 0 || jj >= n / probe_step) continue;
+					if (vox[0].heightmap[(ii*n+jj)*probe_step] <= waterlevel) {
+						works = true;
+						break;
+					}
+				}
+				if (works) {
+					arr += vec2f((float)i * probe_step, (float)j * probe_step);
 				}
 			}
 		}
-		//
-		
-		int xi[4][2] = {
-			{ minj, mini },
-			{ maxj, mini },
-			{ maxj, maxi },
-			{ minj, maxi },
-		};
-		
-		for (int i = 0; i < 4; i++) {
-			rect[i] = Vector(xi[i][0], waterlevel, xi[i][1]);
+		Array<vec2f> result = convex_hull(arr);
+		bpsize = result.size();
+		bounding_poly = new Vector[bpsize];
+		for (int i = 0; i < bpsize; i++) {
+			bounding_poly[bpsize-1-i] = Vector(result[i][1], waterlevel, result[i][0]);
 		}
 	}
 	

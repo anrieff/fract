@@ -10,6 +10,8 @@
 
 #include "infinite_plane.h"
 #include "vector3.h"
+#include "vector2f.h"
+#include "array.h"
 #include "object.h"
 #define APPLY_X		1
 #define APPLY_Y		2
@@ -58,6 +60,17 @@ void set_gravity(double new_gravity);
 void switch_gravity(void);
 //void modify(int which, double amount);
 void vectormath_close(void);
+
+/**
+ * convex_hull
+ * @brief	Performs a 2D convex hull, using Graham scan (O (N * logN) runtime)
+ * @author	Veselin Georgiev
+ * @date	2006-11-07
+ * 
+ * @param	input - the Array of input points
+ * @returns	the resulting polygon, counter-clockwise oriented
+ */
+Array<vec2f> convex_hull(Array<vec2f> input);
 
 /**
  * @struct	ClipRes

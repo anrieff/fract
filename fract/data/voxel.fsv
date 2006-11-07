@@ -21,14 +21,11 @@ Light.y=100.00000
 Light.z=200.00000
 
 # User position information:
-#User.x=422.00000
-#User.y=90.00000
-#User.z=301.00000
-User.x=222.00000
-User.y=90.00000
-User.z=201.00000
-alpha=4.922389
-beta=+0.500100
+User.x=92
+User.y=80
+User.z=163
+alpha=7.44
+beta=0.07
 
 # Physics (1=on)
 Physics=1
@@ -51,10 +48,14 @@ fov=1.000000
 # rendered results are written out as `rad_down.bmp' and `rad_up.bmp'
 
 # Number of samples per voxel : The more samples, the more quality
-rad_spv=100
+rad_spv=10000
 
 # Radiosity amplification (more amplification = more pronounced radiosity)
-rad_amplification=0.25
+rad_amplification=14.0
+#rad_amplification=24.0
+
+# Attribution of indirect lighting to all lighting; 0 is only direct lighting, 1 is only indirect
+rad_indirect_coeff=0.50
 
 # Stone light distribution function params:
 rad_stone_lightout=0.30
@@ -67,7 +68,7 @@ rad_water_specular=16.0
 # Light radius (spherical light) (needed for soft shadows)
 rad_light_radius=16.0
 # Light samples (more samples - smoother shadow edges)
-rad_light_samples=64
+rad_light_samples=256
 
 
 

@@ -880,6 +880,41 @@ void FrustrumClipper::clip(ClipRes& cr, Vector trio[], int which)
 	}
 }
 
+static inline float face(const vec2f&a, const vec2f&b, const vec2f&c)
+{
+	return a[0] * b[1] + b[0] * c[1] + c[0] * a[1]
+	      -c[0] * b[1] - b[0] * a[1] - a[0] * c[1];
+}
+
+Array<vec2f> convex_hull(Array<vec2f> input)
+{
+	sort(&input[0], input.size());
+	
+	Array<vec2f> l, r;
+	for (int i = 0; i < 2; i++) {
+		l += input[i];
+		r += input[i];
+	}
+	
+	for (int i = 2; i < input.size(); i++) {
+		l += input[i];
+		r += input[i];
+		while (l.size() > 2 && face(l[l.size()-3], l[l.size()-2], l[l.size()-1]) > -1e-6) {
+			l.erase(l.size()-2);
+		}
+		while (r.size() > 2 && face(r[r.size()-3], r[r.size()-2], r[r.size()-1]) < +1e-6) {
+			r.erase(r.size()-2);
+		}
+	}
+	
+	Array<vec2f> ret;
+	for (int i = 0; i < r.size(); i++)
+		ret += r[i];
+	for (int i = l.size() - 2; i > 0; i--)
+		ret += l[i];
+	return ret;
+}
+
 ////////////////////////
 
 void vectormath_close(void)
