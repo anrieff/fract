@@ -14,6 +14,7 @@
 #include "threads.h"
 
 extern double rad_amplification;
+extern double rad_indirect_coeff;
 extern int    rad_spv;
 extern double rad_stone_lightout, rad_stone_specular;
 extern double rad_water_lightout, rad_water_specular;

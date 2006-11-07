@@ -19,8 +19,10 @@
 #include "random.h"
 #include "shaders.h"
 #include "bitmap.h"
+#include "cvars.h"
 
 extern vox_t vox[NUM_VOXELS];
+extern Vector cur;
 
 // "global" variables
 double rad_amplification = 2.5;
@@ -29,6 +31,7 @@ double rad_stone_lightout = 0.3, rad_stone_specular = 8.0;
 double rad_water_lightout = 0.78, rad_water_specular = 60.0;
 double rad_light_radius = 8.0;
 int    rad_light_samples = 100;
+double rad_indirect_coeff = 0.2;
 
 struct HDRColor {
 	float b, g, r, a;
@@ -120,15 +123,16 @@ public:
 	{
 		Vector t[3]; int q = 0;
 		for (int l = 0; l < 4; l++) if (l != izb) {
-			Vector x(i, vox[k].heightmap[i + j * n], j);
-			if (l == 1 || l == 2) x[0] += 1.0;
-			if (l == 2 || l == 3) x[2] += 1.0;
+			int ii = i, jj = j;
+			if (l == 1 || l == 2) ii++;
+			if (l == 2 || l == 3) jj++;
+			Vector x(jj, vox[k].heightmap[ii * n + jj], ii);
 			t[q++] = x;
 		}
 		Vector a, b;
 		a.make_vector(t[1], t[0]);
 		b.make_vector(t[2], t[0]);
-		Vector n = b ^ a;
+		Vector n = a ^ b;
 		n.norm();
 		return n;
 	}
@@ -137,13 +141,21 @@ public:
 	{
 		int m = 0;
 		float material_lightout = rad_stone_lightout, material_specular = rad_stone_specular;
+		float accepted_thresh = 1.0f / 512.f / rad_spv;
 		
 		Vector nor0 = calc_normal(i, j, k, 0);
-		Vector nor1 = calc_normal(i, j, k, 3);
+		Vector nor1 = calc_normal(i, j, k, 2);
 		Vector normal = nor0 + nor1; normal.norm();
-		HDRColor mycolor = vox[k].input_texture[i + j *n];
+		if (k == 1) normal.scale(-1.0);
+		HDRColor mycolor = vox[k].input_texture[i * n + j];
 		
-		Vector pos = Vector(i + 0.5, vox[k].heightmap[i + j * n], j + 0.5);
+#ifdef DEBUG
+		if (mycolor.b > 2 * mycolor.r) {
+			printf("Boo!\n");
+		}
+#endif
+		
+		Vector pos = Vector(j + 0.5, vox[k].heightmap[i *n + j], i + 0.5);
 		if (pos[1] < waterlevel) 
 		{
 			pos[1] = waterlevel;
@@ -164,19 +176,27 @@ public:
 			double realdist = lp.distto(pos);
 			Vector dummy;
 			if (fabs(realdist - vox[k].hierarchy.ray_intersect(lp, pos, dummy)) < 1.5) {
-				light_coverage++;
 				Vector t = lp - pos;
-				t.norm();
-				normq += fabs(t * normal);
+				if (t * normal > 0.0) {
+					light_coverage++;
+					t.norm();
+					normq += sqrt(t * normal);
+				}
 			}
 		}
 		
+		Vector reflectance_normal = pos - light.p;
+		reflectance_normal.norm();
+		reflectance_normal -= normal * ((normal * reflectance_normal) * 2.0);
 		
 		if (light_coverage) {
 			float light_coeff = light_coverage / (float) rad_light_samples;
-			float illum = light_coeff * 18.0 / sqrt(light.p.distto(pos)) * normq / light_coverage;
+			float illum = light_coeff * rad_amplification * 
+				(1.0 - rad_indirect_coeff) / sqrt(light.p.distto(pos)) * normq / light_coverage;
+			float dist_light_to_p = light.p.distto(pos);
+			float rcp_dist_light_to_point = 1.0f / dist_light_to_p;
 		
-			HDRColor* mycolorp = k ? &up[i + j*n] : &down[i + j * n];
+			HDRColor* mycolorp = k ? &up[i*n + j] : &down[i*n + j];
 			rec[m++] = RadiosityRecord(mycolorp, HDRColor(illum, illum, illum, 0.0));
 			
 			for (int l = 0; l < rad_spv; l++) {
@@ -184,16 +204,18 @@ public:
 				do {
 					for (int r = 0; r < 3; r++)
 						v[r] = drandom() * 2.0 - 1.0;
-				} while (v * normal <= 0);
+				} while (v * reflectance_normal <= 0);
 				v.norm();
-				float mult =  v * normal;
-				mult = powf(mult, material_specular) * material_lightout * rad_amplification;
+				float mult =  v * reflectance_normal;
+				mult = powf(mult, material_specular) * material_lightout * rad_amplification * rad_indirect_coeff / rad_spv;
+				if (mult < accepted_thresh) continue;
 				Vector p = pos + v * 10.0;
 				float mind = 1e6;
 				int bk=-1; Vector bvec;
 				for (int w = 0; w < 2; w++) {
+					if (w == k) continue;
 					float dd; Vector vec;
-					dd = vox[w].hierarchy.ray_intersect(p, v, vec);
+					dd = vox[w].hierarchy.ray_intersect(p, p+v, vec);
 					if (dd < mind) {
 						mind = dd;
 						bvec = vec;
@@ -202,11 +224,12 @@ public:
 				}
 				if (bk != -1) {
 					if (mind < 1.0f) mind = 1.0f;
-					int ii = (int) bvec[0];
-					int jj = (int) bvec[2];
+					int jj = (int) bvec[0];
+					int ii = (int) bvec[2];
 					if (ii >= 0 && ii < n && jj >= 0 && jj < n) {
-						HDRColor *dest = bk ? &up[ii + jj * n] : &down[ii + jj * n];
-						rec[m++] = RadiosityRecord(dest, mycolor * (mult / sqrt(mind)));
+						HDRColor *dest = bk ? &up[ii * n + jj] : &down[ii * n + jj];
+						float lambda = mind * rcp_dist_light_to_point;
+						rec[m++] = RadiosityRecord(dest, mycolor * (mult / sqrt(1 + lambda)));
 						assert(m < size_per_thread);
 					}
 				}
@@ -289,7 +312,123 @@ public:
 				d[t] = col1.toRGB32();
 			}
 		}
+		// transpose image
+		/*
+		for (int i = 0; i < n; i++) {
+			for (int j = i + 1; j < n; j++) {
+				Uint32 t = d[i*n+j];
+				d[i*n+j] = d[j*n+i];
+				d[j*n+i] = t;
+			}
+		}
+		*/
 		a.save_bmp(fn);
+	}
+	
+	void output_pov(const char * fn)
+	{
+		FILE *f = fopen(fn, "wt");
+		if (!f) return;
+		
+		fprintf(f, "global_settings { max_trace_level 10 ambient_light 0.05 /*radiosity { brightness 1.0 count 160 }*/ }\n\n");
+		
+		Vector la = cur;
+		la[0] += sin(CVars::alpha) * cos(CVars::beta);
+		la[1] += sin(CVars::beta);
+		la[2] += cos(CVars::alpha) * cos(CVars::beta);
+		fprintf(f, "camera { location <%.3lf, %.3lf, %.3lf> look_at <%.3lf, %.3lf, %.3lf> }\n\n",
+			cur[0], cur[1], cur[2], la[0], la[1], la[2]);
+		
+		fprintf(f, "light_source { <%.3lf, %.3lf, %.3lf>, <1,1,1> area_light <%.3lf,0,0>, <0,0,%.3lf>, 6, 6}\n\n",
+			light.p[0],light.p[1], light.p[2], rad_light_radius, rad_light_radius);
+			
+		Vector *norms[2];
+		for (int k = 0; k < 2; k++) {
+			norms[k] = new Vector[n*n];
+			for (int i = 0; i < n; i++)
+				for (int j = 0; j < n; j++)
+					norms[k][i*n+j].zero();
+			 
+			for (int i = 0; i < n - 1; i++) {
+				for (int j = 0; j < n - 1; j++) {
+					Vector nor0 = calc_normal(i, j, k, 0);
+					Vector nor1 = calc_normal(i, j, k, 2);
+					if (k == 1) {
+						nor0.scale(-1.0);
+						nor1.scale(-1.0);
+					}
+					for (int l = 1; l < 4; l++) {
+						int ii = i, jj = j;
+						if (l == 1 || l == 2) ii++;
+						if (l == 2 || l == 3) jj++;
+						norms[k][ii*n+jj] += nor0;
+					}
+					for (int l = 0; l < 4; l++) if (l != 2) {
+						int ii = i, jj = j;
+						if (l == 1 || l == 2) ii++;
+						if (l == 2 || l == 3) jj++;
+						norms[k][ii*n+jj] += nor1;
+					}
+				}
+			}
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++) {
+					norms[k][i*n+j].norm();
+				}
+			}
+			int all = n*n;
+			fprintf(f, "#declare Mesh_%c=\nmesh2{ \n", 'A' + k);
+			fprintf(f, "vertex_vectors {\n%d\n", all);
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++) {
+					fprintf(f, "\t<%.3lf, %.3lf, %.3lf>,\n", (double)j, vox[k].heightmap[i*n+j], (double) i);
+				}
+			}
+			fprintf(f, "}\nnormal_vectors {\n%d\n", all);
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++) {
+					const Vector &v = norms[k][i*n+j];
+					fprintf(f, "\t<%.3lf, %.3lf, %.3lf>,\n", v[0], v[1], v[2]);
+				}
+			}
+			fprintf(f, "}\nuv_vectors {\n%d\n", all);
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++) {
+					fprintf(f, "\t<%.5lf, %.5lf>,\n", j / (double) n, i / (double) n);
+				}
+			}
+			all = (n-1) * (n-1) * 2;
+			char *names[] = { "face_indices", "normal_indices", "uv_indices" };
+			for (int type = 0; type < 3; type++) {
+				fprintf(f, "}\n%s {\n%d\n", names[type], all);
+				for (int i = 0; i < n - 1; i++) {
+					for (int j = 0; j < n - 1; j++) {
+						for (int skip = 0; skip < 4; skip += 2) {
+							int w[3], q = 0;
+							for (int l = 0; l < 4; l++) if (l != skip) {
+								int ii = i;
+								int jj = j;
+								if (l == 1 || l == 2) ii++;
+								if (l == 2 || l == 3) jj++;
+								w[q++] = ii*n + jj;
+							}
+							fprintf(f, "\t<%d,%d,%d>,\n", w[0], w[1], w[2]);
+						}
+					}
+				}
+			}
+			fprintf(f, "}}\n");
+			
+			fprintf(f, "\n\n object { Mesh_%c texture { pigment { image_map { png \"whitefloor.png\" interpolate 4 } } finish { ambient 0.1 diffuse 1.0 specular 0.3 }}}\n", 'A'+k);
+			
+		}
+		
+		
+		for (int i = 0; i < 2; i++) {
+			delete [] norms[i];
+		}
+		
+		fclose(f);
 	}
 	
 	void finalize(void)
@@ -300,6 +439,8 @@ public:
 		
 		write_map(vox[0].input_texture, down, "data/rad_down.bmp");
 		write_map(vox[1].input_texture, up,   "data/rad_up.bmp"  );
+		
+		//output_pov("/tmp/cave.pov");
 	}
 	
 	~RadiosityCalculation()
