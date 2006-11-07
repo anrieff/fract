@@ -426,20 +426,20 @@ bool Hierarchy::build_hierarchy(int thesize, float *thebuff, bool is_floor)
 				int minj = j0 - dx;
 				int maxj = j0 + dx;
 				
-				mini >?= 0;
-				maxi <?= size;
-				minj >?= 0;
-				maxj <?= size;
+				mini = max(mini, 0);
+				maxi = min(maxi, size);
+				minj = max(minj, 0);
+				maxj = min(maxj, size);
 				
 				mini = (mini / bs);
 				minj = (minj / bs);
 				maxi = (maxi / bs) + 1;
 				maxj = (maxj / bs) + 1;
 				
-				mini >?= 0;
-				maxi <?= n;
-				minj >?= 0;
-				maxj <?= n;
+				mini = max(mini, 0);
+				maxi = min(maxi, n);
+				minj = max(minj, 0);
+				maxj = min(maxj, n);
 				
 				for (int i1 = mini; i1 < maxi; i1++) {
 					for (int j1 = minj; j1 < maxj; j1++) {
