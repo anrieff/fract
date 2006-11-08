@@ -31,7 +31,7 @@ static TaskInfo taskinfo[] = {
 	{ TREEBUILD, 150, true  , ""},
 	{ RCPARRAY ,  30, false , ""},
 	{ MIPGEN   ,   1, false , ""},
-	{ HIERGEN  , 150, true  , "--voxel"},
+	{ HIERGEN  , 100, true  , "--voxel"},
 	{ YUVBENCH ,  90, true  , ""},
 };
 

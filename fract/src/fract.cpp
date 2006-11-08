@@ -514,7 +514,7 @@ int main(int argc, char *argv[])
 	//option_add("--cpus=1");
 	//option_add("--radiosity");
 	//option_add("-w");
-	option_add("--developer");
+	//option_add("--developer");
 	option_add("--voxel");
 	option_add("--no-shadows");
 	option_add("--scene=data/voxel.fsv");

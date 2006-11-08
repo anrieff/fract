@@ -9,6 +9,7 @@
  ***************************************************************************/
 
 //#define MAKE_PROFILING
+#include "asmconfig.h"
 
 #define MAX_PROF_ENTRIES 256
 
@@ -29,6 +30,10 @@ void prof_init(void);
 #define prof_enter(expr)
 #define prof_leave(expr)
 #define prof_init()
+#endif
+
+#ifdef USE_ASSEMBLY
+long long prof_rdtsc(void);
 #endif
 
 

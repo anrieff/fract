@@ -720,7 +720,7 @@ struct AdaptiveVoxelRenderer {
 		
 		bool bad = false;
 		for (int i = 0; i < 4; i++) {
-			if (fabs(depths[i] - tot) > CVars::v_range) {
+			if (fabs(depths[i] - tot) > 10.0) {
 				bad = true;
 				break;
 			}
@@ -1095,6 +1095,8 @@ bool needs_bruteforce(Uint32 * blockPtr, const Vector & base, int x, int y, int 
 	return needs;
 }
 
+static InterlockedInt task1, task2;
+
 void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & ti, Vector & tti)
 {
 #ifdef __MINGW32__
@@ -1152,6 +1154,8 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	//memset(fb, 0, xr*yr*4);
 	//for (int i = 0; i < xr*yr; i++)
 	//	zbuffer[i] = -1.0f;
+	long long blockstart = 0;
+
 	prof_enter(PROF_BUFFER_CLEAR);
 	multithreaded_memset(fb, 0, xr*yr, thread_index, cpu.count);
 	union {
@@ -1170,10 +1174,11 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	// precalculate the big grid
 	
 	int all_rays = 0;
+	int next_id = task1++;
 	for (int j = 0; j < yr; j+=8) {
 		Vector t(walky);
 		for (int i = 0; i < xr; i+=8, all_rays++) {
-			if (all_rays % cpu.count == thread_index) {
+			if (all_rays == next_id) {
 				shootcolr = shootcolrs[(i/8)%4];
 				float bray = 1e10;
 				for (int k = 0; k < NUM_VOXELS; k++) {
@@ -1187,6 +1192,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 					}
 				}
 				zbuffer[j * xr + i] = bray;
+				next_id = task1++;
 			}
 			t += xStride;
 		}
@@ -1199,13 +1205,47 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	walky = tt;
 	// do the raytracing
 	prof_enter(PROF_STAGE1);
+	next_id = task2++;
 	for (int j = 0; j < yr; j+=8) {
 		Vector t(walky);
 		for (int i = 0; i < xr; i+=8, all_rays++) {
-			if (all_rays % cpu.count == thread_index) {
+			if (all_rays == next_id) {
+			//if (all_rays % cpu.count == thread_index) {
+			//if ((j/8) % cpu.count == thread_index) {
+				if (CVars::v_showspeed)
+					blockstart = prof_rdtsc();
 				if (!needs_bruteforce(fb + j*xr + i, t, i, j, 8)) {
 					subdivide(fb + j*xr + i, t, i, j, 8, fb[j * xr + i] >> 24);
 				}
+				if (CVars::v_showspeed) {
+					const int max_block_time = 180000;
+					blockstart = prof_rdtsc() - blockstart;
+					if (blockstart < 0) 
+						blockstart = 0;
+					if (blockstart > max_block_time) 
+						blockstart = max_block_time;
+					int t = (int) blockstart;
+					t = (t * 767) / max_block_time;
+					float opc; Uint32 pcolor;
+					if (t < 256) {
+						opc = t / 768.0f;
+						pcolor = 0xff00;
+					} else if (t < 512) {
+						t -= 256;
+						opc = 0.3333f;
+						pcolor = 0xff00 + (t << 16);
+					} else {
+						t -= 512;
+						opc = 0.3333f;
+						pcolor = 0xffff00 - (t << 8);
+					}
+					for (int jj = 0; jj < 8; jj++) {
+						for (int ii = 0; ii < 8; ii++) {
+							fb[(j+jj)*xr + i + ii] = blend(pcolor, fb[(j+jj)*xr + i + ii], opc);
+						}
+					}
+				}
+				next_id = task2++;
 			}
 			t += xStride;
 		}
@@ -1243,6 +1283,8 @@ Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
 void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index, InterlockedInt&)
 {
 	prof_enter(PROF_RENDER_VOXEL);
+	task1 = 0;
+	task2 = 0;
 	voxel_light_recalc(thread_index);
 	if (voxel_rendering_method) {
 		voxel_single_frame_do2(fb, thread_index, tt, ti, tti);
