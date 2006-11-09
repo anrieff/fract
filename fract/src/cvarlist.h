@@ -32,6 +32,7 @@ DECLARE_VARIABLE(double, brightness  , 1.0  , "final image brightness");
 DECLARE_VARIABLE(int,    v_ores      , 16   , "voxel outer image sampling size");
 DECLARE_VARIABLE(double, v_ires      , 0.5  , "voxel inner image sampling multiplier");
 DECLARE_VARIABLE(bool,   v_showspeed , false, "show processing time for each sub-block");
+DECLARE_VARIABLE(int,    v_maxdiff   , 10   , "threshold for corners' colors difference");
 DECLARE_VARIABLE(int,    shadow_algo , 0    , "0 - raster shadow algo, 1 - raytracing");
 DECLARE_VARIABLE(int,    shadowquality,  1  , "shadow quality selector");
 DECLARE_VARIABLE(int,    lmsize,       0    , "light map size");

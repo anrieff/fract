@@ -943,10 +943,10 @@ static inline bool too_much_color_difference(Uint32 * colors)
 	};
 	for (int i = 0 ; i < 3 ; i++) {
 		int avg = (2 + decomposed[0][i] + decomposed[1][i] + decomposed[2][i] + decomposed[3][i]) / 4;
-		if (iabs(decomposed[0][i]-avg) > MAX_COLOR_DIFF) return true;
-		if (iabs(decomposed[1][i]-avg) > MAX_COLOR_DIFF) return true;
-		if (iabs(decomposed[2][i]-avg) > MAX_COLOR_DIFF) return true;
-		if (iabs(decomposed[3][i]-avg) > MAX_COLOR_DIFF) return true;
+		if (iabs(decomposed[0][i]-avg) > CVars::v_maxdiff) return true;
+		if (iabs(decomposed[1][i]-avg) > CVars::v_maxdiff) return true;
+		if (iabs(decomposed[2][i]-avg) > CVars::v_maxdiff) return true;
+		if (iabs(decomposed[3][i]-avg) > CVars::v_maxdiff) return true;
 	}
 	return false;
 }
@@ -1023,9 +1023,6 @@ void subdivide(Uint32 * blockPtr, const Vector & base, int x, int y, int size, i
 					step_interpolate(cx1y0, ri);
 				}
 			} else {
-				for (int j = 0; j < size; j++)
-					for (int i = 0; i < size; i++)
-						blockPtr[j*vox_xr+i] = color[0];
 			}
 		}
 	}
@@ -1097,6 +1094,252 @@ bool needs_bruteforce(Uint32 * blockPtr, const Vector & base, int x, int y, int 
 
 static InterlockedInt task1, task2;
 
+struct PixelInfo {
+	float depth;
+	Uint32 color;
+	float u, v;
+	int vox_num;
+};
+
+/*
+void castray(const Vector & p, Uint32 & color, float & depth, int k)
+{
+	Vector cross;
+ 	depth = vox[k].hierarchy.ray_intersect(cur, p, cross);
+	if (depth < 10000.0) {
+		if (cross[0] < 0.0 || cross[0] > vox[k].size-1 || cross[2] < 0.0 || cross[2] > vox[k].size) {
+			color = 0;
+			return;
+}
+		int xx = (int) (cross[0]*65536.0);
+		int yy = (int) (cross[2]*65536.0);
+		int index = ((yy>>16)*vox[k].size + (xx>>16));
+		if (shooting) {
+			vox[k].texture[index] = shootcolr;
+}
+		color = bilinea_p5(
+				vox[k].texture[index],
+				vox[k].texture[index+1],
+				vox[k].texture[index+vox[k].size],
+				vox[k].texture[index+vox[k].size + 1],
+				xx & 0xffff, yy & 0xffff);
+} else {
+		color = 0;
+}
+}
+*/
+
+void pixel_get_info(const Vector & t, PixelInfo &pinfo)
+{
+	Vector temp;
+	if (pinfo.vox_num == -1) {
+		Vector t1, t2;
+		pinfo.depth = vox[0].hierarchy.ray_intersect(cur, t, t1);
+		float td    = vox[1].hierarchy.ray_intersect(cur, t, t2);
+		if (td < pinfo.depth) {
+			pinfo.depth = td;
+			temp = t2;
+			pinfo.vox_num = 1;
+		} else if (pinfo.depth < 1e6) {
+			temp = t1;
+			pinfo.vox_num = 0;
+		}
+	} else {
+		pinfo.depth = vox[pinfo.vox_num].hierarchy.ray_intersect(cur, t, temp);
+	}
+	pinfo.color = 0;
+	if (pinfo.depth < 1e6) {
+		pinfo.u = temp[0];
+		pinfo.v = temp[2];
+		int n = vox[pinfo.vox_num].size;
+		if (pinfo.u >= 0 && pinfo.u < n - 1 &&
+		    pinfo.v >= 0 && pinfo.v < n - 1)
+		{
+			Uint32* base = &vox[pinfo.vox_num].texture[(((int)pinfo.v) * n) + ((int) pinfo.u)];
+			int xx = (int) (65536.0 * (pinfo.u - floor(pinfo.u)));
+			int yy = (int) (65536.0 * (pinfo.v - floor(pinfo.v)));
+			pinfo.color = bilinea_p5(base[0], base[1], base[n], base[1+n], xx, yy);
+		}
+	}
+}
+
+bool needs_bruteforce(int x, int y, const Vector& base, PixelInfo *pinfo, int size)
+{
+	bool needs = false;
+	int vox_num = -1;
+	for (int i = 0; i < 4; i++) {
+		if (pinfo[i].vox_num != -1) {
+			if (vox_num == -1)
+				vox_num = pinfo[i].vox_num;
+			else
+				if (vox_num != pinfo[i].vox_num) {
+					needs = true;
+					break;
+				}
+		}
+	}
+	if (needs) {
+		for (int j = 0; j < size; j++) if (j + y < vox_yr) {
+			Vector ybase = base + gtti * j;
+			for (int i = 0; i < size; i++) if (i + x < vox_xr) {
+				PixelInfo pi;
+				pi.vox_num = -1;
+				pixel_get_info(ybase + gti * i, pi);
+				voxfb[(y+j) * vox_xr + x+i] = pi.color;
+			}
+		}
+	}
+	return needs;
+}
+
+void subdivide(int x, int y, const Vector & base, PixelInfo *pinfo, int size)
+{
+	if (size <= 2) {
+		for (int j = 0; j < 2; j++) if (y + j < vox_yr) {
+			for (int i = 0; i < 2; i++) if (x + i < vox_xr) {
+				PixelInfo p;
+				if (i == 0 && j == 0) {
+					p = pinfo[0];
+				} else {
+					Vector t = base;
+					if (i ) t += gti;
+					if (j ) t += gtti;
+					pixel_get_info(t, p);
+				}
+				voxfb[(y + j) * vox_xr + (x + i)] = p.color;
+				//voxfb[(y + j) * vox_xr + (x + i)] = 0xff0000;
+			}
+		}
+		return ;
+	}
+	int vox_num = -1;
+	bool needs_subdivide = false;
+	for (int i = 0; i < 4; i++) {
+		if (pinfo[i].vox_num != -1) {
+			vox_num = pinfo[i].vox_num;
+		} else {
+			needs_subdivide = true;
+		}
+	}
+	if (vox_num == -1) {
+		// just black square
+		for (int j = 0; j < size; j++) if (y + j < vox_yr) {
+			for (int i = 0; i < size; i++) if (x + i < vox_xr) {
+				voxfb[(y + j) * vox_xr + (x + i)] = 0;
+			}
+		}
+		return;
+	}
+	
+	if (!needs_subdivide) {
+		float adapt, davg = 0.0f;
+		float noninfsum = 0.0f, noninfdiv = 0.0f;
+		for (int i = 0; i < 4; i++) {
+			davg += pinfo[i].depth;
+			if (pinfo[i].depth < 10000) {
+				noninfsum += pinfo[i].depth;
+				noninfdiv += 1.0f;
+			}
+		}
+		davg *= 0.25f;
+		if (noninfdiv==0.0f) adapt = 9999;
+			else adapt = noninfsum / noninfdiv / 10.0;
+			
+		if (fabs(pinfo[0].depth - davg) > adapt || 
+		    fabs(pinfo[1].depth - davg) > adapt || 
+		    fabs(pinfo[2].depth - davg) > adapt || 
+		    fabs(pinfo[3].depth - davg) > adapt) {
+			needs_subdivide = true;
+		}
+		
+		/*
+		float rcp_avg_depth = 4.0f / (pinfo[0].depth + pinfo[1].depth + pinfo[2].depth + pinfo[3].depth);
+		for (int i = 0; i < 4; i++) {
+			float t = pinfo[i].depth * rcp_avg_depth;
+			if (t < 0.95f || t > 1.05f) {
+				needs_subdivide = true;
+				break;
+			}
+		}
+		*/
+		if (!needs_subdivide) {
+		
+			Uint32 colors[4];
+			for (int i = 0; i < 4; i++) {
+				colors[i] = pinfo[i].color;
+			}
+			needs_subdivide = too_much_color_difference(colors);
+		}
+	}
+	
+	if (needs_subdivide) {
+		int sz2 = size / 2;
+		PixelInfo new_pixels[5];
+		Vector vecs[5];
+		for (int i = 0; i < 5; i++) {
+			new_pixels[i].vox_num = vox_num;
+			vecs[i] = base;
+			if (i % 2 == 0) vecs[i] += gti * sz2;
+			if (i > 0) vecs[i] += gtti * sz2;
+		}
+		vecs[3] += gti * size;
+		vecs[4] += gtti * sz2;
+		for (int i = 0; i < 5; i++) {
+			pixel_get_info(vecs[i], new_pixels[i]);
+		}
+		PixelInfo divs[4][4] = {
+			{ pinfo[0], new_pixels[0], new_pixels[1], new_pixels[2] },
+			{ new_pixels[0], pinfo[1], new_pixels[2], new_pixels[3] },
+			{ new_pixels[1], new_pixels[2], pinfo[2], new_pixels[4] },
+			{ new_pixels[2], new_pixels[3], new_pixels[4], pinfo[3] },
+		};
+		subdivide(x      , y      , base,    divs[0], sz2);
+		subdivide(x + sz2, y      , vecs[0], divs[1], sz2);
+		subdivide(x      , y + sz2, vecs[1], divs[2], sz2);
+		subdivide(x + sz2, y + sz2, vecs[2], divs[3], sz2);
+	} else {
+		/*
+		Uint32 color = 0xff;
+		if (size == 8) color = 0xff00;
+		if (size == 4) color = 0xffff00;
+		for (int j = 0; j < size; j++) if (y + j < vox_yr) {
+			for (int i = 0; i < size; i++) if (x + i < vox_xr) {
+				voxfb[(j + y) * vox_xr + (i + x)] = color;
+			}
+		}
+		*/
+		if (CVars::bilinear) {
+			float scaler = 1.0f / size;
+			int n = vox[vox_num].size;
+			vec2f lhs(pinfo[0].u, pinfo[0].v), lhi(pinfo[2].u, pinfo[2].v);
+			vec2f rhs(pinfo[1].u, pinfo[1].v), rhi(pinfo[3].u, pinfo[3].v);
+			lhi -= lhs;
+			rhi -= rhs;
+			lhi.scale(scaler);
+			rhi.scale(scaler);
+			for (int j = 0; j < size; j++, lhs += lhi, rhs += rhi) if (y + j < vox_yr) {
+				vec2f v = lhs;
+				vec2f vi = rhs - lhs; vi.scale(scaler);
+				for (int i = 0; i < size; i++, v += vi) if ( x + i < vox_xr) {
+					if (v[0] >= 0 && v[0] < n - 1 && v[1] >= 0 && v[1] < n - 1) {
+						Uint32 *base = &vox[vox_num].texture[(((int)v[1]) * n) + ((int) v[0])];
+						int xx = (int) (65536.0 * (v[0] - floor(v[0])));
+						int yy = (int) (65536.0 * (v[1] - floor(v[1])));
+						voxfb[(j + y) * vox_xr + i + x] =
+							bilinea_p5(base[0], base[1], base[n], base[1+n], xx, yy);
+					}
+				}
+			}
+		} else {
+			for (int j = 0; j < size; j++) if (y + j < vox_yr) {
+				for (int i = 0; i < size; i++) if (x + i < vox_xr) {
+					voxfb[(y + j) * vox_xr + (x + i)] = pinfo[0].color;
+				}
+			}
+		}
+	}
+}
+
 void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & ti, Vector & tti)
 {
 #ifdef __MINGW32__
@@ -1151,71 +1394,31 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	return;
 	/***/
 #endif
-	//memset(fb, 0, xr*yr*4);
-	//for (int i = 0; i < xr*yr; i++)
-	//	zbuffer[i] = -1.0f;
 	long long blockstart = 0;
+	int blocksize = 8;
 
-	prof_enter(PROF_BUFFER_CLEAR);
-	multithreaded_memset(fb, 0, xr*yr, thread_index, cpu.count);
-	union {
-		float minus_one;
-		unsigned pattern; 
-	} uni;
-		
-	uni.minus_one = -1.0f;
-	multithreaded_memset(zbuffer, uni.pattern, xr*yr, thread_index, cpu.count);
-	Vector xStride = ti * 8.0f,
-	       yStride = tti* 8.0f;
+	Vector xStride = ti * blocksize,
+	       yStride = tti* blocksize;
 	Vector walky(tt);
-	bar.checkout();
-	prof_leave(PROF_BUFFER_CLEAR);
-	prof_enter(PROF_ADDRESS_GENERATE);
-	// precalculate the big grid
-	
+	prof_enter(PROF_STAGE1);
 	int all_rays = 0;
 	int next_id = task1++;
-	for (int j = 0; j < yr; j+=8) {
+	for (int j = 0; j < yr; j+=blocksize) {
 		Vector t(walky);
-		for (int i = 0; i < xr; i+=8, all_rays++) {
+		for (int i = 0; i < xr; i+=blocksize, all_rays++) {
 			if (all_rays == next_id) {
-				shootcolr = shootcolrs[(i/8)%4];
-				float bray = 1e10;
-				for (int k = 0; k < NUM_VOXELS; k++) {
-					//castray(t, fb[j*xr+i], zbuffer[j*xr+i], k);
-					float temp;
-					Uint32 tc;
-					castray(t, tc, temp, k);
-					if (tc && temp < bray) {
-						bray = temp;
-						fb[j*xr+i] = tc | (k << 24);
-					}
-				}
-				zbuffer[j * xr + i] = bray;
-				next_id = task1++;
-			}
-			t += xStride;
-		}
-		walky += yStride;
-	}
-	precalculation.checkout();
-	prof_leave(PROF_ADDRESS_GENERATE);
-	all_rays = 0;
-	shooting = false;
-	walky = tt;
-	// do the raytracing
-	prof_enter(PROF_STAGE1);
-	next_id = task2++;
-	for (int j = 0; j < yr; j+=8) {
-		Vector t(walky);
-		for (int i = 0; i < xr; i+=8, all_rays++) {
-			if (all_rays == next_id) {
-			//if (all_rays % cpu.count == thread_index) {
-			//if ((j/8) % cpu.count == thread_index) {
 				if (CVars::v_showspeed)
 					blockstart = prof_rdtsc();
-				if (!needs_bruteforce(fb + j*xr + i, t, i, j, 8)) {
-					subdivide(fb + j*xr + i, t, i, j, 8, fb[j * xr + i] >> 24);
+				PixelInfo pinfo[4];
+				for (int y = 0; y < 4; y++) {
+					pinfo[y].vox_num = -1;
+					Vector temp = t;
+					if (y & 1) temp += xStride;
+					if (y & 2) temp += yStride;
+					pixel_get_info(temp, pinfo[y]);
+				}
+				if (!needs_bruteforce(i, j, t, pinfo, blocksize)) {
+					subdivide(i, j, t, pinfo, blocksize);
 				}
 				if (CVars::v_showspeed) {
 					const int max_block_time = 180000;
@@ -1239,13 +1442,14 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 						opc = 0.3333f;
 						pcolor = 0xffff00 - (t << 8);
 					}
-					for (int jj = 0; jj < 8; jj++) {
-						for (int ii = 0; ii < 8; ii++) {
+					for (int jj = 0; jj < blocksize; jj++) {
+						for (int ii = 0; ii < blocksize; ii++) {
 							fb[(j+jj)*xr + i + ii] = blend(pcolor, fb[(j+jj)*xr + i + ii], opc);
 						}
 					}
 				}
-				next_id = task2++;
+
+				next_id = task1++;
 			}
 			t += xStride;
 		}
