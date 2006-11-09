@@ -62,7 +62,7 @@
 */
 /* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
 
-#define SCALE v[0]*=scale,v[1]*=scale,v[2]*=scale
+#define SCALE2 v[0]*=scale,v[1]*=scale
 class vec2f {
 public:
 	float v[2];
@@ -152,7 +152,7 @@ inline void vec2f::macc(const vec2f & start, const vec2f & ray, float scale)
 inline void vec2f::norm()
 {
 	float scale = 1.0f/sqrtf(v[0]*v[0]+v[1]*v[1]);
-	SCALE;
+	SCALE2;
 }
 
 inline void vec2f::zero()
@@ -163,7 +163,7 @@ inline void vec2f::zero()
 
 inline vec2f & vec2f::scale(float scale)
 {
-	SCALE;
+	SCALE2;
 	return *this;
 }
 
@@ -192,7 +192,7 @@ inline void vec2f::add3(const vec2f & x, const vec2f & y, const vec2f & z)
 inline void vec2f::make_length(float new_length)
 {
 	float scale = new_length/sqrtf(v[0]*v[0]+v[1]*v[1]);
-	SCALE;
+	SCALE2;
 }
 
 inline const vec2f  vec2f::operator + (const vec2f & r) const
