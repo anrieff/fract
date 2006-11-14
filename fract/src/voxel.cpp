@@ -18,6 +18,7 @@
 #include "antialias.h"
 #include "bitmap.h"
 #include "memory.h"
+#include "cmdline.h"
 #include "cpu.h"
 #include "cvars.h"
 #include "fract.h"
@@ -45,13 +46,13 @@ info_t vxInput[NUM_VOXELS] = {
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 	
 //FOR RADIOSITY:
-//	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
-//	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
+	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
+	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
 
 
 //NORMAL
-	{ "data/down.fda", "data/rad_down.bmp", 0, 0.50, 1},
-	{ "data/up.fda", "data/rad_up.bmp", 100, 0.50, 0},
+//	{ "data/down.fda", "data/rad_down.bmp", 0, 0.50, 1},
+//	{ "data/up.fda", "data/rad_up.bmp", 100, 0.50, 0},
 
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 };
@@ -146,6 +147,27 @@ static inline double filter4(unsigned x, unsigned y, float x0y0, float x1y0, flo
 	)*0.0000152587890625; // divide by 65536.0
 }
 
+static void create_loft(float * fmap, Uint32 *cmap, int n, vec2f center)
+{
+	vec2f mc(n/2.0f, n/2.0f);
+	vec2f d1 = mc - center; d1.norm();
+	for (int j = 0; j < n; j++) {
+		for (int i = 0; i < n; i++) {
+			vec2f v(i, j);
+			vec2f d2 = v - center;
+			if (d2.length() > 0) d2.norm();
+			float eff_radius = 55.0f + 20.0f * (d1 * d2);
+			float f = v.distto(center);
+			if (f < eff_radius) {
+				f /= eff_radius; f = 1.0f - f;
+				f = sin(f * M_PI / 2.0f);
+				fmap[j*n+i] += f * 240.0f;
+				cmap[j*n+i] = multiplycolorf(cmap[j*n+i], 1.0f-f*0.75f);
+			}
+		}
+	}
+}
+
 int voxel_init(void) //returns 0 on success, 1 on failure
 {
 	int k, i;
@@ -193,8 +215,15 @@ int voxel_init(void) //returns 0 on success, 1 on failure
 			return 1;
 		}
 		memcpy(vox[k].heightmap, a.get_data(), b.get_size()*sizeof(float));
-		///HACK:
-		//memset(vox[k].heightmap, 0, b.get_size()*sizeof(float));
+		
+		if (option_exists("--loft") && k == 1) {
+			create_loft(vox[k].heightmap, vox[k].texture, vox[k].size, vec2f(182, 382));
+		}
+		
+		if (!option_exists("--nosmooth") && !option_exists("--no-smooth")) {
+			blur_array_2d(vox[k].heightmap, vox[k].size, 5);
+		}
+		
 		double med_val = 0.0;
 		for (i=0;i<a.get_size();i++) {
 			med_val += (vox[k].heightmap[i] = vox[k].yoffs + vox[k].heightmap[i]*vxInput[k].scale);
@@ -1345,6 +1374,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 #ifdef __MINGW32__
 #warning this function triggers an error, please fix it!
 #else
+	static PixelInfo precalc_pi[(RES_MAXX/8+1) * (RES_MAXY/8+1)];
 	int xr = xsize_render(xres());
 	int yr = ysize_render(yres());
 	gti = ti;
@@ -1397,28 +1427,43 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	long long blockstart = 0;
 	int blocksize = 8;
 
-	Vector xStride = ti * blocksize,
-	       yStride = tti* blocksize;
-	Vector walky(tt);
+	Vector xStride = ti * blocksize, yStride = tti* blocksize;
+
 	prof_enter(PROF_STAGE1);
+	int n = (yr-1) / blocksize + 2;
+	int m = (xr-1) / blocksize + 2;
+	
+	int j = 0;
+	while ((j = task1++) < n) {
+		Vector t = tt + yStride * j;
+		for (int i = 0; i < m; i++, t += xStride) {
+			PixelInfo &p = precalc_pi[i + j * m];
+			p.vox_num = -1;
+			pixel_get_info(t, p);
+		}
+	}
+	
+
+	precalculation.checkout();
+	prof_leave(PROF_STAGE1);
+	prof_enter(PROF_STAGE2);
+	Vector walky(tt);
 	int all_rays = 0;
-	int next_id = task1++;
-	for (int j = 0; j < yr; j+=blocksize) {
+	int next_id = task2++;
+	for (int j = 0; j < n - 1; j++) {
 		Vector t(walky);
-		for (int i = 0; i < xr; i+=blocksize, all_rays++) {
+		for (int i = 0; i < m - 1; i++, all_rays++) {
 			if (all_rays == next_id) {
 				if (CVars::v_showspeed)
 					blockstart = prof_rdtsc();
-				PixelInfo pinfo[4];
-				for (int y = 0; y < 4; y++) {
-					pinfo[y].vox_num = -1;
-					Vector temp = t;
-					if (y & 1) temp += xStride;
-					if (y & 2) temp += yStride;
-					pixel_get_info(temp, pinfo[y]);
-				}
-				if (!needs_bruteforce(i, j, t, pinfo, blocksize)) {
-					subdivide(i, j, t, pinfo, blocksize);
+				PixelInfo pinfo[4] = {
+					precalc_pi[(j  ) * m + (i  )],
+					precalc_pi[(j  ) * m + (i+1)],
+					precalc_pi[(j+1) * m + (i  )],
+					precalc_pi[(j+1) * m + (i+1)]
+				};
+				if (!needs_bruteforce(i*blocksize, j*blocksize, t, pinfo, blocksize)) {
+					subdivide(i*blocksize, j*blocksize, t, pinfo, blocksize);
 				}
 				if (CVars::v_showspeed) {
 					const int max_block_time = 180000;
@@ -1444,18 +1489,23 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 					}
 					for (int jj = 0; jj < blocksize; jj++) {
 						for (int ii = 0; ii < blocksize; ii++) {
-							fb[(j+jj)*xr + i + ii] = blend(pcolor, fb[(j+jj)*xr + i + ii], opc);
+							fb[(j*blocksize+jj)*xr + i*blocksize + ii] = 
+									blend(
+										pcolor, 
+										fb[(j*blocksize+jj)*xr + i*blocksize + ii], 
+										opc
+									);
 						}
 					}
 				}
 
-				next_id = task1++;
+				next_id = task2++;
 			}
 			t += xStride;
 		}
 		walky += yStride;
 	}
-	prof_leave(PROF_STAGE1);
+	prof_leave(PROF_STAGE2);
 #endif // __MINGW32__
 }
 

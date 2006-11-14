@@ -16,9 +16,9 @@
 SceneType=TimeBased
 
 # Light source coordinates:
-Light.x=200.00000
-Light.y=100.00000
-Light.z=200.00000
+Light.x=182.00000
+Light.y=280.00000
+Light.z=382.00000
 
 # User position information:
 User.x=92
@@ -48,11 +48,10 @@ fov=1.000000
 # rendered results are written out as `rad_down.bmp' and `rad_up.bmp'
 
 # Number of samples per voxel : The more samples, the more quality
-rad_spv=10000
+rad_spv=8000
 
 # Radiosity amplification (more amplification = more pronounced radiosity)
-rad_amplification=14.0
-#rad_amplification=24.0
+rad_amplification=30.0
 
 # Attribution of indirect lighting to all lighting; 0 is only direct lighting, 1 is only indirect
 rad_indirect_coeff=0.50
@@ -81,6 +80,20 @@ default_font="data/font1.bmp"
 #
 
 spherecount=0
+
+#Sphere[0].x=182.00000
+#Sphere[0].y=280.00000
+#Sphere[0].z=382.00000
+#Sphere[0].xi=0.00000
+#Sphere[0].yi=0.00000
+#Sphere[0].zi=0.00000
+#Sphere[0].d=2.00000
+#Sphere[0].mass=1.00000
+#Sphere[0].refl=0.30000
+#Sphere[0].r=255
+#Sphere[0].g=0
+#Sphere[0].b=239
+
 
 # the coordinates
 coords=(

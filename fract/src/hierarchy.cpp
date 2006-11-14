@@ -186,4 +186,87 @@ float Hierarchy::ray_intersect(const Vector & orig, const Vector & proj, Vector 
 	return 1e9;
 }
 
+static bool pred_less(float a, float b) { return a < b; }
+static bool pred_more(float a, float b) { return a > b; }
 
+float Hierarchy::ray_intersect_exact(const Vector & orig, const Vector & proj, Vector & crossing)
+{
+	bool (*pred)(float, float) = is_floor ? pred_less : pred_more;
+	bool coords_inited = false;
+	int X, Z, stepX, stepZ;
+	float tMaxX, tMaxZ, tDeltaX, tDeltaZ, last;
+	float cdist;
+	Vector Camera; // camera is where the first point above the heightfield is
+	/* check whether we are "below" the terrain */
+	if (INRANGE(orig)) {
+		coords_inited = true;
+		Camera = orig;
+		X = (int) orig[0];
+		Z = (int) orig[2];
+		if (is_floor) {
+			if (getheight_bilinear(orig.v[0], orig.v[2]) >= orig.v[1])
+				return 1e9;
+		} else {
+			if (getheight_bilinear(orig.v[0], orig.v[2]) <= orig.v[1])
+				return 1e9;
+		}
+	} else {
+		X = Z = 0; // make gcc happy
+	}
+	/* traversal vector in diff */
+	Vector diff;
+	diff.make_vector(proj, orig);
+	// precalculate stuff...
+	float rcpdiff0 = 1.0f / diff[0], rcpdiff2 = 1.0f / diff[2];
+	/* If we're outside the grid, find where we enter it */
+	if (!coords_inited) {
+		float p[4];
+		p[0] =       - orig[0]  * rcpdiff0;
+		p[1] = (size - orig[0]) * rcpdiff0;
+		p[2] =       - orig[2]  * rcpdiff2;
+		p[3] = (size - orig[2]) * rcpdiff2;
+		float best = 1e9;
+		for (int i = 0; i < 4; i++)
+			if (p[i] > 0 && p[i] < best) best = p[i];
+		if (best > 1e6)
+			return 1e9;
+		Camera.macc(orig, diff, best);
+		X = (int) Camera[0];
+		Z = (int) Camera[2];
+	}
+// prepare our OUTER loop
+	stepX = diff[0]>0?+1:-1;
+	stepZ = diff[2]>0?+1:-1;
+	tMaxX = (((stepX+1)>>1)+X-Camera[0])*rcpdiff0;
+	tMaxZ = (((stepZ+1)>>1)+Z-Camera[2])*rcpdiff2;
+	tDeltaX = fabsf(rcpdiff0);
+	tDeltaZ = fabsf(rcpdiff2);
+	float Yi = Camera[1];
+	float Y = Yi, diff1 = diff[1];
+	cdist = 0;
+	while ((X & ~(size-1)) == 0 && (Z & ~(size-1)) == 0) {
+		if (pred(Y, (last=field[X + (Z * size)]))) {
+			// found solution
+			crossing = Vector(X, last, Z);
+			return orig.distto(crossing);
+		}
+		if (tMaxX < tMaxZ) {
+			Y = Yi + tMaxX * diff1;
+			if (pred(Y, last)) {
+				crossing = Vector(X, last, Z);
+				return orig.distto(crossing);
+			}
+			tMaxX += tDeltaX;
+			X += stepX;
+		} else {
+			Y = Yi + tMaxZ * diff1;
+			if (pred(Y, last)) {
+				crossing = Vector(X, last, Z);
+				return orig.distto(crossing);
+			}
+			tMaxZ += tDeltaZ;
+			Z += stepZ;
+		}
+	}
+	return 1e9;
+}

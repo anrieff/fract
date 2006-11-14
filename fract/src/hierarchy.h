@@ -63,7 +63,18 @@ class Hierarchy {
 	int size;
 	int slog, s; //log2(size)
 	bool is_floor;
-
+	
+	float getheight_bilinear(float x, float y)
+	{
+		float fx = modff(x, &x);
+		float fy = modff(y, &y);
+		int base = (int) y * size + (int) x;
+		return
+				field[base		] * (1.0f - fx) * (1.0f - fy) +
+				field[base	+ 1	] * (       fx) * (1.0f - fy) +
+				field[base	+ size	] * (1.0f - fx) * (       fy) +
+				field[base	+ size+1] * (       fx) * (       fy);
+	}
 public:
 	Hierarchy(){
 		size = slog = 0;
@@ -105,6 +116,10 @@ public:
 
 	float ray_intersect(const Vector & orig, const Vector & proj, Vector & crossing);
 
+	
+	/// Slow, but accurate version of the above function
+	/// (forgets all speed hacks and returns results always to be trusted)
+	float ray_intersect_exact(const Vector & orig, const Vector & proj, Vector & crossing);
 };
 
 #endif //__HIERARCHY_H__

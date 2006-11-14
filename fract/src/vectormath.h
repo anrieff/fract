@@ -62,6 +62,19 @@ void switch_gravity(void);
 void vectormath_close(void);
 
 /**
+ * perpendicular - returns a vector, orthogonal to @p v
+ * @note - since there are infinitely many such vectors, the returned one is
+ *         constrained to have two of its components being 0 and 1, respectively
+ * @note - another (distinct) orthogonal vector might be obtained using
+ *         Vector ortho2 = v ^ perpendicular(v);
+ * 
+ * @param v - the vector, which perpendicular is being asked
+ * @returns null if v is null
+ *          a orthogonal vector to v, otherwise
+ */ 
+Vector perpendicular(const Vector &v);
+
+/**
  * convex_hull
  * @brief	Performs a 2D convex hull, using Graham scan (O (N * logN) runtime)
  * @author	Veselin Georgiev

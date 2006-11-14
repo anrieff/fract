@@ -16,6 +16,7 @@
 #include "MyGlobal.h"
 #include "MyTypes.h"
 #include "memory.h"
+#include "shaders.h"
 
 #define imin(a,b) ((a)<(b)?(a):(b))
 #define imax(a,b) ((a)>(b)?(a):(b))
@@ -374,5 +375,40 @@ public:
 		return xdata[index];
 	}
 };
+
+template <typename T>
+void blur_array_2d(T* array, int n, int blur_size)
+{
+	T *result = new T [n*n];
+	ConvolveMatrix m;
+	switch (blur_size) {
+		case 3: m = blur_ma3x_3; break;
+		case 5: m = blur_ma3x_5; break;
+		default:
+			return;
+	}
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			T res = 0;
+			int sum = 0;
+			for (int q = 0; q < m.n; q++) {
+				for (int w = 0; w < m.n; w++) {
+					int ii = i + q - m.n/2;
+					int jj = j + w - m.n/2;
+					if (ii >= 0 && ii < n && jj >= 0 && jj < n) {
+						T pick = array[ii *n + jj];
+						res += pick * (float) m.coeff[q][w];
+						sum += m.coeff[q][w];
+					}
+				}
+			}
+			result[i*n+j] = res * (1.0f / sum);
+		}
+	}
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+			array[i*n+j] = result[i*n+j];
+	delete [] result;
+}
 
 #endif // __COMMON_H__

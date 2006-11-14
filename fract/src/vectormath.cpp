@@ -915,9 +915,34 @@ Array<vec2f> convex_hull(Array<vec2f> input)
 	return ret;
 }
 
+
+Vector perpendicular(const Vector &v)
+{
+	int max_compo = -1;
+	double max_value = 0.0;
+	
+	for (int i = 0; i < 3; i++) {
+		double t = fabs(v[i]);
+		if (t > max_value) {
+			max_value = t;
+			max_compo = i;
+		}
+	}
+	switch (max_compo) {
+		case  0: return Vector(-(v * Vector(0,1,0))/v[0], 1, 0);
+		case  1: return Vector(0, -(v * Vector(0,0,1))/v[1], 1);
+		case  2: return Vector(0, 1, -(v * Vector(0,1,0))/v[2]);
+		case -1:
+		default:
+			return Vector(0,0,0);
+	}
+}
+
 ////////////////////////
 
 void vectormath_close(void)
 {
  //printf("diffuse: %.2lf, specular: %.2lf\n", diffuse, specular);
 }
+
+
