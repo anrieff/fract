@@ -346,7 +346,10 @@ public:
 	{
 		float material_lightout = rad_stone_lightout, material_specular = rad_stone_specular;
 		float accepted_thresh = 1.0f / 2048.f / rad_spv;
-		reflectance_normal.norm();
+		if (reflectance_normal.length() > 0)
+			reflectance_normal.norm();
+		else
+			reflectance_normal = normals[k][i*n+j];
 		
 		Vector pos = Vector(j + 0.5, vox[k].heightmap[i *n + j], i + 0.5);
 		if (pos[1] < waterlevel) 
