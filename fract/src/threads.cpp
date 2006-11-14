@@ -170,6 +170,8 @@ Barrier::Barrier(void)
 
 Barrier::Barrier(int cpu_count)
 {
+	pthread_mutex_init(&m, NULL);
+	pthread_cond_init(&c, NULL);
 	set_threads(cpu_count);
 }
 
