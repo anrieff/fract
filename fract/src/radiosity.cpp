@@ -94,14 +94,54 @@ struct HDRColor {
 };
 
 
-
-struct RadiosityRecord {
-	HDRColor *dest;
-	HDRColor add;
-	
-	RadiosityRecord(){}
-	RadiosityRecord(HDRColor *col, const HDRColor& addage) : dest(col), add(addage) {}
+template <class T>
+struct JournalRecord {
+	T *dest;
+	T add;
+	JournalRecord(){}
+	JournalRecord(T *dst, const T& addage) : dest(dst), add(addage) {}
 };
+
+template <class T>
+struct Journal {
+	JournalRecord<T>* data;
+	int m, maxcap;
+	
+	Journal()
+	{
+		data = NULL;
+		m = 0;
+	}
+	
+	void alloc(size_t num)
+	{
+		maxcap = num;
+		data = new JournalRecord<T>[num];
+		memset(data, 0, sizeof(T) * num);
+	}
+	
+	~Journal()
+	{
+		if (data) delete [] data;
+		data = NULL;
+	}
+	
+	inline void add(T *dst, const T& addage) 
+	{ 
+		data[m++] = JournalRecord<T>(dst, addage); 
+		assert(m < maxcap);
+	}
+	void reset(void) { m = 0;}
+	void write(void)
+	{
+		for (int i = 0; i < m; i++) {
+			*(data[i].dest) += data[i].add;
+		}
+	}
+};
+
+typedef Journal<HDRColor> ColorJournal;
+typedef Journal<Vector> VectorJournal;
 
 const int passes = 4;
 
@@ -114,10 +154,13 @@ class RadiosityCalculation : public Parallel {
 	HDRColor *up, *down;
 	HDRColor *rmaps[2][2];
 	HDRColor **drmap;
+	Vector *vmaps[2][2];
+	Vector **dvmap;
 	Vector *normals[2];
 	int n, size_per_thread;
 	
-	RadiosityRecord * records;
+	Journal<HDRColor> * col_journals;
+	Journal<Vector> * vec_journals;
 	Barrier *barriers;
 	
 	InterlockedInt pixels_traced;
@@ -132,12 +175,23 @@ public:
 		n = vox[0].size;
 		down = new HDRColor[n * n];
 		up   = new HDRColor[n * n];
-		for (int i = 0; i < 2; i++)
-			for (int j = 0; j < 2; j++)
+		for (int i = 0; i < 2; i++) {
+			for (int j = 0; j < 2; j++) {
 				rmaps[i][j] = new HDRColor[n*n];
+				vmaps[i][j] = new Vector[n*n];
+				memset(vmaps[i][j], 0, n*n*sizeof(Vector));
+			}
+		}
 		ui = 0; di = 0;
-		size_per_thread = (15 + rad_spv * 2) * n;
-		records = new RadiosityRecord[size_per_thread*allcpus];
+		size_per_thread = (2 + rad_spv * 2) * n;
+		//records = new RadiosityRecord[size_per_thread*allcpus];
+		col_journals = new Journal<HDRColor> [allcpus];
+		for (int i = 0; i < allcpus; i++) 
+			col_journals[i].alloc(size_per_thread);
+		vec_journals = new Journal<Vector>   [allcpus];
+		for (int i = 0; i < allcpus; i++) {
+			vec_journals[i].alloc((rad_spv+2)*n);
+		}
 		waterlevel = voxel_get_waterlevel();
 		
 		normals[0] = new Vector[n*n];
@@ -151,12 +205,17 @@ public:
 					Vector nor1 = calc_normal(ii, jj, k, 2);
 					Vector normal = nor0 + nor1; normal.norm();
 					if (k == 1) normal.scale(-1.0);
+					if (k == 0 && vox[0].heightmap[i*n+j] < waterlevel)
+						normal = Vector(0,1,0);
 					normals[k][j*n+i] = normal;
 				}
 			}
 		}
-		barriers = new Barrier[passes*2](allcpus);
+		barriers = new Barrier[passes*2];
+		for (int i = 0; i < passes * 2; i++)
+			barriers[i].set_threads(allcpus);
 		drmap = rmaps[0];
+		dvmap = vmaps[0];
 	}
 	
 	Vector calc_normal(int i, int j, int k, int izb)
@@ -177,9 +236,8 @@ public:
 		return n;
 	}
 	
-	int process_voxel(int i, int j, int k, RadiosityRecord *rec)
+	void process_voxel(int i, int j, int k, ColorJournal &rec, VectorJournal &vec)
 	{
-		int m = 0;
 		float material_lightout = rad_stone_lightout, material_specular = rad_stone_specular;
 		float accepted_thresh = 1.0f / 512.f / rad_spv;
 		
@@ -238,7 +296,7 @@ public:
 			float rcp_dist_light_to_point = 1.0f / dist_light_to_p;
 		
 			HDRColor* mycolorp = k ? &up[i*n + j] : &down[i*n + j];
-			rec[m++] = RadiosityRecord(mycolorp, HDRColor(illum, illum, illum, 0.0));
+			rec.add(mycolorp, HDRColor(illum, illum, illum, 0.0));
 			
 			for (int l = 0; l < rad_spv; l++) {
 				Vector v;
@@ -272,23 +330,23 @@ public:
 						float lambda = mind * rcp_dist_light_to_point;
 						HDRColor wrcolor = mycolor * (mult / sqrt(1 + lambda));
 						wrcolor ^= vox[k].input_texture[ii*n+jj];
-						rec[m++] = RadiosityRecord(dest, wrcolor);
-						rec[m++] = RadiosityRecord(&drmap[bk][ii*n+jj], wrcolor);
-						assert(m < size_per_thread);
+						rec.add(dest, wrcolor);
+						rec.add(&drmap[bk][ii*n+jj], wrcolor);
+						Vector destnorm = normals[bk][ii*n+jj];
+						Vector dv = v + (destnorm * ((v * destnorm) *-2.0));
+						vec.add(&dvmap[bk][ii*n+jj], dv);
 					}
 				}
 			}
 			
 		}
-		return m;
 	}
 	
-	int process_secondary_reflection(int i, int j, int k, HDRColor mycolor, RadiosityRecord *rec)
+	void process_secondary_reflection(int i, int j, int k, HDRColor mycolor, Vector reflectance_normal, ColorJournal &rec, VectorJournal &vec)
 	{
-		int m = 0;
 		float material_lightout = rad_stone_lightout, material_specular = rad_stone_specular;
 		float accepted_thresh = 1.0f / 2048.f / rad_spv;
-		Vector reflectance_normal = normals[k][j*n+i];
+		reflectance_normal.norm();
 		
 		Vector pos = Vector(j + 0.5, vox[k].heightmap[i *n + j], i + 0.5);
 		if (pos[1] < waterlevel) 
@@ -330,39 +388,28 @@ public:
 					float lambda = mind * 0.002f;
 					HDRColor wrcolor = mycolor * (mult / sqrt(1 + lambda));
 					wrcolor ^= vox[k].input_texture[ii*n+jj];
-					rec[m++] = RadiosityRecord(dest, wrcolor);
-					rec[m++] = RadiosityRecord(&drmap[bk][ii*n+jj], wrcolor);
-					assert(m < size_per_thread);
+					rec.add(dest, wrcolor);
+					rec.add(&drmap[bk][ii*n+jj], wrcolor);
+					Vector destnorm = normals[bk][ii*n+jj];
+					Vector dv = v + (destnorm * ((v * destnorm) *-2.0));
+					vec.add(&dvmap[bk][ii*n+jj], dv);
 				}
 			}
 		}
-			
-		/*
-		writelock.enter();
-		for (int i = 0; i < m; i++)
-			*(rec[i].dest) += rec[i].add;
-		writelock.leave();
-		*/
-		return m;
-		
 	}
 	
 	void entry(int tidx, int ttotal)
 	{
 		int j;
+		ColorJournal &col_j = col_journals[tidx];
+		VectorJournal &vec_j = vec_journals[tidx];
 		while ((j = di++) < n - 1) {
-			RadiosityRecord *myrecord = records + (tidx * size_per_thread);
-			RadiosityRecord *iterator = myrecord;
-			int all_samples_stored = 0;
+			col_j.reset(); vec_j.reset();
 			for (int i = 0; i < n - 1; i++) {
-				int samples_stored = process_voxel(i, j, 0, iterator);
-				iterator += samples_stored;
-				all_samples_stored += samples_stored;
+				process_voxel(i, j, 0, col_j, vec_j);
 			}
-			writelock.enter();
-			for (int i = 0; i < all_samples_stored; i++)
-				*(myrecord[i].dest) += myrecord[i].add;
-			writelock.leave();
+		
+			writelock.enter(); col_j.write(); vec_j.write(); writelock.leave();
 
 			dispmutex.enter();
 			++linesdone;
@@ -371,18 +418,13 @@ public:
 			dispmutex.leave();
 		}
 		while ((j = ui++) < n - 1) {
-			RadiosityRecord *myrecord = records + (tidx * size_per_thread);
-			RadiosityRecord *iterator = myrecord;
-			int all_samples_stored = 0;
+			col_j.reset(); vec_j.reset();
 			for (int i = 0; i < n - 1; i++) {
-				int samples_stored = process_voxel(i, j, 1, iterator);
-				iterator += samples_stored;
-				all_samples_stored += samples_stored;
+				process_voxel(i, j, 1, col_j, vec_j);
 			}
-			writelock.enter();
-			for (int i = 0; i < all_samples_stored; i++)
-				*(myrecord[i].dest) += myrecord[i].add;
-			writelock.leave();
+			
+			writelock.enter(); col_j.write(); vec_j.write(); writelock.leave();
+			
 			dispmutex.enter();
 			++linesdone;
 			printf("\rCalculating Radiosity: [%6.2lf%%]", linesdone * 100.0 / (2*n-2));
@@ -397,27 +439,24 @@ public:
 				dispmutex.leave();
 			}
 			drmap = rmaps[(1+pass)%2];
+			dvmap = vmaps[(1+pass)%2];
 			HDRColor **crmap = rmaps[pass%2];
+			Vector **cvmap = vmaps[pass%2];
 			for (int i = 0; i < 2; i++) {
 				multithreaded_memset(crmap[i], 0, n*n, tidx, ttotal);
+				multithreaded_memset(cvmap[i], 0, n*n, tidx, ttotal);
 			}
 			barriers[pass*2+1].checkout();
 			
 			for (int k = 0; k < 2; k++) {
 				for (int j = 0; j < n - 1; j++) if (j % ttotal == tidx) {
-					RadiosityRecord *myrecord = records + (tidx * size_per_thread);
-					RadiosityRecord *iterator = myrecord;
-					int all_samples_stored = 0;
+					col_j.reset();
+					vec_j.reset();
 					for (int i = 0; i < n - 1; i++) {
-						int samples_stored = 
-								process_secondary_reflection(i, j, k, crmap[k][j*n+i], iterator);
-						iterator += samples_stored;
-						all_samples_stored += samples_stored;
+						process_secondary_reflection(i, j, k, crmap[k][j*n+i], cvmap[k][j*n+i], col_j, vec_j);
 					}
-					writelock.enter();
-					for (int i = 0; i < all_samples_stored; i++)
-						*(myrecord[i].dest) += myrecord[i].add;
-					writelock.leave();
+					
+					writelock.enter(); col_j.write(); vec_j.write(); writelock.leave();
 
 					dispmutex.enter();
 					++linesdone;
@@ -430,91 +469,7 @@ public:
 			
 		}
 	}
-	
-	void entry0(int tidx, int ttotal)
-	{
-		int my_pixels = all_pixels / ttotal;
-		HDRColor *mymaps[2];
-		mymaps[0] = new HDRColor[n*n];
-		mymaps[1] = new HDRColor[n*n];
-		while (my_pixels--) {
-			Vector v;
-			do {
-				v = light.p;
-				v[0] += (drandom()*2-1)*rad_light_radius;
-				v[1] += (drandom()*2-1)*rad_light_radius;
-				v[2] += (drandom()*2-1)*rad_light_radius;
-			} while (v.distto(light.p) > rad_light_radius);
-			
-			Vector dir;
-			do {
-				dir = Vector(drandom()*2-1, (drandom()+2)*-0.25, drandom()*2-1);
-			} while (dir.length() < 1e-9);
-			
-			float intensity = rad_amplification, distance = 5.0f;
-			HDRColor color(1.0f, 1.0f, 1.0f, 1.0f);
-			for (int refs = 0; refs < 10; refs++) {
-				dir.norm();
-				v += dir * 3.0;
-				int bk = -1;
-				Vector bv;
-				float mdist = 1e6;
-				for (int k = 0; k < 2; k++) {
-					Vector xv;
-					float t = vox[k].hierarchy.ray_intersect_exact(v, v+dir, xv);
-					if (t < mdist) {
-						mdist = t;
-						bv = xv;
-						bk = k;
-					}
-				}
-				if (bk == -1 || (bk == 1 && refs==0)) break;
-				
-				int index = ((int)bv[2])*n + (int) bv[0];
-				float specularity = -(dir * normals[bk][index]);
-				if (specularity <= 0.0f) specularity = -specularity;
-				intensity *= specularity;
-				distance += mdist;
-				float dist_intensity = intensity / sqrt(distance);
-				if (dist_intensity < 0.00001) break;
-				dir += normals[bk][index]*((dir * (normals[bk][index])) * -2.0f);
-				color ^= vox[bk].input_texture[index];
-				mymaps[bk][index] += color *( dist_intensity * (refs+1) * (refs+1));
-				
-				// perturb dir:
-				Vector nv1 = perpendicular(dir);
-				Vector nv2 = dir ^ nv1;
-				double fx, fy;
-				do {
-					fx = drandom() * 2.0 - 1.0;
-					fy = drandom() * 2.0 - 1.0;
-				} while (fx*fx + fy*fy > 1.0);
-				dir += nv1 * fx + nv2 * fy;
-				
-			}
-			
-			
-			int pt = ++pixels_traced;
-			if (pt % (1024*128) == 0) {
-				dispmutex.enter();
-				printf("\rCalculating Radiosity: [%6.2lf%%]", pt * 100.0 / all_pixels);
-				fflush(stdout);
-				dispmutex.leave();
-			}
-		}
-		writelock.enter();
-		float mult = 500000.0f / all_pixels;
-		for (int i = 0; i < 2; i++) {
-			HDRColor *map = i ? up : down;
-			for (int j = 0; j < n; j++) {
-				for (int k = 0; k < n; k++) {
-					map[j*n+k] += mymaps[i][j*n+k] * mult;
-				}
-			}
-		}
-		writelock.leave();
-	}
-	
+
 	void write_map(Uint32 *tex, HDRColor *map, const char * fn)
 	{
 		RawImg a(n, n);
@@ -653,15 +608,18 @@ public:
 	
 	~RadiosityCalculation()
 	{
-		delete [] records;
+		delete [] col_journals;
+		delete [] vec_journals;
 		delete [] down;
 		delete [] up;
 		delete [] normals[0];
 		delete [] normals[1];
 		delete [] barriers;
 		for (int i = 0; i < 2; i++)
-			for (int j = 0; j < 2; j++)
+			for (int j = 0; j < 2; j++) {
 				delete [] rmaps[i][j];
+				delete [] vmaps[i][j];
+			}
 	}
 	
 };

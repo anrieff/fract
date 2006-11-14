@@ -161,11 +161,15 @@ void Event::signal(void)
 /**
  @class Barrier
  **/
-
-Barrier::Barrier(int cpu_count)
+ 
+Barrier::Barrier(void)
 {
 	pthread_mutex_init(&m, NULL);
 	pthread_cond_init(&c, NULL);
+}
+
+Barrier::Barrier(int cpu_count)
+{
 	set_threads(cpu_count);
 }
 

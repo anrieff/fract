@@ -241,6 +241,7 @@ class Barrier {
 	InterlockedInt counter;
 	volatile int state;
 public:
+	Barrier();
 	Barrier(int cpu_count);
 	~Barrier();
 

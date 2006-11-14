@@ -48,13 +48,13 @@ fov=1.000000
 # rendered results are written out as `rad_down.bmp' and `rad_up.bmp'
 
 # Number of samples per voxel : The more samples, the more quality
-rad_spv=8000
+rad_spv=80
 
 # Radiosity amplification (more amplification = more pronounced radiosity)
 rad_amplification=30.0
 
 # Attribution of indirect lighting to all lighting; 0 is only direct lighting, 1 is only indirect
-rad_indirect_coeff=0.50
+rad_indirect_coeff=0.66
 
 # Stone light distribution function params:
 rad_stone_lightout=0.30
@@ -67,7 +67,7 @@ rad_water_specular=16.0
 # Light radius (spherical light) (needed for soft shadows)
 rad_light_radius=16.0
 # Light samples (more samples - smoother shadow edges)
-rad_light_samples=256
+rad_light_samples=32
 
 
 
