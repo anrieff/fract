@@ -134,6 +134,7 @@ public:
 	inline real distto(const Vector &) const;
 	inline void inverse(void);
 	inline void print() const;
+	inline bool is_finite() const;
 };
 
 inline void Vector::make_vector(const Vector & dst, const Vector & src)
@@ -292,6 +293,11 @@ inline bool Vector::like(const Vector &r, double compare_factor) const
 inline void Vector::print() const
 {
 	printf("(%.4lf, %.4lf, %.4lf)\n", x, y, z);
+}
+
+inline bool Vector::is_finite() const
+{
+	return finite(v[0]) && finite(v[1]) && finite(v[2]);
 }
 
 #endif // Non-sse2 version
@@ -846,6 +852,11 @@ public:
 	
 	inline bool operator != (const Vector & r) const {
 		return v[0] != r.v[0] || v[1] != r.v[1] || v[2] != r.v[2];
+	}
+	
+	inline bool Vector::is_finite() const
+	{
+		return finite(v[0]) && finite(v[1]) && finite(v[2]);
 	}
 
 	void print() const {

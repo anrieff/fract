@@ -100,6 +100,8 @@
 #define COLLIDEABLE	0x00000020
 // (SPHERE ONLY) new coords are calculated each frame using a corresponding AniSphere structure
 #define ANIMATED	0x00000040
+// present on objects, which don't bounce off floors/ceilings/etc.
+#define NOFLOORBOUNCE	0x00000080
 // object will be affected by the gravity
 #define GRAVITY		0x00000100
 // object will be affected by the air resistance

@@ -19,6 +19,7 @@
 #include "bitmap.h"
 #include "memory.h"
 #include "cmdline.h"
+#include "cross_vars.h"
 #include "cpu.h"
 #include "cvars.h"
 #include "fract.h"
@@ -34,11 +35,13 @@
 #include "voxel.h"
 #include "light.h"
 #include "shaders.h"
+#include "physics.h"
 
 //#define BENCH
 
 // we need those neat class...
 #include "hierarchy.h"
+#define MAX_HITS 5
 
 /** !!!!!!!------------ Constants -------------- -!!!!!!!!!!!!!!!!!!!!!!!**/
 info_t vxInput[NUM_VOXELS] = {
@@ -46,27 +49,16 @@ info_t vxInput[NUM_VOXELS] = {
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 	
 //FOR RADIOSITY:
-	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
-	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
+//	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
+//	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
 
 
 //NORMAL
-//	{ "data/down.fda", "data/rad_down.bmp", 0, 0.50, 1},
-//	{ "data/up.fda", "data/rad_up.bmp", 100, 0.50, 0},
+	{ "data/down.fda", "data/brt_down.bmp", 0, 0.50, 1},
+	{ "data/up.fda", "data/brt_up.bmp", 100, 0.50, 0},
 
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 };
-
-/** --------=========== Externals ============== ------------------------**/
-
-extern Vector cur;
-extern double fov;
-extern int vframe;
-extern bool WantToQuit;
-
-#ifdef ACTUALLYDISPLAY
-extern SDL_Surface *screen;
-#endif
 
 /** --------=========== Prototypes ============= ------------------------**/
 
@@ -1511,27 +1503,28 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 
 Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
 {
-	Vector cross;
+	int bk = -1;
+	float mdist = 1e6;
+	Vector bv;
 	for (int k = 0; k < NUM_VOXELS; k++) {
-		double depth = vox[k].hierarchy.ray_intersect(cur, v, cross);
-		int mipsize = vox[k].size >> HEIGHTFIELD_RAYTRACE_MIPLEVEL;
-		if (depth < 10000.0 && cross[0] >= 0.0 && cross[0] < vox[k].size - (1<<HEIGHTFIELD_RAYTRACE_MIPLEVEL) &&
-				       cross[2] >= 0.0 && cross[2] < vox[k].size - (1<<HEIGHTFIELD_RAYTRACE_MIPLEVEL)  ) {
-
-
-			int xx = ((int) (cross[0]*65536.0)) >> HEIGHTFIELD_RAYTRACE_MIPLEVEL;
-			int yy = ((int) (cross[2]*65536.0)) >> HEIGHTFIELD_RAYTRACE_MIPLEVEL;
-			int index = ((yy>>16)*mipsize + (xx>>16));
-			return bilinea_p5(
-				vox[k].raytrace_mip[index],
-				vox[k].raytrace_mip[index+1],
-				vox[k].raytrace_mip[index+mipsize],
-				vox[k].raytrace_mip[index+mipsize + 1],
-				xx & 0xffff, yy & 0xffff);
-
+		Vector vv;
+		float t = vox[k].hierarchy.ray_intersect(cur, v, vv);
+		if (t < mdist) {
+			mdist = t;
+			bk = k;
+			bv = vv;
 		}
 	}
-	return 0;
+	if (-1 == bk) return 0;
+	int xx = ((int) (bv[0]*65536.0));
+	int yy = ((int) (bv[2]*65536.0));
+	int index = ((yy>>16)*vox[bk].size + (xx>>16));
+	return bilinea_p5(
+			vox[bk].texture[index],
+			vox[bk].texture[index+1],
+			vox[bk].texture[index+vox[bk].size],
+			vox[bk].texture[index+vox[bk].size+1],
+			xx & 0xffff, yy & 0xffff);
 }
 
 void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index, InterlockedInt&)
@@ -1596,6 +1589,11 @@ class Water: public Object {
 	bool inited;
 	double thistime;
 	double eta;
+	int num_hits;
+	struct WaterHit {
+		double time;
+		Vector pos;
+	} hits[MAX_HITS];
 public:
 	Water() { inited = false ; eta = 0.75; bounding_poly = NULL; bpsize = 0; }
 	~Water() { if (bounding_poly) delete [] bounding_poly; }
@@ -1674,11 +1672,28 @@ public:
 	
 	Vector surface(Vector pos)
 	{
-		pos[0] += 2.0 * thistime;
-		pos[2] += 2.6 * thistime;
-		return Vector(0.0035 * sin(pos[0]*0.8) + 0.0045 * cos(pos[0]*0.72), 
+		Vector p(pos);
+		p[0] += 2.0 * thistime;
+		p[2] += 2.6 * thistime;
+		Vector waves(0.0035 * sin(p[0]*0.8) + 0.0045 * cos(p[0]*0.72), 
 			      0.99,
-			      0.005 * sin(pos[2]*0.50) + 0.0025 * cos(pos[2] * 1.03));
+			      0.005 * sin(p[2]*0.50) + 0.0025 * cos(p[2] * 1.03));
+		
+		Vector circles;
+		circles.zero();
+		for (int i = 0; i < num_hits; i++) {
+			double dist = pos.distto(hits[i].pos);
+			double td = (thistime - hits[i].time)*25;
+			if (dist < td) {
+				double x = td - dist;
+				double y = sin(x*0.5) / (3 + 4*x);
+				Vector q = pos - hits[i].pos;
+				q.norm();
+				circles += q * y;
+			}
+		}
+		
+		return waves + circles;
 	}
 
 	Uint32 shade(
@@ -1790,9 +1805,95 @@ public:
 	{
 		return waterlevel;
 	}
+	
+	void remove_old_hits(double time)
+	{
+		int j = 0;
+		while (j < num_hits && time - hits[j].time > 10) j++;
+		if (!j) return;
+		int i = 0;
+		while (j < num_hits) {
+			hits[i] = hits[j];
+			i++,j++;
+		}
+		num_hits = i;
+	}
+	
+	void add_hit(double time, Vector pos)
+	{
+		if (num_hits > MAX_HITS) return;
+		pos[1] = waterlevel;
+		hits[num_hits].time = time;
+		hits[num_hits].pos = pos;
+		++num_hits;
+	}
+};
+
+class WaterDrops : public PhysicsHook {
+	double lasttime, prevt;
+	Water *water;
+	Vector drop_position;
+public:
+	void preprocess(double time)
+	{
+	}
+	void postprocess(double time)
+	{
+		water->remove_old_hits(time);
+		if (spherecount) {
+			Sphere &s = sp[0];
+			if (s.pos[1] < water->get_level()) {
+				spherecount = 0;
+				double cury = s.pos[1];
+				double prevy = s.pos[1] - s.mov[1] * (time-prevt);
+				if (prevy < water->get_level())
+					prevy = water->get_level();
+				double hittime = prevt + (time-prevt)*(prevy-water->get_level())/(prevy-cury);
+				
+				water->add_hit(hittime, s.pos);
+			}
+		}
+		prevt = time;
+		if (lasttime == -1) {
+			lasttime = time-5.0;
+			return;
+		}
+		
+		if (time - lasttime > 7.0) {
+			Sphere &s = sp[spherecount];
+			s.pos = drop_position;
+			s.mov.zero();
+			s.d = 2.5;
+			s.mass = 1;
+			s.time = time;
+			s.refl = 0.0025;
+			s.opacity = 1;
+			s.r = s.g = s.b = 255;
+			s.flags = RAYTRACED | RECURSIVE | SEETHROUGH | GRAVITY | AIR | NOFLOORBOUNCE;
+			++spherecount;
+			lasttime = time;
+		}
+	}
+	
+	void init(Water *w)
+	{
+		lasttime = -1;
+		water = w;
+		float minv = 1e10;
+		for (int j = 128; j < 384; j++) {
+			for (int i = 128; i < 384; i++) {
+				Vector t(i+0.5, vox[1].heightmap[j*vox[1].size+i], j+0.5);
+				if (t[1] < minv) {
+					minv = t[1];
+					drop_position = t;
+				}
+			}
+		}
+	}
 };
 
 static Water water;
+static WaterDrops water_drops;
 
 Object* voxel_water_object(void)
 {
@@ -1801,7 +1902,12 @@ Object* voxel_water_object(void)
 
 void voxel_water_init(void)
 {
+	static bool inited = false;
+	if (inited) return;
+	inited = true;
 	water.init(76);
+	water_drops.init(&water);
+	physics_add_hook(&water_drops);
 }
 
 double voxel_get_waterlevel(void)

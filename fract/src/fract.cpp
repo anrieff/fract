@@ -513,11 +513,14 @@ int main(int argc, char *argv[])
 	initcmdline(argc, argv);
 	// 7.16fps -> 10.60
 	//option_add("--cpus=1");
-	option_add("--radiosity");
-	option_add("-w");
+
+	option_add("--xres=64");
+	//option_add("--radiosity");
+	//option_add("-w");
 	option_add("--developer");
 	option_add("--voxel");
 	option_add("--no-shadows");
+	option_add("--no-overlay");
 	option_add("--scene=data/voxel.fsv");
 	option_add("--loft");
 	commandline_parse();

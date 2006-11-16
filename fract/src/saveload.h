@@ -43,6 +43,7 @@ const flag2strmapper flag2str[32] = {
 	{ "static",		STATIC },
 	{ "collideable", 	COLLIDEABLE },
 	{ "animated",		ANIMATED },
+	{ "nofloorbounce",	NOFLOORBOUNCE },
 	{ "gravity",		GRAVITY },
 	{ "air",		AIR },
 	{ "mapped",		MAPPED },

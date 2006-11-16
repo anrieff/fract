@@ -9,6 +9,7 @@
  ***************************************************************************/
 
 #include <assert.h>
+#include "MyGlobal.h"
 #include "vector3.h"
 #include "radiosity.h"
 #include "voxel.h"
@@ -20,7 +21,16 @@
 #include "shaders.h"
 #include "bitmap.h"
 #include "cvars.h"
+#include "fract.h"
 #include "vectormath.h"
+#include "gfx.h"
+#ifdef ACTUALLYDISPLAY
+#include <SDL/SDL.h>
+#include <SDL/SDL_video.h>
+#endif
+
+#define MAX_STEPS 10
+
 
 extern vox_t vox[NUM_VOXELS];
 extern Vector cur;
@@ -91,6 +101,20 @@ struct HDRColor {
 		g *= rhs.g;
 		r *= rhs.r;
 	}
+	
+	friend HDRColor operator ^ (const HDRColor & lhs, const HDRColor & rhs)
+	{
+		return HDRColor(
+			lhs.b * rhs.b,
+			lhs.g * rhs.g,
+			lhs.r * rhs.r,
+			lhs.a * rhs.a);
+	}
+	
+	inline float intensity() const
+	{
+		return (r + g + b)*0.333333333333f;
+	}
 };
 
 
@@ -145,7 +169,7 @@ typedef Journal<Vector> VectorJournal;
 
 const int passes = 4;
 
-class RadiosityCalculation : public Parallel {
+class OldRadiosityCalculation : public Parallel {
 	Mutex dispmutex;
 	double waterlevel;
 	int linesdone;
@@ -167,7 +191,7 @@ class RadiosityCalculation : public Parallel {
 	int all_pixels;
 	
 public:
-	RadiosityCalculation(int allcpus)
+	OldRadiosityCalculation(int allcpus)
 	{
 		all_pixels = 2000000;
 		pixels_traced = 0;
@@ -609,7 +633,7 @@ public:
 		//output_pov("/tmp/cave.pov");
 	}
 	
-	~RadiosityCalculation()
+	~OldRadiosityCalculation()
 	{
 		delete [] col_journals;
 		delete [] vec_journals;
@@ -627,6 +651,373 @@ public:
 	
 };
 
+class RadiosityCalculation : public Parallel {
+	Vector *normals[2];
+	short *done[2];
+	HDRColor *res[2];
+	Uint32 *fbuffer;
+	double lastpreview, initime;
+	int xr, yr;
+	int n;
+#ifdef ACTUALLYDISPLAY
+	SDL_Surface *surface;
+	Font font;
+#endif
+public:
+	RadiosityCalculation(int allthreads)
+	{
+		/* Initialize scalars */
+		n = vox[0].size;
+		xr = xres();
+		yr = yres();
+		
+		/* Alloc memory */
+		fbuffer = new Uint32[xr * yr];
+		memset(fbuffer, 0, sizeof(Uint32) * xr * yr);
+		
+		for (int k = 0; k < 2; k++) {
+			done[k] = new short[n*n];
+			memset(done[k], 0, sizeof(short)*n*n);
+			
+			res[k] = new HDRColor[n*n];
+			
+			/* Precalculate field normals */
+			normals[k] = new Vector[n*n];
+			for (int j = 0; j < n; j++) {
+				for (int i = 0; i < n; i++) {
+					int i1 = i < n - 1 ? i : n-1;
+					int j1 = j < n - 1 ? j : n-1;
+					Vector nor0 = calc_normal(i1, j1, k, 0);
+					Vector nor1 = calc_normal(i1, j1, k, 2);
+					Vector normal = nor0 + nor1; normal.norm();
+					if (k == 1) normal.scale(-1.0);
+					normals[k][j*n+i] = normal;
+				}
+			}
+		}
+		
+		lastpreview = -1000;
+		initime = bTime();
+#ifdef ACTUALLYDISPLAY
+		surface = SDL_GetVideoSurface();
+		font.init("data/font1.bmp", DEFAULT_FONT_XSIZE, DEFAULT_FONT_YSIZE);
+#endif
+	}
+	
+	~RadiosityCalculation()
+	{
+		delete [] fbuffer;
+		for (int k = 0; k < 2; k++) {
+			delete [] done[k];
+			delete [] res[k];
+			delete [] normals[k];
+		}
+	}
+	
+	Vector calc_normal(int i, int j, int k, int izb)
+	{
+		Vector t[3]; int q = 0;
+		for (int l = 0; l < 4; l++) if (l != izb) {
+			int ii = i, jj = j;
+			if (l == 1 || l == 2) ii++;
+			if (l == 2 || l == 3) jj++;
+			Vector x(jj, vox[k].heightmap[ii * n + jj], ii);
+			t[q++] = x;
+		}
+		Vector a, b;
+		a.make_vector(t[1], t[0]);
+		b.make_vector(t[2], t[0]);
+		Vector n = a ^ b;
+		n.norm();
+		return n;
+	}
+
+	void write_map(HDRColor *map, const char * fn)
+	{
+		RawImg a(n, n);
+		Uint32 *d = (Uint32*) a.get_data();
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				int t = i * n + j;
+				d[t] = map[t].toRGB32();
+			}
+		}
+		a.save_bmp(fn);
+	}
+	
+	void finalize(void)
+	{
+		printf("\n"); fflush(stdout);
+		blur_array_2d(res[0], n, 3);
+		blur_array_2d(res[1], n, 3);
+		
+		write_map(res[0], "data/brt_down.bmp");
+		write_map(res[1], "data/brt_up.bmp"  );
+	}
+	
+	void preview_results(int whiteline, int kk, double prog, bool must = false)
+	{
+#ifdef ACTUALLYDISPLAY
+		memset(fbuffer, 0, xr*yr*4);
+		double t = bTime();
+		double crit_time = 0.75;
+		if (prog > 0.07) crit_time = 2.0;
+		if (!must && t - lastpreview < crit_time) return;
+		lastpreview = t;
+		for (int k = 0; k < 2; k++) {
+			for (int j = 0; j < n; j++) {
+				for (int i = 0; i < n; i++) if (done[k][j*n+i]) {
+					int sz = done[k][j*n+i];
+					for (int jj = 0; jj < sz; jj++) {
+						for (int ii = 0; ii < sz; ii++) {
+							int y = j + jj;
+							int x = i + ii + k * n;
+							if (y < yr && x < xr) {
+								fbuffer[y*xr+x] = res[k][j*n+i].toRGB32();
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		if (yr > 599) {
+			for (int j = 520; j <= 540; j++) {
+				for (int i = 100; i <= xr-3; i++) {
+					Uint32& c = fbuffer[j * xr + i];
+					int corner = 0;
+					if (i == 100 || i == xr - 3) corner |= 1;
+					if (j == 520 || j == 540) corner |= 2;
+					switch (corner) {
+						case 0:
+						{
+							int allavail = xr - 3 - 100;
+							if ((i - 100) / (double) allavail < prog) {
+								int tint = (i - 60)/10 % 2;
+								c = tint ? 0x333333 : 0x444444;
+							}
+							break;
+						}
+						case 1:
+						case 2:
+							c = 0x6f7ccf;
+					}
+				}
+			}
+			font.printxy(surface, fbuffer, 4, 522, 0xcccccc, 1.0, "%6.2lf%%", prog * 100.0);
+			double elapsed_time = bTime() - initime;
+			if (elapsed_time > 2) {
+				int rem_time = (int) ((1-prog)/prog * elapsed_time);
+				if (rem_time < 60) {
+					font.printxy(surface, fbuffer, 4, 544, 0xcccccc, 1.0, "Time remaining: ~%ds", rem_time);
+				} else {
+					font.printxy(surface, fbuffer, 4, 544, 0xcccccc, 1.0, "Time remaining: ~%dm %02ds",
+					rem_time/60, rem_time % 60);
+				}
+			}
+		}
+		
+		for (int i = 0; i < n; i++) {
+			int y = whiteline;
+			int x = i + kk * n;
+			if (y < yr && x < xr)
+				fbuffer[y * xr + x] = 0xaaaaaa;
+		}
+		memcpy(surface->pixels, fbuffer, xr*yr*4);
+		SDL_Flip(surface);
+#endif
+	}
+	
+	struct TripPoint {
+		Vector p, v;
+		HDRColor col;
+	};
+	
+	struct TripPoints {
+		TripPoint a[MAX_STEPS];
+		int n;
+	};
+	
+	void init_light(TripPoints &t)
+	{
+		t.n = 1;
+		TripPoint &a = t.a[0];
+		
+		do {
+			a.p = light.p;
+			a.p[0] += (drandom()*2-1)*rad_light_radius;
+			a.p[1] -= (drandom())    *rad_light_radius;
+			a.p[2] += (drandom()*2-1)*rad_light_radius;
+		} while (a.p.distto(light.p) > rad_light_radius);
+		
+		a.v[1] = -1;
+		a.v[0] = drandom()*2-1;
+		a.v[2] = drandom()*2-1;
+		a.v.norm();
+		a.col = HDRColor(1.0, 1.0, 1.0, 1.0);
+	}
+	
+	void init_eye(TripPoints &t, Vector pos, HDRColor origcolor, Vector normal)
+	{
+		t.n = 1;
+		TripPoint &a = t.a[0];
+		
+		a.p = pos;
+		a.v = normal;
+		a.col = origcolor;
+	}
+	
+	void trace(TripPoints &t)
+	{
+		int & n = t.n;
+		TripPoint *a = t.a;
+		float totdist = 10.0f;
+		
+		while (n < MAX_STEPS) {
+			/* Roussian roulette step */
+			float intensity = min(1.0f, a[n-1].col.intensity());
+			intensity = powf(intensity, 0.25f);
+			if (drandom() * 0.5 > intensity) break;
+			
+			/* Determine random new path */
+			Vector v = a[n-1].v;
+			Vector pv1 = perpendicular(v);
+			Vector pv2 = pv1 ^ v;
+			pv1.norm();
+			pv2.norm();
+			
+			double angle = drandom() * 2* M_PI;
+			double radius = drandom();
+			
+			/* Account probability distribution to material's specular index */
+			radius = pow(radius, rad_stone_specular);
+			
+			// perturb v
+			v += (pv1 * (cos(angle) * radius)) + (pv2 * (sin(angle) * radius));
+			v.norm();
+			
+			Vector p = a[n-1].p + v * 5;
+			
+			/* See where it hits the heightfields */
+			int bk = -1;
+			Vector bv;
+			float mdist = 1e6;
+			for (int k = 0; k < 2; k++) {
+				Vector vv;
+				float t = vox[k].hierarchy.ray_intersect_exact(p, p+v, vv);
+				if (t < mdist) {
+					mdist = t;
+					bk = k;
+					bv = vv;
+				}
+			}
+			/* no hit - seems impossible, but could happen */
+			if (-1 == bk) break;
+			float lastdist = totdist;
+			totdist += mdist;
+			a[n].p = bv;
+			int index = (((int) bv[2]) * vox[0].size) + ((int) bv[0]);
+			Vector newnor = normals[bk][index];
+			HDRColor newcol = vox[bk].input_texture[index];
+			a[n].v = v + (newnor * ((v * newnor) * -2.0));
+			if (a[n].v.length() < 1e-9) break;
+			a[n].v.norm();
+			
+			a[n].col = (a[n-1].col ^ newcol) * sqrt(lastdist/totdist);
+			n++;
+		}
+	}
+	
+	void solve(int i, int j, int k)
+	{
+		HDRColor r;
+		HDRColor origcolor = vox[k].input_texture[j*n+i];
+		Vector pos = Vector(i + 0.5, vox[k].heightmap[j*n + i], j + 0.5);
+		Vector normal = normals[k][j*n+i];
+		
+		if (i == 192 && j == 192 && k == 0) {
+			printf("BlaH!\n");
+		}
+		
+		for (int iters = 0; iters < rad_spv; iters++) {
+			TripPoints P[2];
+			init_light(P[0]);
+			init_eye(P[1], pos, origcolor, normal);
+			
+			trace(P[0]);
+			trace(P[1]);
+			
+			for (int x = 0; x < P[0].n; x++) {
+				TripPoint &a = P[0].a[x];
+				/*
+				if (!a.p.is_finite() || !a.v.is_finite()) {
+					printf("Infinite vector produced by trace!\n");
+				}
+				*/
+				for (int y = 0; y < P[1].n; y++) {
+					TripPoint &b = P[1].a[y];
+					/*
+					if (!b.p.is_finite() || !b.v.is_finite()) {
+						printf("Infinite vector produced by trace!\n");
+					}
+					*/
+					Vector ab = b.p - a.p; 
+					double dist = ab.length();
+					if (dist < 1) {
+						//printf("Infinitelyclose points here!\n");
+						// all other terms die, since these points are awfully close
+						r += (a.col ^ b.col);
+					} else {
+						ab.scale(1/dist);
+						Vector ba = ab * -1.0;
+						Vector dummy;
+						
+						/* Check visibility */
+						if (vox[0].hierarchy.ray_intersect_exact(a.p, b.p, dummy) < dist - 3 ||
+						vox[1].hierarchy.ray_intersect_exact(a.p, b.p, dummy) < dist - 3) continue;
+						
+						// phew; we have visibility
+						r += (a.col ^ b.col) * (fabs(a.v * ab) * fabs(b.v * ba) / (sqrt(dist)));
+					}
+				}
+			}
+		}
+		
+		res[k][j*n+i] = r * (rad_amplification/rad_spv);
+	}
+	
+	double cprog(int bs, int k, int j) 
+	{
+		int all = n*n*2;
+		int done = 0;
+		for (int xbs = 16; xbs > bs; xbs/=2) {
+			done = all / (xbs*xbs);
+		}
+		if (k) {
+			done -= n*n / (4*bs*bs);
+			done += n*n / (bs*bs);
+		}
+		done -= j/(2*bs)*(n/(2*bs));
+		done += (j / bs) * (n / bs);
+		return (double) done / all;
+	}
+	
+	void entry(int tidx, int ttotal)
+	{
+		for (int bs = 16; bs; bs /= 2) {
+			for (int k = 0; k < 2; k++) {
+				for (int j = 0; j < n; j += bs) {
+					for (int i = 0; i < n; i += bs) if (!done[k][j*n+i]) {
+						done[k][j*n+i] = bs;
+						solve(i, j, k);
+					}
+					if (!tidx) preview_results(j+bs-1, k, cprog(bs,k,j+1));
+				}
+				if (!tidx) preview_results(n-1, k, cprog(bs,k,n), true);
+			}
+		}
+	}
+};
 
 void radiosity_calculate(ThreadPool &threadman)
 {

@@ -622,7 +622,7 @@ void advance(Sphere *a, double t)
 
 
  ytoadd = a->mov[1] * rtime;
- if (a->flags & GRAVITY)
+ if ((a->flags & GRAVITY) && !(a->flags & NOFLOORBOUNCE))
  	if (a->pos[1] + ytoadd < daFloor + a->d) {// check for floor bounce
  		bModif = 1;
 		/* so we found out that the bounce occurs. So we should make some correction to gravity, because
@@ -660,7 +660,7 @@ void advance(Sphere *a, double t)
 			a->flags &= ~GRAVITY;     // don't do gravity anymore.
 			}
  		}
- if (a->flags & GRAVITY)
+ if ((a->flags & GRAVITY) && !(a->flags & NOFLOORBOUNCE))
  	if (a->pos[1] + ytoadd > daCeiling - a->d) {// check for ceiling bounce
 	// we use much simplier routine, since a ball cannot roll on the ceiling, right?
 	// (except sv_gravity is below zero, but ... :)

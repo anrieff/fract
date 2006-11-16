@@ -38,6 +38,7 @@
 #include "konsole.h"
 #include "object.h"
 #include "profile.h"
+#include "physics.h"
 #include "radiosity.h"
 #include "render.h"
 #include "rgb2yuv.h"
@@ -412,6 +413,7 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 	}
 	prof_leave(PROF_SPHERE_THINGS);
 	prof_enter(PROF_PHYSICS);
+	physics_preprocess_hooks(btm);
 	if (Physics && SceneType == TIME_BASED && stereo_mode <= STEREO_MODE_LEFT) { // should we process physics?
 		camera_moved = 1;
 		for (i=0;i<spherecount;i++)
@@ -443,6 +445,7 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 		for (i=0;i<spherecount;i++)
 			advance(sp+i, btm);
 	}
+	physics_postprocess_hooks(btm);
 	prof_leave(PROF_PHYSICS);
 	prof_enter(PROF_SORT);
 	allobjects.clear(cur);
