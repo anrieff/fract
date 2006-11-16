@@ -1866,7 +1866,7 @@ public:
 			s.d = 2.5;
 			s.mass = 1;
 			s.time = time;
-			s.refl = 0.0025;
+			s.refl = 0.25;
 			s.opacity = 1;
 			s.r = s.g = s.b = 255;
 			s.flags = RAYTRACED | RECURSIVE | SEETHROUGH | GRAVITY | AIR | NOFLOORBOUNCE;
