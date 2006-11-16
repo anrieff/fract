@@ -651,6 +651,12 @@ public:
 	
 };
 
+static Vector reflect(const Vector& incident, const Vector & normal)
+{
+	double nmul = (incident * normal) * -2.0;
+	return incident + (normal * nmul);
+}
+
 class RadiosityCalculation : public Parallel {
 	Vector *normals[2];
 	short *done[2];
@@ -659,6 +665,7 @@ class RadiosityCalculation : public Parallel {
 	double lastpreview, initime;
 	int xr, yr;
 	int n;
+	InterlockedInt lpl, epl, apl;
 #ifdef ACTUALLYDISPLAY
 	SDL_Surface *surface;
 	Font font;
@@ -667,6 +674,7 @@ public:
 	RadiosityCalculation(int allthreads)
 	{
 		/* Initialize scalars */
+		lpl = 0; epl = 0; apl = 0;
 		n = vox[0].size;
 		xr = xres();
 		yr = yres();
@@ -687,8 +695,8 @@ public:
 				for (int i = 0; i < n; i++) {
 					int i1 = i < n - 1 ? i : n-1;
 					int j1 = j < n - 1 ? j : n-1;
-					Vector nor0 = calc_normal(i1, j1, k, 0);
-					Vector nor1 = calc_normal(i1, j1, k, 2);
+					Vector nor0 = calc_normal(j1, i1, k, 0);
+					Vector nor1 = calc_normal(j1, i1, k, 2);
 					Vector normal = nor0 + nor1; normal.norm();
 					if (k == 1) normal.scale(-1.0);
 					normals[k][j*n+i] = normal;
@@ -876,8 +884,8 @@ public:
 		while (n < MAX_STEPS) {
 			/* Roussian roulette step */
 			float intensity = min(1.0f, a[n-1].col.intensity());
-			intensity = powf(intensity, 0.25f);
-			if (drandom() * 0.5 > intensity) break;
+			intensity = powf(intensity, 0.125f);
+			if (drandom() * 0.50 > intensity) break;
 			
 			/* Determine random new path */
 			Vector v = a[n-1].v;
@@ -919,9 +927,25 @@ public:
 			int index = (((int) bv[2]) * vox[0].size) + ((int) bv[0]);
 			Vector newnor = normals[bk][index];
 			HDRColor newcol = vox[bk].input_texture[index];
-			a[n].v = v + (newnor * ((v * newnor) * -2.0));
+			a[n].v = reflect(v, newnor);
+			//a[n].v = v + (newnor * ((v * newnor) * -2.0));
 			if (a[n].v.length() < 1e-9) break;
 			a[n].v.norm();
+			
+			/* Check for double reflection
+			 * (a ray might doublereflect from the floor if the first ray
+			 *  was steep enough)
+			 */
+			Vector p2 = bv + a[n].v * 2.5;
+			if (p2[0] < 0 || p2[0] > vox[0].size-2 || p2[2] < 0 || p2[2] > vox[0].size-2) 
+				break;
+			float p2height = vox[bk].heightmap[(((int) p2[2]) * vox[0].size) + ((int) p2[0])];
+			if ((bk == 0 && p2height > p2[1]) || (bk == 1 && p2height < p2[1])) {
+				// double reflection
+				a[n].v = reflect(a[n].v, newnor);
+				if (a[n].v.length() < 1e-9) break;
+				a[n].v.norm();
+			}
 			
 			a[n].col = (a[n-1].col ^ newcol) * sqrt(lastdist/totdist);
 			n++;
@@ -935,7 +959,7 @@ public:
 		Vector pos = Vector(i + 0.5, vox[k].heightmap[j*n + i], j + 0.5);
 		Vector normal = normals[k][j*n+i];
 		
-		if (i == 192 && j == 192 && k == 0) {
+		if (i == 224 && j ==192  && k == 0) {
 			printf("BlaH!\n");
 		}
 		
@@ -981,6 +1005,9 @@ public:
 					}
 				}
 			}
+			apl++;
+			lpl.add(P[0].n);
+			epl.add(P[1].n);
 		}
 		
 		res[k][j*n+i] = r * (rad_amplification/rad_spv);
@@ -1002,6 +1029,15 @@ public:
 		return (double) done / all;
 	}
 	
+	void preview_pls(void)
+	{
+		double all = apl.get();
+		double s1 = lpl.get() / all;
+		double s2 = epl.get() / all;
+		printf("\rAvgLPL = %.2lf; AvgEPL = %.2lf", s1, s2);
+		fflush(stdout);
+	}
+	
 	void entry(int tidx, int ttotal)
 	{
 		for (int bs = 16; bs; bs /= 2) {
@@ -1011,6 +1047,7 @@ public:
 						done[k][j*n+i] = bs;
 						solve(i, j, k);
 					}
+					if (!tidx) preview_pls();
 					if (!tidx) preview_results(j+bs-1, k, cprog(bs,k,j+1));
 				}
 				if (!tidx) preview_results(n-1, k, cprog(bs,k,n), true);

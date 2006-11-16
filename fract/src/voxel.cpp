@@ -49,13 +49,13 @@ info_t vxInput[NUM_VOXELS] = {
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 	
 //FOR RADIOSITY:
-//	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
-//	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
+	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
+	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
 
 
 //NORMAL
-	{ "data/down.fda", "data/brt_down.bmp", 0, 0.50, 1},
-	{ "data/up.fda", "data/brt_up.bmp", 100, 0.50, 0},
+//	{ "data/down.fda", "data/brt_down.bmp", 0, 0.50, 1},
+//	{ "data/up.fda", "data/brt_up.bmp", 100, 0.50, 0},
 
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 };

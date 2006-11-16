@@ -513,10 +513,10 @@ int main(int argc, char *argv[])
 	initcmdline(argc, argv);
 	// 7.16fps -> 10.60
 	//option_add("--cpus=1");
-
-	option_add("--xres=64");
-	//option_add("--radiosity");
-	//option_add("-w");
+	option_add("--radiosity");
+	option_add("-w");
+	//option_add("--xres=512");
+	option_add("--xres=1024");
 	option_add("--developer");
 	option_add("--voxel");
 	option_add("--no-shadows");

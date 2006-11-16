@@ -216,6 +216,9 @@ float Hierarchy::ray_intersect_exact(const Vector & orig, const Vector & proj, V
 	/* traversal vector in diff */
 	Vector diff;
 	diff.make_vector(proj, orig);
+	if ( is_floor && diff[1] > 0 && orig[1] >= highestpeak) return 1e9;
+	if (!is_floor && diff[1] < 0 && orig[1] <= highestpeak) return 1e9;
+
 	// precalculate stuff...
 	float rcpdiff0 = 1.0f / diff[0], rcpdiff2 = 1.0f / diff[2];
 	/* If we're outside the grid, find where we enter it */
