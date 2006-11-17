@@ -1735,13 +1735,12 @@ public:
 			}
 		}
 		Vector up = r2 - n * ((n * r2) *2);
-		float mind = 1e6;
 		for (int w = 0; w < 2; w++) {
 			Vector res;
 			float temp = vox[w].hierarchy.ray_intersect(I, I + up, res);
-			if (temp < mind) {
-				mind = temp;
+			if (temp < 1e6) {
 				upwards_color = vox[w].texture[(((int) res[2]) * vox[0].size) + (int) res[0]];
+				break;
 			}
 		}
 		prof_leave(PROF_RAYTRACE);
