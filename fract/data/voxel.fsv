@@ -34,7 +34,7 @@ Physics=1
 CollDetect=1
 
 # Physics engine parameters
-sv_gravity=60.0
+sv_gravity=90.0
 sv_air=3.990000
 fov=1.000000
 
@@ -48,7 +48,7 @@ fov=1.000000
 # rendered results are written out as `rad_down.bmp' and `rad_up.bmp'
 
 # Number of samples per voxel : The more samples, the more quality
-rad_spv=128
+rad_spv=400
 
 # Radiosity amplification (more amplification = more pronounced radiosity)
 rad_amplification=8
