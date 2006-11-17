@@ -138,6 +138,10 @@ float Hierarchy::ray_intersect(const Vector & orig, const Vector & proj, Vector 
 	if (v[2] < 0) quadr++;
 	float *myquadrant = quadrant[quadr];
 	
+	double yscale = 1;
+	if ((is_floor && v[1] > 0) || (!is_floor && v[1] < 0)) 
+		yscale = 0.5;
+	
 	v.scale(1 / xz_length);
 	Vector p = orig;
 		
@@ -149,12 +153,12 @@ float Hierarchy::ray_intersect(const Vector & orig, const Vector & proj, Vector 
 		
 		int k = 0;double ss = MIN_SIZE;
 		if (is_floor) {
-			while (k <= slog && p[1] + v[1] * ss > q[k+1]) {
+			while (k <= slog && p[1] + v[1] * ss * yscale > q[k+1]) {
 				++k;
 				ss *= 2.0;
 			}
 		} else {
-			while (k <= slog && p[1] + v[1] * ss < q[k+1]) {
+			while (k <= slog && p[1] + v[1] * ss * yscale < q[k+1]) {
 				++k;
 				ss *= 2.0;
 			}
