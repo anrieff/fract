@@ -49,13 +49,13 @@ info_t vxInput[NUM_VOXELS] = {
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 	
 //FOR RADIOSITY:
-	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
-	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
+//	{ "data/down.fda", "data/whitefloor.bmp", 0, 0.50, 1},
+//	{ "data/up.fda", "data/whiteceil.bmp", 100, 0.50, 0},
 
 
 //NORMAL
-//	{ "data/down.fda", "data/brt_down.bmp", 0, 0.50, 1},
-//	{ "data/up.fda", "data/brt_up.bmp", 100, 0.50, 0},
+	{ "data/down.fda", "data/brt_down.bmp", 0, 0.50, 1},
+	{ "data/up.fda", "data/brt_up.bmp", 100, 0.50, 0},
 
 	//{ "data/heightmap_c.fda", "data/aardfdry256.bmp", 200, 0.5, 0}
 };
@@ -1833,12 +1833,14 @@ class WaterDrops : public PhysicsHook {
 	double lasttime, prevt;
 	Water *water;
 	Vector drop_position;
+	int numdrops;
 public:
 	void preprocess(double time)
 	{
 	}
 	void postprocess(double time)
 	{
+		double dropdiffs[2] = {8, 2};
 		water->remove_old_hits(time);
 		if (spherecount) {
 			Sphere &s = sp[0];
@@ -1859,7 +1861,7 @@ public:
 			return;
 		}
 		
-		if (time - lasttime > 7.0) {
+		if (time - lasttime > dropdiffs[numdrops%2]) {
 			Sphere &s = sp[spherecount];
 			s.pos = drop_position;
 			s.mov.zero();
@@ -1872,6 +1874,7 @@ public:
 			s.flags = RAYTRACED | RECURSIVE | SEETHROUGH | GRAVITY | AIR | NOFLOORBOUNCE;
 			++spherecount;
 			lasttime = time;
+			numdrops++;
 		}
 	}
 	
