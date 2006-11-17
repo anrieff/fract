@@ -119,7 +119,7 @@ bool Triangle::fastintersect(const Vector& ray, const Vector& camera, const doub
 {
 	if (!visible) return false;
 	triangle_intersect_context *tic = (triangle_intersect_context*)IntersectContext;
-#ifdef __SSE__
+#if defined __SSE__ && defined USE_ASSEMBLY
 	float Dcr= ray * crossproduct;
 #else
 	double Dcr = ray * crossproduct;
@@ -129,7 +129,7 @@ bool Triangle::fastintersect(const Vector& ray, const Vector& camera, const doub
 	if (fabs(Dcr) < 1e-9 || tic->u * Dcr < 0 || tic->v * Dcr < 0) return false;
 
 
-#ifdef __SSE__
+#if defined __SSE__ && defined USE_ASSEMBLY
 	float rDcr = sse_rcp(Dcr);//1.0 / Dcr;
 #else
 	double rDcr = 1.0 / Dcr;
@@ -150,7 +150,7 @@ bool Triangle::intersect(const Vector& ray, const Vector &camera, void *Intersec
 	Vector h;
 	h.make_vector( camera, vertex[0] );
 	Vector hr = h ^ ray;
-#ifdef __SSE__
+#if defined __SSE__ && defined USE_ASSEMBLY
 	float Dcr= ray * crossproduct;
 #else
 	double Dcr = ray * crossproduct;
@@ -158,7 +158,7 @@ bool Triangle::intersect(const Vector& ray, const Vector &camera, void *Intersec
 	tic->u = -(b * hr);
 	tic->v =  (a * hr);
 	if (fabs(Dcr) < 1e-9 || tic->u * Dcr < 0 || tic->v * Dcr < 0) return false;
-#ifdef __SSE__
+#if defined __SSE__ && defined USE_ASSEMBLY
 	float rDcr = sse_rcp(Dcr);
 #else
 	double rDcr = 1.0 / Dcr;

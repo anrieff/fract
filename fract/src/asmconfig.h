@@ -11,6 +11,9 @@
 #define __ASMCONFIG_H__
 // turning this option off will disable every single assembly source line.
 // Useful for compilation on non-x86 machines
+
+#if !defined __x86_64__
 #define USE_ASSEMBLY
+#endif
 
 #endif // __ASMCONFIG_H__

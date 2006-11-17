@@ -32,9 +32,7 @@ void prof_init(void);
 #define prof_init()
 #endif
 
-#ifdef USE_ASSEMBLY
 long long prof_rdtsc(void);
-#endif
 
 
 void prof_statistics(void);
