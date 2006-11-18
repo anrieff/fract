@@ -10,6 +10,7 @@
 
 #ifndef __PROGRESS_H__
 #define __PROGRESS_H__
+#include <stdlib.h>
 
 #define prog_dist_precalc_base		0.0
 #define prog_dist_precalc		0.5

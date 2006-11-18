@@ -257,6 +257,10 @@ int  ysize_render(int y)
 */
 void check_fsaa_param(void)
 {
+	if (option_exists("--voxel") && !option_exists("--fsaa")) {
+		set_fsaa_mode(FSAA_MODE_NONE);
+		return;
+	}
 	if (!option_exists("--fsaa")) return;
 	if (!strcmp(option_value_string("--fsaa"),"none")) {
 		set_fsaa_mode(FSAA_MODE_NONE);

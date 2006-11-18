@@ -70,7 +70,9 @@ void ProgressManager::full_reset(const char * message)
 	lupdate = -1;
 	memset(taskdone, 0, sizeof(taskdone));
 	if (message) {
+#ifdef ACTUALLYDISPLAY
 		intro_progress_init((SDL_Surface*)surface, message);
+#endif
 	}
 }
 

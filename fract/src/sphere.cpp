@@ -413,18 +413,6 @@ void Sphere::map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[], 
  *               except for the edge of the sphere, where it gradually drops.     *
  *                                                                                *
  **********************************************************************************/
-/**
- * 
- * @param v 
- * @param c 
- * @param l 
- * @param rlsrcp 
- * @param opacity 
- * @param IntersectContext 
- * @param iteration 
- * @param finfo 
- * @return 
- */
 Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 		float &opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
 {
