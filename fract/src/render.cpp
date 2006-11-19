@@ -71,9 +71,10 @@ ObjectArray allobjects;
 int obj_count;
 int UseThreads = -1;
 int r_shadows  = 1;
-bool parallel = false;
+int stereo_type = STEREO_TYPE_NONE;
 int stereo_mode = STEREO_MODE_NONE;
-double stereo_depth = 100;
+Uint32 anaglyph_left_mask = 0xff0000, anaglyph_right_mask = 0x00ffff;
+double stereo_depth = 1e8;
 double stereo_separation = 6;
 Uint32 *stereo_buffer = NULL;
 
@@ -165,6 +166,11 @@ Uint32 *get_frame_buffer(void)
 	return framebuffer;
 }
 
+int determine_xres(int x)
+{
+	return ((stereo_type == STEREO_TYPE_PARALLEL) ? (2*x+8) : x);
+}
+
 /*
  *	This code deals with post-frame generation stuff, which is common for the P5 and SSE version of DrawIt
  */
@@ -180,7 +186,10 @@ void postframe_do(void)
 	
 	ddestrect.x = 0;
 	ddestrect.y = 0;
-	ddestrect.w = xres() * (parallel?2:1) + 8*parallel;
+	ddestrect.w = xres();
+	if (stereo_type == STEREO_TYPE_PARALLEL) {
+		ddestrect.w = ddestrect.w * 2 + 8;
+	}
 	ddestrect.h = yres();
 #endif
 
@@ -348,14 +357,26 @@ void postframe_do(void)
 	}
 	} else { // not final mode in stereoscopic view:
 		if (!stereo_buffer) {
-			stereo_buffer = (Uint32*) malloc((xres()*2+8)*yres()*4);
-			memset(stereo_buffer, 0, (xres()*2+8)*yres()*4);
+			int buffersize = yres() * determine_xres(xres());
+			stereo_buffer = (Uint32*) malloc(buffersize*4);
+			memset(stereo_buffer, 0, buffersize*4);
 		}
-		int xx = xres();
-		int xoffset = stereo_mode == STEREO_MODE_LEFT ? 0 : xx + 8;
-		
-		for (int j = 0; j < yres(); j++) 
-			memcpy(&stereo_buffer[xoffset + j * (xx * 2+8)], &framebuffer[j * xx], xx * 4);
+		if (stereo_type == STEREO_TYPE_PARALLEL) {
+			int xx = xres();
+			int xoffset = stereo_mode == STEREO_MODE_LEFT ? 0 : xx + 8;
+			
+			for (int j = 0; j < yres(); j++) 
+				memcpy(&stereo_buffer[xoffset + j * (xx * 2+8)], &framebuffer[j * xx], xx * 4);
+		} else {
+			int size = xres() * yres();
+			if (stereo_mode == STEREO_MODE_LEFT) {
+				for (int i = 0; i < size; i++)
+					stereo_buffer[i] = framebuffer[i] & anaglyph_left_mask;
+			} else {
+				for (int i = 0; i < size; i++)
+					stereo_buffer[i] |= framebuffer[i] & anaglyph_right_mask;
+			}
+		}
 	}
 #endif // ACTUALLYDISPLAY
 	if (stereo_mode == STEREO_MODE_NONE || stereo_mode == STEREO_MODE_FINAL) vframe++;
@@ -997,7 +1018,7 @@ void render_single_frame_do(void)
 #ifdef ACTUALLYDISPLAY
 void render_single_frame(SDL_Surface *p, SDL_Overlay *ov)
 {
-	if (parallel) {
+	if (stereo_type) {
 		Vector camera_save = cur;
 		double alpha_save = CVars::alpha;
 		for (stereo_mode = STEREO_MODE_LEFT; stereo_mode <= STEREO_MODE_FINAL; stereo_mode++) {

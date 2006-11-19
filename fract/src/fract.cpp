@@ -453,12 +453,14 @@ void commandline_parse(void)
 		}
 		printf("Warning: Unknown query: %s\n", option_value_string("--query"));
 	}
-	if (option_exists("--parallel") || option_exists("--para")) {
+	if (option_exists("--parallel") || option_exists("--para") || option_exists("--anaglyph")) {
 		defaultconfig = 0;
-		parallel = true;
-		set_default_resolution(160, 120);
-		option_add("-w");
-			if (option_exists("--stereo-separation"))
+		stereo_type = option_exists("--anaglyph") ? STEREO_TYPE_ANAGLYPH : STEREO_TYPE_PARALLEL;
+		if (stereo_type == STEREO_TYPE_PARALLEL) {
+			set_default_resolution(160, 120);
+			option_add("-w");
+		}
+		if (option_exists("--stereo-separation"))
 			stereo_separation = option_value_float("--stereo-separation");
 		if (option_exists("--stereo-depth"))
 			stereo_depth = option_value_float("--stereo-depth");
@@ -511,11 +513,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	// 7.16fps -> 10.60
 	//option_add("--cpus=1");
 	//option_add("--radiosity");
-	//option_add("-w");
-	option_add("--developer");
 	option_add("--voxel");
 	option_add("--no-shadows");
 	option_add("--no-overlay");

@@ -72,8 +72,14 @@ struct ORNode {
 	}
 };
 
+enum StereoType {
+	STEREO_TYPE_NONE = 0,
+	STEREO_TYPE_PARALLEL,
+	STEREO_TYPE_ANAGLYPH,
+};
+
 extern ObjectArray allobjects;
-extern bool parallel;
+extern int stereo_type;
 extern double stereo_separation;
 extern double stereo_depth;
 extern ThreadPool thread_pool;
@@ -96,6 +102,9 @@ void rotate_camera(double alphai, double betai);
 void check_params(void);
 void blur_reinit(void);
 Uint32 *get_frame_buffer(void);
+// determine x resolution based on stereo view mode.
+// will usually return x, but in the case of parallel stereo mode, 2*x+8 will be returned
+int determine_xres(int x);
 
 void render_close(void);
 

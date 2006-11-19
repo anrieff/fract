@@ -445,9 +445,9 @@ void Scene::videoinit(void)
 	SDL_f = SDLFLAGS;
 	if (option_exists("-w")||option_exists("--window")||option_exists("--windowed")) SDL_f &= ~SDL_FULLSCREEN;
 	if (option_exists("-f")||option_exists("--fullscreen")) SDL_f |= SDL_FULLSCREEN;
-	screen = SDL_SetVideoMode(def_resx * (parallel?2:1) + 8*parallel, def_resy, 32, SDL_f);
+	screen = SDL_SetVideoMode(determine_xres(def_resx), def_resy, 32, SDL_f);
 	if (screen == NULL) {
-		printf("Unable to set %dx%d resolution...%s!\n", (parallel?def_resx*2+8:def_resx), def_resy, SDL_GetError());
+		printf("Unable to set %dx%d resolution...%s!\n", determine_xres(def_resx), def_resy, SDL_GetError());
 		exit(1);
 	}
 	progressman.init(screen);
@@ -468,9 +468,9 @@ void Scene::videoinit(void)
 	}
 #ifdef ACTUALLYDISPLAY
 	if (xres()!=def_resx) {
-		screen = SDL_SetVideoMode(xres() * (parallel ? 2 : 1) + parallel*8, yres(), 32, SDL_f);
+		screen = SDL_SetVideoMode(determine_xres(xres()), yres(), 32, SDL_f);
 		if (screen == NULL) {
-			printf("Unable to set %dx%d resolution...%s!\n", (parallel?xres()*2+8:xres()), yres(), SDL_GetError());
+			printf("Unable to set %dx%d resolution...%s!\n", determine_xres(xres()), yres(), SDL_GetError());
 			exit(1);
 		}
 		mouse_sensitivity *= def_resx / (double) xres();
