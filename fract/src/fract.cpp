@@ -513,13 +513,6 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	//option_add("--cpus=1");
-	//option_add("--radiosity");
-	option_add("--voxel");
-	option_add("--no-shadows");
-	option_add("--no-overlay");
-	option_add("--scene=data/voxel.fsv");
-	option_add("--loft");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }

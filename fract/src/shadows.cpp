@@ -43,13 +43,6 @@ static float rowstart[RES_MAXY][2], rowincrease[RES_MAXY][2];
 static int ceilmax, floormin; // ending row for ceiling, starting row for floor in the image
 static InterlockedInt rowint;
 
-
-static inline float face(const vec2f& a, const vec2f& b, const vec2f& c) 
-{
-	return +a[0] * b[1] + b[0] * c[1] + c[0] * a[1]
-	       -c[0] * b[1] - b[0] * a[1] - a[0] * c[1];
-}
-
 static void shadows_precalc(int xr, int yr, const Vector & mtt, const Vector& mti, const Vector& mtti)
 {
 	prof_enter(PROF_SHADOW_PRECALC);

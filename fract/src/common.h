@@ -17,6 +17,7 @@
 #include "MyTypes.h"
 #include "memory.h"
 #include "shaders.h"
+#include "vector2f.h"
 
 #define imin(a,b) ((a)<(b)?(a):(b))
 #define imax(a,b) ((a)>(b)?(a):(b))
@@ -66,7 +67,12 @@ float perlin(float x, float y);
 
 void common_init(void);
 
-
+// as frequently needed...
+inline float face(const vec2f& a, const vec2f& b, const vec2f& c) 
+{
+	return +a[0] * b[1] + b[0] * c[1] + c[0] * a[1]
+	       -c[0] * b[1] - b[0] * a[1] - a[0] * c[1];
+}
 
 // smooth hermite interpolation between the values of a and b (t must be in [0..1])
 template <typename T>

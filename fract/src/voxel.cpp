@@ -20,6 +20,7 @@
 #include "memory.h"
 #include "cmdline.h"
 #include "cross_vars.h"
+#include "common.h"
 #include "cpu.h"
 #include "cvars.h"
 #include "fract.h"
@@ -908,52 +909,6 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	adaptive_voxel_renderer.render(thread_index);
 }
 
-Uint32 shootcolr;
-Uint32 shootcolrs[4] = {0xff, 0xffff00, 0xff00, 0xffffff};
-
-void castray(const Vector & p, Uint32 & color, float & depth, int k)
-{
-	Vector cross;
- 	depth = vox[k].hierarchy.ray_intersect(cur, p, cross);
-	if (depth < 10000.0) {
-		if (cross[0] < 0.0 || cross[0] > vox[k].size-1 || cross[2] < 0.0 || cross[2] > vox[k].size) {
-			color = 0;
-			return;
-		}
-		int xx = (int) (cross[0]*65536.0);
-		int yy = (int) (cross[2]*65536.0);
-		int index = ((yy>>16)*vox[k].size + (xx>>16));
-		if (shooting) {
-			vox[k].texture[index] = shootcolr;
-		}
-		color = bilinea_p5(
-				vox[k].texture[index],
-				vox[k].texture[index+1],
-				vox[k].texture[index+vox[k].size],
-				vox[k].texture[index+vox[k].size + 1],
-				xx & 0xffff, yy & 0xffff);
-	} else {
-		color = 0;
-	}
-}
-
-static inline void cached_castray(const Vector & p, int x, int y, Uint32 & color, float & depth, int k)
-{
-	if (x >= vox_xr || y >= vox_yr) {
-		castray(p, color, depth, k);
-		return;
-	}
-	int index = y * vox_xr + x;
-	if (IS_NEGATIVE(zbuffer[index])) {
-		castray(p, color, depth, k);
-		zbuffer[index] = depth;
-		voxfb  [index] = color;
-	} else {
-		depth = zbuffer[index];
-		color = voxfb  [index];
-	}
-}
-
 static inline bool too_much_color_difference(Uint32 * colors)
 {
 	int decomposed[4][3] = {
@@ -972,146 +927,6 @@ static inline bool too_much_color_difference(Uint32 * colors)
 	return false;
 }
 
-void subdivide(Uint32 * blockPtr, const Vector & base, int x, int y, int size, int k)
-{
-	if (2 == size) {
-		Uint32 cc; float dd;
-		cached_castray(base             , x    , y    , cc, dd, k);
-		cached_castray(base + gti       , x + 1, y    , cc, dd, k);
-		cached_castray(base + gtti      , x    , y + 1, cc, dd, k);
-		cached_castray(base + gti + gtti, x + 1, y + 1, cc, dd, k);
-	} else {
-		float  depth[4];
-		Uint32 color[4];
-		Vector x1y0, x0y1, x1y1;
-		x1y0.macc(base, gti, size);
-		x0y1.macc(base, gtti,size);
-		x1y1.macc(x1y0, gtti,size);
-		cached_castray(base, x       , y       , color[0], depth[0], k);
-		cached_castray(x1y0, x + size, y       , color[1], depth[1], k);
-		cached_castray(x0y1, x       , y + size, color[2], depth[2], k);
-		cached_castray(x1y1, x + size, y + size, color[3], depth[3], k);
-
-		float davg = 0.25 * (depth[0] + depth[1] + depth[2] + depth[3]);
-		float noninfsum = 0.0, noninfdiv = 0.0;
-		for (int i = 0; i < 4; i++)
-			if (depth[i] < 10000) {
-				noninfsum += depth[i];
-				noninfdiv += 1.0;
-			}
-		if (noninfdiv==0.0) adapt = 9999;
-			else adapt = noninfsum / noninfdiv / 10.0;
-		// check if the difference is too large
-		if (fabs(depth[0] - davg) > adapt || fabs(depth[1] - davg) > adapt ||
-		    fabs(depth[2] - davg) > adapt || fabs(depth[3] - davg) > adapt ||
-		    too_much_color_difference(color)) {
-		    	int sz2 = size / 2;
-			x1y0.macc(base, gti, sz2);
-			x0y1.macc(base, gtti,sz2);
-			x1y1.macc(x1y0, gtti,sz2);
-			subdivide(blockPtr                     , base, x      , y      , sz2, k);
-			subdivide(blockPtr + sz2               , x1y0, x + sz2, y      , sz2, k);
-			subdivide(blockPtr       + sz2 * vox_xr, x0y1, x      , y + sz2, sz2, k);
-			subdivide(blockPtr + sz2 + sz2 * vox_xr, x1y1, x + sz2, y + sz2, sz2, k);
-			return;
-		}
-
-		if (davg < 10000) {
-			if (CVars::bilinear) {
-				int stepsrcp = (int) (65536.0f / size);
-
-				int cx0y0[3], cx1y0[3], cx0y1[3], cx1y1[3];
-				int li[3], ri[3];
-				decompose(color[0], cx0y0);
-				decompose(color[1], cx1y0);
-				decompose(color[2], cx0y1);
-				decompose(color[3], cx1y1);
-				init_color_interpolation(cx0y1, cx0y0, li, stepsrcp);
-				init_color_interpolation(cx1y1, cx1y0, ri, stepsrcp);
-
-				for (int j = 0; j < size; j++) {
-					int ct[3], cti[3];
-					for (int i = 0; i < 3; i++) ct[i] = cx0y0[i];
-					init_color_interpolation(cx1y0, cx0y0, cti, stepsrcp);
-					for (int i = 0; i < size; i++) {
-						blockPtr[j*vox_xr+i] =
-								((ct[0]&0xff0000) >> 16) |
-								((ct[1]&0xff0000) >> 8 ) |
-								(ct[2]&0xff0000);
-						step_interpolate(ct, cti);
-					}
-					step_interpolate(cx0y0, li);
-					step_interpolate(cx1y0, ri);
-				}
-			} else {
-			}
-		}
-	}
-}
-
-bool needs_bruteforce(Uint32 * blockPtr, const Vector & base, int x, int y, int size)
-{
-	Uint32 kolor = blockPtr[0] >> 24;
-	bool needs = false, fullrange = false;
-	for (int i = 1; i < 4; i++) {
-		int offs = 0, xx = x, yy = y;
-		if (i & 1) {
-			xx += size;
-			offs += size;
-		}
-		if (i & 2) {
-			yy += size;
-			offs += vox_xr * size;
-		}
-		if (xx >= vox_xr || y >= vox_yr) {
-			needs = true; break;
-		}
-		if (kolor != (blockPtr[offs] >> 24)) {
-			needs = true; 
-			fullrange = true;
-			break;
-		}
-	}
-	if (needs) {
-		int mink = kolor;
-		int maxk = kolor; if (fullrange) { mink = 0; maxk = NUM_VOXELS-1; }
-		/*
-		for (int i = 0; i < size; i++) {
-			if (y + i >= vox_yr) break;
-			for (int j = 0; j < size; j++) {
-				if (x + j >= vox_xr) break;
-				blockPtr[i * vox_xr + j] = 0xff0000;
-			}
-		}
-		//
-		return true;
-		*/
-
-		for (int j = 0; j < size; j++) {
-			Vector p = base + gtti * j;
-			Uint32 *co = &blockPtr[j * vox_xr];
-			if (y + j >= vox_yr) break;
-			for (int i = 0; i < size; i++, p += gti, co++) {
-				if (x + i >= vox_xr) break;
-				if (!fullrange) {
-					float dd;
-					castray(p, *co, dd, mink);
-				} else {
-					Uint32 colors[2];
-					float depths[2];
-					for (int k = mink; k <= maxk; k++) {
-						castray(p, colors[k], depths[k], k);
-					}
-					if (depths[0] < depths[1]) 
-						*co = colors[0];
-					else
-						*co = colors[1];
-				}
-			}
-		}
-	}
-	return needs;
-}
 
 static InterlockedInt task1, task2;
 
@@ -1121,34 +936,6 @@ struct PixelInfo {
 	float u, v;
 	int vox_num;
 };
-
-/*
-void castray(const Vector & p, Uint32 & color, float & depth, int k)
-{
-	Vector cross;
- 	depth = vox[k].hierarchy.ray_intersect(cur, p, cross);
-	if (depth < 10000.0) {
-		if (cross[0] < 0.0 || cross[0] > vox[k].size-1 || cross[2] < 0.0 || cross[2] > vox[k].size) {
-			color = 0;
-			return;
-}
-		int xx = (int) (cross[0]*65536.0);
-		int yy = (int) (cross[2]*65536.0);
-		int index = ((yy>>16)*vox[k].size + (xx>>16));
-		if (shooting) {
-			vox[k].texture[index] = shootcolr;
-}
-		color = bilinea_p5(
-				vox[k].texture[index],
-				vox[k].texture[index+1],
-				vox[k].texture[index+vox[k].size],
-				vox[k].texture[index+vox[k].size + 1],
-				xx & 0xffff, yy & 0xffff);
-} else {
-		color = 0;
-}
-}
-*/
 
 void pixel_get_info(const Vector & t, PixelInfo &pinfo)
 {
@@ -1228,7 +1015,6 @@ void subdivide(int x, int y, const Vector & base, PixelInfo *pinfo, int size)
 					pixel_get_info(t, p);
 				}
 				voxfb[(y + j) * vox_xr + (x + i)] = p.color;
-				//voxfb[(y + j) * vox_xr + (x + i)] = 0xff0000;
 			}
 		}
 		return ;
@@ -1253,36 +1039,32 @@ void subdivide(int x, int y, const Vector & base, PixelInfo *pinfo, int size)
 	}
 	
 	if (!needs_subdivide) {
-		float adapt, davg = 0.0f;
-		float noninfsum = 0.0f, noninfdiv = 0.0f;
+		float avg = 0.0f; int infinities = 0;
 		for (int i = 0; i < 4; i++) {
-			davg += pinfo[i].depth;
-			if (pinfo[i].depth < 10000) {
-				noninfsum += pinfo[i].depth;
-				noninfdiv += 1.0f;
-			}
+			if (pinfo[i].depth > 1e6)
+				++infinities;
+			else
+				avg += pinfo[i].depth;
 		}
-		davg *= 0.25f;
-		if (noninfdiv==0.0f) adapt = 9999;
-			else adapt = noninfsum / noninfdiv / 10.0;
-			
-		if (fabs(pinfo[0].depth - davg) > adapt || 
-		    fabs(pinfo[1].depth - davg) > adapt || 
-		    fabs(pinfo[2].depth - davg) > adapt || 
-		    fabs(pinfo[3].depth - davg) > adapt) {
-			needs_subdivide = true;
-		}
-		
-		/*
-		float rcp_avg_depth = 4.0f / (pinfo[0].depth + pinfo[1].depth + pinfo[2].depth + pinfo[3].depth);
-		for (int i = 0; i < 4; i++) {
-			float t = pinfo[i].depth * rcp_avg_depth;
-			if (t < 0.95f || t > 1.05f) {
-				needs_subdivide = true;
+		switch (infinities) {
+			case 4: break;
+			case 0:
+			{
+				avg *= 0.25f;
+				float rcp_avg = 1.0f / avg;
+				for (int i = 0; i < 4; i++) {
+					float f = pinfo[i].depth * rcp_avg;
+					if (fabs(1.0f - f * f) > 0.05f) {
+						needs_subdivide = true;
+						break;
+					}
+				}
 				break;
 			}
+			default:
+				needs_subdivide = true;
 		}
-		*/
+		
 		if (!needs_subdivide) {
 		
 			Uint32 colors[4];
@@ -1290,6 +1072,14 @@ void subdivide(int x, int y, const Vector & base, PixelInfo *pinfo, int size)
 				colors[i] = pinfo[i].color;
 			}
 			needs_subdivide = too_much_color_difference(colors);
+		}
+		
+		if (!needs_subdivide) {
+			vec2f t[4];
+			for (int i = 0; i < 4; i++)
+				t[i] = vec2f(pinfo[i].u, pinfo[i].v);
+			if (fabs(face(t[0], t[1], t[2])) > 40.0f || fabs(face(t[1], t[2], t[3])) > 40.0f)
+				needs_subdivide = true;
 		}
 	}
 	
@@ -1319,16 +1109,6 @@ void subdivide(int x, int y, const Vector & base, PixelInfo *pinfo, int size)
 		subdivide(x      , y + sz2, vecs[1], divs[2], sz2);
 		subdivide(x + sz2, y + sz2, vecs[2], divs[3], sz2);
 	} else {
-		/*
-		Uint32 color = 0xff;
-		if (size == 8) color = 0xff00;
-		if (size == 4) color = 0xffff00;
-		for (int j = 0; j < size; j++) if (y + j < vox_yr) {
-			for (int i = 0; i < size; i++) if (x + i < vox_xr) {
-				voxfb[(j + y) * vox_xr + (i + x)] = color;
-			}
-		}
-		*/
 		if (CVars::bilinear) {
 			float scaler = 1.0f / size;
 			int n = vox[vox_num].size;
@@ -1363,9 +1143,6 @@ void subdivide(int x, int y, const Vector & base, PixelInfo *pinfo, int size)
 
 void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & ti, Vector & tti)
 {
-#ifdef __MINGW32__
-#warning this function triggers an error, please fix it!
-#else
 	static PixelInfo precalc_pi[(RES_MAXX/8+1) * (RES_MAXY/8+1)];
 	int xr = xsize_render(xres());
 	int yr = ysize_render(yres());
@@ -1375,48 +1152,7 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	vox_xr = xr; vox_yr = yr;
 	voxfb = fb;
 
-#ifdef BENCH
-	/***/
-	// if we're benchmarking - don't use multiple cpu
-	if (thread_index) return;
-	static bool didbenchmark = false;
-	if (didbenchmark) return;
-	didbenchmark = true;
-
-	printf("Benchmarking raycasting speeds\n");
-	printf("\tRandom texels: [");
-	fflush(stdout);
-	double cc = bTime();
-	float depth;
-	Uint32 tc;
-	for (int i = 0; i < 1500000; i++) {
-		double xx = rand() % 512000 / 1000.0;
-		double zz = rand() % 512000 / 1000.0;
-		Vector d(xx, 0, zz);
-		castray(d, tc, depth, 0);
-		if (i % (128*1024) == 0) {printf("#"); fflush(stdout);}
-	}
-	cc = bTime()-cc;
-	printf("] \t%.0lf raycasts / sec\n", 1500000.0 / cc);
-	printf("\tAdjascent texels: [");
-	fflush(stdout);
-	cc = bTime();
-	for (int i = 0; i < 1500000; i++) {
-		//double xx = rand() % 512000 / 1000.0;
-		//double zz = rand() % 512000 / 1000.0;
-		double xx = i % 512;
-		double yy = i / 512 % 512;
-		Vector d(xx, 0, yy);
-		castray(d, tc, depth, 0);
-		if (i % (128*1024) == 0) {printf("#"); fflush(stdout);}
-	}
-	cc = bTime()-cc;
-	printf("] \t%.0lf raycasts / sec\n", 1500000.0 / cc);
-	WantToQuit = true;
-	return;
-	/***/
-#endif
-	long long blockstart = 0;
+ 	long long blockstart = 0;
 	int blocksize = 8;
 
 	Vector xStride = ti * blocksize, yStride = tti* blocksize;
@@ -1498,7 +1234,6 @@ void voxel_single_frame_do2(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		walky += yStride;
 	}
 	prof_leave(PROF_STAGE2);
-#endif // __MINGW32__
 }
 
 Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
