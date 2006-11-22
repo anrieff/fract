@@ -26,8 +26,9 @@
 class AdvancedTab: public GenericTab
 {
 	wxStaticBox *m_bRenderSettings;
-	wxStaticBox *m_bEffects;
+	wxStaticBox *m_bStereoSettings;
 	wxStaticBox *m_bSceneSettings;
+	wxStaticBox *m_bEffects;
 	wxRadioBox *m_bLooping;
 	wxCheckBox *m_cbWindowed;
 	wxStaticText *m_useless1;
@@ -40,6 +41,8 @@ class AdvancedTab: public GenericTab
 	wxComboBox *m_cmbNumCPU;
 	wxCheckBox *m_cbShadows;
 	wxStaticText *m_useless5;
+	wxStaticText *m_useless6, *m_useless7;
+	wxComboBox *m_cmbStereoType, *m_cmbGlassesType;
 	wxComboBox *m_cmbShaders;
 	wxCheckBox *m_cbFreeLook;
 	wxCheckBox *m_cbCustomScene;
@@ -52,6 +55,8 @@ class AdvancedTab: public GenericTab
 	void OncmbAntialiasing(wxCommandEvent &);
 	void OncmbDontUse(wxCommandEvent &);
 	void OncmbNumCPU(wxCommandEvent &);
+	void OncmbStereoType(wxCommandEvent &);
+	void OncmbGlassesType(wxCommandEvent &);
 	void OncbShadows(wxCommandEvent &);
 	void OncmbShaders(wxCommandEvent &);
 	void OncbFreeLook(wxCommandEvent &);
@@ -75,6 +80,7 @@ public:
 
 enum {
 	bRenderSettings,
+	bStereoSettings,
 	bEffects,
 	bSceneSettings,
 	bLooping,
@@ -89,6 +95,10 @@ enum {
 	cmbNumCPU,
 	cbShadows,
 	useless5,
+	useless6,
+	useless7,
+	cmbStereoType,
+	cmbGlassesType,
 	cmbShaders,
 	cbFreeLook,
 	cbCustomScene,

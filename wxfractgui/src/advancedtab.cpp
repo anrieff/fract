@@ -33,6 +33,8 @@ BEGIN_EVENT_TABLE(AdvancedTab, GenericTab)
 	EVT_COMBOBOX(cmbAntialiasing, AdvancedTab:: OncmbAntialiasing)
 	EVT_COMBOBOX(cmbDontUse, AdvancedTab:: OncmbDontUse)
 	EVT_COMBOBOX(cmbNumCPU, AdvancedTab:: OncmbNumCPU)
+	EVT_COMBOBOX(cmbStereoType, AdvancedTab::OncmbStereoType)
+	EVT_COMBOBOX(cmbGlassesType, AdvancedTab::OncmbGlassesType)
 	EVT_CHECKBOX(cbShadows, AdvancedTab:: OncbShadows)
 	EVT_COMBOBOX(cmbShaders, AdvancedTab:: OncmbShaders)
 	EVT_CHECKBOX(cbFreeLook, AdvancedTab:: OncbFreeLook)
@@ -409,20 +411,23 @@ void AdvancedTab::GenerateGUI(void)
 	m_bRenderSettings = new wxStaticBox(this, bRenderSettings, "Render Settings",
 					    wxPoint(16, 16),
 					    wxSize(247, 210));
-	m_bEffects = new wxStaticBox(this, bEffects, "Fullscreen Effects",
-				     wxPoint(16, 236),
-				     wxSize(247, 80));
+	m_bStereoSettings = new wxStaticBox(this, bStereoSettings, "Stereoscopic rendering settings",
+					    wxPoint(16, 236),
+					    wxSize(247, 100));
 	m_bSceneSettings = new wxStaticBox(this, bSceneSettings, "Scene Settings",
 					   wxPoint(273, 16),
-					   wxSize(319, 140));
+					   wxSize(319, 125));
 	wxArrayString a_bLooping;
 	a_bLooping.Add("Single Run");
 	a_bLooping.Add("Loop 5 times");
 	a_bLooping.Add("Loop forever");
 	m_bLooping = new wxRadioBox(this, bLooping, "Looping",
-				wxPoint(273, 166),
+				wxPoint(273, 151),
 				wxSize(319, 100),
 				a_bLooping, a_bLooping.size(), wxRA_SPECIFY_ROWS);
+	m_bEffects = new wxStaticBox(this, bEffects, "Fullscreen Effects",
+				     wxPoint(273, 261),
+				     wxSize(319, 80));
 	m_cbWindowed = new wxCheckBox(this, cbWindowed, "Run in a Window",
 				      wxPoint(32, 38),
 				      wxSize(-1, -1));
@@ -493,8 +498,35 @@ void AdvancedTab::GenerateGUI(void)
 				     wxPoint(32, 188),
 				     wxSize(-1, -1));
 	m_cbShadows->SetValue(true);
+	
+	wxArrayString a_stereoTypes;
+	a_stereoTypes.Add("None");
+	a_stereoTypes.Add("Parallel view");
+	a_stereoTypes.Add("Anaglyph");
+	m_useless6 = new wxStaticText(this, useless6, "Stereo type:",
+				      wxPoint(32, 268));
+	m_cmbStereoType = new wxComboBox(this, cmbStereoType, "None",
+					 wxPoint(130, 266), wxSize(120, -1),
+					a_stereoTypes, wxCB_READONLY | wxCB_DROPDOWN);
+	m_useless7 = new wxStaticText(this, useless7, "Glasses type:",
+				      wxPoint(32, 298));
+	wxArrayString a_glassesType;
+	a_glassesType.Add("Red/Blue");
+	a_glassesType.Add("Red/Cyan");
+	a_glassesType.Add("Red/Green");
+	a_glassesType.Add("Yellow/Blue");
+	a_glassesType.Add("Yellow/Cyan");
+	a_glassesType.Add("Violet/Green");
+	a_glassesType.Add("Violet/Cyan");
+	m_cmbGlassesType = new wxComboBox(this, cmbGlassesType, "Red/Blue",
+					  wxPoint(130, 296), wxSize(120, -1),
+					 a_glassesType, wxCB_READONLY | wxCB_DROPDOWN);
+	
+	m_useless7->Disable();
+	m_cmbGlassesType->Disable();
+	
 	m_useless5 = new wxStaticText(this, useless5, "Effect:",
-				      wxPoint(32, 274),
+				      wxPoint(289, 299),
 				      wxSize(60, -1));
 	wxArrayString a_cmbShaders;
 	a_cmbShaders.Add("None");
@@ -505,7 +537,7 @@ void AdvancedTab::GenerateGUI(void)
 	a_cmbShaders.Add("Inversion");
 	a_cmbShaders.Add("ObjectGlow");
 	m_cmbShaders = new wxComboBox(this, cmbShaders, "None",
-				      wxPoint(100, 270),
+				      wxPoint(357, 295),
 				      wxSize(150, -1),
 					a_cmbShaders, wxCB_READONLY | wxCB_DROPDOWN);
 	m_cbFreeLook = new wxCheckBox(this, cbFreeLook, "Free Look",
@@ -563,6 +595,21 @@ void AdvancedTab::Rebuild(void)
 	if (!m_cbShadows->GetValue() ) {
 		a += "--no-shadows ";
 	}
+	if (m_cmbStereoType->GetValue() != "None") {
+		bool anaglyph = ("Anaglyph" == m_cmbStereoType->GetValue());
+		if (anaglyph) {
+			a += "--anaglyph ";
+			if (m_cmbGlassesType->GetValue() != "Red/Blue") {
+				wxString gt = m_cmbGlassesType->GetValue();
+				if (gt == "Red/Cyan") a += "--glasses=r,gb ";
+				if (gt == "Red/Green") a += "--glasses=r,g ";
+				if (gt == "Yellow/Blue") a += "--glasses=rg,b ";
+				if (gt == "Yellow/Cyan") a += "--glasses=rg,gb ";
+				if (gt == "Violet/Green") a += "--glasses=rb,g ";
+				if (gt == "Violet/Cyan") a += "--glasses=rb,gb ";
+			}
+		} else a += "--parallel ";
+	}
 	if (m_cmbShaders->GetValue() != "None") {
 		a += "--shader=" + m_cmbShaders->GetValue() + " ";
 	}
@@ -601,6 +648,23 @@ void AdvancedTab::OncmbDontUse(wxCommandEvent &)
 }
 
 void AdvancedTab::OncmbNumCPU(wxCommandEvent &)
+{
+	Rebuild();
+}
+
+void AdvancedTab::OncmbStereoType(wxCommandEvent &)
+{
+	Rebuild();
+	if (m_cmbStereoType->GetValue() == "Anaglyph") {
+		m_useless7->Enable();
+		m_cmbGlassesType->Enable();
+	} else {
+		m_useless7->Disable();
+		m_cmbGlassesType->Disable();
+	}
+}
+
+void AdvancedTab::OncmbGlassesType(wxCommandEvent &)
 {
 	Rebuild();
 }
