@@ -139,6 +139,8 @@ void display_usage(void)
 	printf("  --shadows, --no-shadows - Enable/Disable shadows\n");
 	printf("  --save-video  - Save a sequence of .BMPs to a video/ subfolder\n");
 	printf("  --prof-stats  - Print profiling statistics (if they are enabled)\n");
+	printf("  --anaglyph    - Enable anaglyph rendering for viewing with 3D-glasses\n");
+	printf("  --glasses=xx,yy - Set 3D glasses type (e.g. `--glasses=r,gb' for red/cyan\n");
 }
 
 void cmdline_close(void)

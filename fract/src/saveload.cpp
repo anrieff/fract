@@ -258,13 +258,37 @@ static inline int get_int(char *s)
 	i++;
 	if (sscanf(s+i, "%lf", &f)) {
 		if (f < -INT_MAX || f > INT_MAX) {
-			printf("Value at line `%s' won't fit in the integer type!\n", s);
+			printf("get_int: Value at line `%s' won't fit in the integer type!\n", s);
 			return 0;
 		} else	return ((int) f);
 		}
-		else {	printf("Value not read well at line `%s'!\n", s);
+		else {	printf("get_int: Value not read well at line `%s'!\n", s);
 			return 0;
 			}
+}
+
+static inline int get_hex(char *s)
+{
+	int i;
+	unsigned t;
+
+	for (i=0;s[i]!='=';i++);
+	i++;
+	if (s[i] != '0' && s[i+1] != 'x') {
+		printf("get_hex: Value not read well at line `%s'\n", s);
+	} else {
+		sscanf(s + i + 2, "%x", &t);
+		return (int) t;
+	}
+}
+
+static inline int get_int_or_hex(char *s)
+{
+	int i;
+	for (i = 0; s[i] != '='; i++);
+	i++;
+	if (s[i] == '0' && s[i+1] == 'x') return get_hex(s);
+	else return get_int(s);
 }
 
 double get_real(char *s)
@@ -275,7 +299,7 @@ double get_real(char *s)
 	for (i=0;s[i]!='=';i++);
 	i++;
 	if (sscanf(s+i, "%lf", &f)) return f;
-		else {	printf("Value not read well at line `%s'!\n", s);
+	else {	printf("get_real: Value not read well at line `%s'!\n", s);
 			return 0.0;
 			}
 }
@@ -497,8 +521,9 @@ static void get_mesh_info(char *basedir, char *si)
 		}
 		case 0xaddd:
 		{
+			int thiscolor = get_int_or_hex(s);
 			for (int i = 0; i < mesh[index].triangle_count; i++)
-				trio[i + mesh[index].get_triangle_base()].color = get_int(s);
+				trio[i + mesh[index].get_triangle_base()].color = thiscolor;
 			break;
 		}
 		default:

@@ -73,8 +73,8 @@ int UseThreads = -1;
 int r_shadows  = 1;
 int stereo_type = STEREO_TYPE_NONE;
 int stereo_mode = STEREO_MODE_NONE;
-Uint32 anaglyph_left_mask = 0xff0000, anaglyph_right_mask = 0x00ffff;
-double stereo_depth = 1e8;
+Uint32 anaglyph_left_mask = 0xff0000, anaglyph_right_mask = 0x0000ff;
+double stereo_depth = 1e6;
 double stereo_separation = 6;
 Uint32 *stereo_buffer = NULL;
 
@@ -115,6 +115,36 @@ int render_init(void)
  	if (option_exists("--loops")) {
  		loops_remaining = option_value_int("--loops");
  	}
+	if (option_exists("--glasses")) {
+		const char *val = option_value_string("--glasses");
+		bool failed = true;
+		unsigned masks[2] = {0, 0}, k = 0;
+		if (val && strchr(val, ',')) {
+			failed = false;
+			for (unsigned i = 0; i < strlen(val); i++) {
+				switch (val[i]) {
+					case ',':
+					{
+						k++;
+						if (k > 1) failed = true;
+						break;
+					}
+					case 'r': masks[k] |= 0xff0000; break;
+					case 'g': masks[k] |= 0x00ff00; break;
+					case 'b': masks[k] |= 0x0000ff; break;
+					default:
+						failed = true;
+						break;
+				}
+				if (failed) break;
+			}
+			if (k != 1) failed = true;
+		}
+		if (!failed) {
+			anaglyph_left_mask = masks[0];
+			anaglyph_right_mask = masks[1];
+		}
+	}
 	return 0;
 }
 
@@ -369,12 +399,28 @@ void postframe_do(void)
 				memcpy(&stereo_buffer[xoffset + j * (xx * 2+8)], &framebuffer[j * xx], xx * 4);
 		} else {
 			int size = xres() * yres();
+			Uint32 overlapping = anaglyph_left_mask & anaglyph_right_mask;
+			Uint32 omask = 0;
+			if (overlapping) {
+				omask = overlapping & 0xfefefe;
+			}
+			
 			if (stereo_mode == STEREO_MODE_LEFT) {
-				for (int i = 0; i < size; i++)
-					stereo_buffer[i] = framebuffer[i] & anaglyph_left_mask;
+				for (int i = 0; i < size; i++) {
+					Uint32 value = framebuffer[i] & anaglyph_left_mask;
+					if (overlapping) {
+						value = (value & ~overlapping) | ((value & omask) >> 1);
+					}
+					stereo_buffer[i] = value;
+				}
 			} else {
-				for (int i = 0; i < size; i++)
-					stereo_buffer[i] |= framebuffer[i] & anaglyph_right_mask;
+				for (int i = 0; i < size; i++) {
+					Uint32 value = framebuffer[i] & anaglyph_right_mask;
+					if (overlapping) {
+						value = (value & ~overlapping) | ((value & omask) >> 1);
+					}
+					stereo_buffer[i] += value;
+				}
 			}
 		}
 	}
