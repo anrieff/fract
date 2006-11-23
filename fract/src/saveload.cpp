@@ -276,6 +276,7 @@ static inline int get_hex(char *s)
 	i++;
 	if (s[i] != '0' && s[i+1] != 'x') {
 		printf("get_hex: Value not read well at line `%s'\n", s);
+		return 0;
 	} else {
 		sscanf(s + i + 2, "%x", &t);
 		return (int) t;

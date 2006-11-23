@@ -295,6 +295,11 @@ inline void Vector::print() const
 	printf("(%.4lf, %.4lf, %.4lf)\n", x, y, z);
 }
 
+#ifdef _MSC_VER
+#include <float.h>
+#define finite _finite
+#endif
+
 inline bool Vector::is_finite() const
 {
 	return finite(v[0]) && finite(v[1]) && finite(v[2]);

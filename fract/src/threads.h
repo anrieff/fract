@@ -203,6 +203,7 @@ class Barrier {
 	HANDLE event;
 	InterlockedInt counter;
 public:
+	Barrier();
 	Barrier(int cpu_count);
 	~Barrier();
 

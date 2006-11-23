@@ -82,10 +82,12 @@ T hermite(const T& a, const T& b, double t)
 }
 
 // min and max templates
-template <typename T>
+#ifndef _MSC_VER
+template <class T>
 static inline T min(T a, T b) { return a < b ? a : b; }
-template <typename T>
+template <class T>
 static inline T max(T a, T b) { return a > b ? a : b; }
+#endif
 
 
 #define SSSTORAGE_SIZE (1024*1024)
