@@ -394,6 +394,9 @@
 				RelativePath=".\src\gfx.cpp">
 			</File>
 			<File
+				RelativePath=".\src\hierarchy.cpp">
+			</File>
+			<File
 				RelativePath=".\src\infinite_plane.cpp">
 			</File>
 			<File
@@ -415,10 +418,16 @@
 				RelativePath=".\src\mesh.cpp">
 			</File>
 			<File
+				RelativePath=".\src\physics.cpp">
+			</File>
+			<File
 				RelativePath=".\src\profile.cpp">
 			</File>
 			<File
 				RelativePath=".\src\progress.cpp">
+			</File>
+			<File
+				RelativePath=".\src\radiosity.cpp">
 			</File>
 			<File
 				RelativePath=".\src\random.cpp">
@@ -567,10 +576,16 @@
 				RelativePath=".\src\object.h">
 			</File>
 			<File
+				RelativePath=".\src\physics.h">
+			</File>
+			<File
 				RelativePath=".\src\profile.h">
 			</File>
 			<File
 				RelativePath=".\src\progress.h">
+			</File>
+			<File
+				RelativePath=".\src\radiosity.h">
 			</File>
 			<File
 				RelativePath=".\src\random.h">
