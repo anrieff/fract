@@ -35,7 +35,7 @@
 ** connection with this software.
 */
 
-
+#include <stdio.h>
 #include <string.h>
  
 /**
@@ -118,22 +118,70 @@ static void CPUID(int val_eax, int res[])
 #endif
 }
 
+enum {
+	VENDOR_INTEL,
+	VENDOR_AMD,
+	VENDOR_UNKNOWN
+};
+
+
+
+// This hack is intended for testing. If the executable finds a file, named `simulator.txt'
+// it reads various CPU info from it and pretends it's running on the specified
+// cpu, faking CPUID calls, etc.
+bool simulator = false;
+struct SimulatorInfo {
+	int num_cores, logical_cpus, family, model, stepping, ext_family, ext_model;
+	int vendor;
+	char brand[49];
+} sinfo;
+
+
+/*
+ * Simulator file fmt:
+ *
+ * <vendor> (0 = intel, 1 = amd)
+ * <family> <model> <stepping> <ext_family> <ext_model>
+ * <num_cores> <logical_cpus>
+ * <cpu_brand_string>
+*/
+bool simulator_readinfo(const char *fn)
+{
+	FILE *f = fopen(fn, "rt");
+	if (!f) return false;
+	bool good = false;
+	if (1 != fscanf(f, "%d", &sinfo.vendor)) goto FAIL;
+	if (5 != fscanf(f, "%d%d%d%d%d", &sinfo.family, &sinfo.model, &sinfo.stepping,
+		&sinfo.ext_family, &sinfo.ext_model)) goto FAIL;
+	if (2 != fscanf(f, "%d%d", &sinfo.num_cores, &sinfo.logical_cpus)) goto FAIL;
+	if (!fgets(sinfo.brand, 49, f)) goto FAIL;
+	if (!fgets(sinfo.brand, 49, f)) goto FAIL;
+	if (!strlen(sinfo.brand)) goto FAIL;
+	sinfo.brand[strlen(sinfo.brand)-1] = 0;
+	good = true;
+
+FAIL:
+	fclose(f);
+	return good;
+}
+
 const char *cpu_brand_string(void)
 {
 	static char reso[64];
+	int i;
 	
 	int xres[4];
 	
 	CPUID(0x80000000, xres);
 	if ((unsigned) xres[0] < 0x80000004) return NULL;
 	
-	for (int i = 0; i < 3; i++) {
+	for (i = 0; i < 3; i++) {
 		CPUID(0x80000002 + i, xres);
 		for (int j = 0; j < 4; j++)
 			memcpy(&reso[i*16+j*4], &xres[j], 4);
 	}
 	reso[48] = 0;
-	int i = 0;
+	i = 0;
 	while (reso[i] && reso[i] == ' ') i++;
 	return &reso[i];
 }
@@ -173,12 +221,6 @@ static int score(const MatchEntry& m, int f, int mod, int s, int em, int ef, cod
 	return res;
 }
 
-enum {
-	VENDOR_INTEL,
-	VENDOR_AMD,
-	VENDOR_UNKNOWN
-};
-
 static int cpu_vendor(void)
 {
 	int res[4];
@@ -196,6 +238,8 @@ static int cpu_vendor(void)
 static code_t get_cpu_code_phase1(int vendor)
 {
 	const char *brand = cpu_brand_string();
+	if (simulator)
+		brand = sinfo.brand;
 	if (brand == NULL) return UN;
 	switch (vendor) {
 		case VENDOR_INTEL:
@@ -221,7 +265,7 @@ static code_t get_cpu_code_phase1(int vendor)
 				} else if (strstr(brand, "Pentium") != NULL) {
 					return dP;
 				} else if (strstr(brand, "Genuine Intel(R) CPU") != NULL
-					|| strstr(brand, "Intel(R) Core(TM)2 CPU") != NULL) {
+					|| strstr(brand, "Intel(R) Core(TM)2") != NULL) {
 					return dc;
 				}
 			}
@@ -317,6 +361,10 @@ static code_t get_cpu_code_phase2(int vendor, code_t code)
 			num_cores = 1 + (r[2] & 0xff);
 		}
 	}
+	if (simulator) {
+		num_cores = sinfo.num_cores;
+		logical_cpus = sinfo.logical_cpus;
+	}
 	if (num_cores != -1 && logical_cpus != -1) {
 		if (num_cores > 1) {
 			if (logical_cpus == num_cores) {
@@ -370,7 +418,12 @@ const char *identify_cpu(void)
 {
 	int num_entries;
 	const MatchEntry *cpudb = NULL;
+	simulator = simulator_readinfo("simulator.txt");
+
 	int vendor = cpu_vendor();
+	if (simulator) 
+		vendor = sinfo.vendor;
+
 	switch (vendor) {
 		case VENDOR_INTEL: 
 			cpudb = cpudb_intel;
@@ -396,6 +449,15 @@ const char *identify_cpu(void)
 	family      = r & 0xf; r >>= 8;
 	ext_model   = r & 0xf; r >>= 4;
 	ext_family  = r & 0xff;
+	//
+	if (simulator) {
+		family     = sinfo.family;
+		model      = sinfo.model;
+		stepping   = sinfo.stepping;
+		ext_family = sinfo.ext_family;
+		ext_model  = sinfo.ext_model;
+	}
+	//
 	code = get_cpu_code(vendor);
 	
 	// we have what we need, try matching now.
