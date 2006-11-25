@@ -25,6 +25,12 @@
 #define SSE2_MASK  0x04000000
 
 #ifdef __GNUC__
+#	ifdef __x86_64__
+bool have_SSE2(void) 
+{
+	return true; // all amd64-capable CPUs have SSE2
+}
+#	else
 bool have_SSE2(void) 
 {
 	int CPUZ=0, CPUEXT=0, ECS=0;
@@ -60,6 +66,7 @@ bool have_SSE2(void)
 
 	return (CPUZ&SSE2_MASK?true:false);
 }
+#endif // __x86_64__
 #else
 #ifdef _MSC_VER
 bool have_SSE2(void)

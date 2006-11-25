@@ -68,6 +68,34 @@
 static void CPUID(int val_eax, int res[])
 {
 #ifdef __GNUC__
+#	ifdef __x86_64__
+	__asm __volatile(
+		"	push	%%rbx\n"
+		"	push	%%rcx\n"
+		"	push	%%rdx\n"
+		"	push	%%rdi\n"
+		
+		"	mov	%1,	%%rdi\n"
+		
+		"	xor	%%ebx,	%%ebx\n"
+		"	xor	%%ecx,	%%ecx\n"
+		"	xor	%%edx,	%%edx\n"
+		
+		"	cpuid\n"
+		
+		"	movl	%%eax,	(%%rdi)\n"
+		"	movl	%%ebx,	4(%%rdi)\n"
+		"	movl	%%ecx,	8(%%rdi)\n"
+		"	movl	%%edx,	12(%%rdi)\n"
+		"	pop	%%rdi\n"
+		"	pop	%%rdx\n"
+		"	pop	%%rcx\n"
+		"	pop	%%rbx\n"
+		:
+		:"a"(val_eax), "rdi"(res)
+		:"memory"
+	);
+#	else
 	__asm __volatile(
 		"	push	%%eax\n"
 		"	push	%%ebx\n"
@@ -76,6 +104,10 @@ static void CPUID(int val_eax, int res[])
 		"	push	%%edi\n"
 		"	mov	%0,	%%eax\n"
 		"	mov	%1,	%%edi\n"
+		
+		"	xor	%%ebx,	%%ebx\n"
+		"	xor	%%ecx,	%%ecx\n"
+		"	xor	%%edx,	%%edx\n"
 		
 		"	cpuid\n"
 		
@@ -92,6 +124,7 @@ static void CPUID(int val_eax, int res[])
 		:"m"(val_eax), "m"(res)
 		:"memory"
 	);
+#	endif // __x86_64__
 #else
 	__asm {
 		push	eax
@@ -101,6 +134,9 @@ static void CPUID(int val_eax, int res[])
 		push	edi
 		mov	eax,	val_eax
 		mov	edi,	res
+		xor	ebx,	ebx
+		xor	ecx,	ecx
+		xor	edx,	edx
 		
 		cpuid
 		
