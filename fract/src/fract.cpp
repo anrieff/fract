@@ -81,7 +81,7 @@ double pdlo[MAX_SPHERES];
 double lft, delta;
 double speed = 25;
 double anglespeed = 0.2;
-double mouse_sensitivity = 0.16, fov = STANDARD_FIELD_OF_VIEW;
+double mouse_sensitivity = 0.16;
 double keyboard_sensitivity = 3.0;
 
 int not_fps_written_yet = 1;
@@ -251,8 +251,6 @@ void kbd_tiny_do(int *ShouldExit)
 						case FSAA_MODE_ADAPT_16: set_fsaa_mode (FSAA_MODE_NONE); break;
 					}
 				}
-				if (e.key.keysym.sym == SDLK_F9 ) fov/=1.01;
-				if (e.key.keysym.sym == SDLK_F10) fov*=1.01;
 			}
 		}
 	}

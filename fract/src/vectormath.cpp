@@ -29,6 +29,7 @@
 #include "render.h"
 #include "infinite_plane.h"
 #include "voxel.h"
+#include "cvars.h"
 #include <math.h>
 
 #ifdef _MSC_VER
@@ -59,7 +60,6 @@ double diffuse = 0.55;
 double specular = 0.15;*/
 extern Sphere sp[];
 extern int spherecount;
-extern double fov;
 extern int vframe;
 extern int ysqrd_floor, ysqrd_ceil;
 
@@ -106,9 +106,19 @@ void calc_grid_point(const Vector & c, double a, double b, double alphaorig, Vec
 // calculates the three ending points of the vector grid given a user viewpoint and a direction
 void calc_grid_basics(const Vector &c, double alpha, double beta, Vector w[3])
 {
- calc_grid_point(c, alpha-A_ALPHA_OFFSET*fov*FOV_CORRECTION, beta+A_BETA_OFFSET*fov*FOV_CORRECTION, alpha, w[0]);
- calc_grid_point(c, alpha+A_ALPHA_OFFSET*fov*FOV_CORRECTION, beta+A_BETA_OFFSET*fov*FOV_CORRECTION, alpha, w[1]);
- calc_grid_point(c, alpha-A_ALPHA_OFFSET*fov*FOV_CORRECTION, beta-A_BETA_OFFSET*fov*FOV_CORRECTION, alpha, w[2]);
+	calc_grid_point(
+			c, 
+			alpha-A_ALPHA_OFFSET*CVars::fov*FOV_CORRECTION,
+			beta+A_BETA_OFFSET*CVars::fov*FOV_CORRECTION,
+			alpha, w[0]);
+	calc_grid_point(c, 
+			alpha+A_ALPHA_OFFSET*CVars::fov*FOV_CORRECTION,
+			beta+A_BETA_OFFSET*CVars::fov*FOV_CORRECTION,
+			alpha, w[1]);
+	calc_grid_point(c, 
+			alpha-A_ALPHA_OFFSET*CVars::fov*FOV_CORRECTION,
+			beta-A_BETA_OFFSET*CVars::fov*FOV_CORRECTION,
+			alpha, w[2]);
 }
 
 void InitMatrix(double m[3][3], const Vector&a, const Vector &b, const Vector &c) 

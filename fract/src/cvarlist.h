@@ -25,6 +25,7 @@
 
 DECLARE_VARIABLE(double, alpha       , 0.0  , "camera rotation around Y");
 DECLARE_VARIABLE(double, beta        , 0.0  , "camera rotation around XZ");
+DECLARE_VARIABLE(double, fov         , 1.0  , "field-of-view");
 DECLARE_VARIABLE(bool,   bilinear    , false, "bilinear filtering toggle");
 DECLARE_VARIABLE(bool,   anisotrophic, true , "anisotrophic-like filtering toggle");
 DECLARE_VARIABLE(double, area_const  , 0.0  , "mipmap selection area unit");

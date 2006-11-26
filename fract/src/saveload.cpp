@@ -46,7 +46,6 @@ extern char default_font[];
 extern AniSphere AS[];
 extern int anicnt;
 extern double sv_gravity, sv_air;
-extern double fov;
 
 /* ----------------------------------- variables ------------------------------------------ */
 
@@ -169,7 +168,7 @@ int save_context(const char *fn)
 	fprintf(f, "\n# Physics engine parameters\n");
 	fprintf(f, "sv_gravity=%.6lf\n", sv_gravity);
 	fprintf(f, "sv_air=%.6lf\n", sv_air);
-	fprintf(f, "fov=%.6lf\n", fov);
+	fprintf(f, "fov=%.6lf\n", CVars::fov);
 	fprintf(f, "\n# Some vital file names\n");
 	fprintf(f, "floor_texture=\"%s\"\n", floor_texture);
 	fprintf(f, "default_font=\"%s\"\n", default_font);
@@ -615,7 +614,7 @@ int load_context(const char *fn)
 				case 0xa3e0: CollDetect = get_int (line); break;
 				case 0xdf4d: sv_gravity = get_real(line); break;
 				case 0x1386: sv_air = get_real(line); break;
-				case 0xe5a3: fov = get_real(line); break;
+				case 0xe5a3: CVars::fov = get_real(line); break;
 			/* Textures: */
 				case 0x314d: get_str (line, floor_texture); break;
 				case 0x9bff: /*get_str (line, default_font);*/ break;

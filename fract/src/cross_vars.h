@@ -54,7 +54,7 @@ extern double pdlo[MAX_SPHERES];
 extern double lft, delta;
 extern double speed;
 extern double anglespeed;
-extern double mouse_sensitivity, fov;
+extern double mouse_sensitivity;
 
 extern int developer;
 extern int RenderMode;
