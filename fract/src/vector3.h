@@ -307,28 +307,33 @@ inline bool Vector::is_finite() const
 
 #endif // Non-sse2 version
 
-#define VECTOR3_ASM
-#include "x86_asm.h"
-#undef VECTOR3_ASM
+#ifdef USE_ASSEMBLY
+#	define VECTOR3_ASM
+#	include "x86_asm.h"
+#	undef VECTOR3_ASM
+#else
+#	define sse_rcp(x) (1.0/x)
+#endif // USE_ASSEMBLY
 
 #define fast_float_sqrt(x) sqrtf(x)
 #if defined __GNUC__ && defined __SSE__ && defined __SSE2__
-#define fast_sqrt(x) \
-({\
-	register double _resultz;\
-	__asm__ (\
-	"	sqrtsd	%1,	%0\n"\
-	:"=x"(_resultz)\
-	:"x"(x)\
-	);\
-	_resultz;\
-})
+#	define fast_sqrt(x) \
+	({\
+		register double _resultz;\
+		__asm__ (\
+		"	sqrtsd	%1,	%0\n"\
+		:"=x"(_resultz)\
+		:"x"(x)\
+		);\
+		_resultz;\
+	})
 #else
-#define fast_sqrt(x) sqrt(x)
-#endif
+#	define fast_sqrt(x) sqrt(x)
+#endif // defined __GNUC__ && defined __SSE__ && defined __SSE2__
 
 
 /**************************************************************************************************************************************/
+
 
 #if defined SIMD_VECTOR && defined __SSE2__ && !defined __SSE3__
 #include <emmintrin.h>

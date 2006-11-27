@@ -20,7 +20,6 @@ const Reserve : RegLists = ('ebx', 'ebp', 'esi', 'edi');
      
 var buff1, buff2 : FImage;
     insns : IList;
-    icount : longint;
 
 
 Procedure ReadPhile(fn : string; var a : FImage);
@@ -80,9 +79,8 @@ Procedure Init;
 	    inc(p);
 	    end;	
 	until false;
-    icount := j;
-    end;    
-    
+    end;
+
 Procedure Convert_assembly_format(var a, b : Fimage; l1, l2 : longint; var l : Longint; fill : string);
     var outlist, inlist, modlist : string;
 	i, j, n, endej, endei : longint;
@@ -164,7 +162,7 @@ Procedure Convert_assembly_format(var a, b : Fimage; l1, l2 : longint; var l : L
 	    end;
 	    
 	Function Handle_memop(s : string) : string;
-	    var m : string;
+	    var 
 		base : string;
 		offset:string;
 		size : string;
@@ -423,7 +421,7 @@ Procedure Convert_assembly_format(var a, b : Fimage; l1, l2 : longint; var l : L
     end;    
     
 Procedure Convert(var a,b : FImage);
-    var i, j, p, l, q, z : longint;
+    var i, j, p, q : longint;
 	ablocks, alines : longint;
 	st, stt		: string;
 	inComment : boolean;
@@ -431,7 +429,7 @@ Procedure Convert(var a,b : FImage);
 
     Procedure ReParse(var so : String; si : String);
 	var plc, pbc : integer;
-	    i, j : integer;
+	    j : integer;
 	begin
 	plc := pos('//', si);
 	pbc := pos('/*', si);
