@@ -169,6 +169,7 @@ bool simulator = false;
 struct SimulatorInfo {
 	int num_cores, logical_cpus, family, model, stepping, ext_family, ext_model;
 	int vendor;
+	int cache_size;
 	char brand[49];
 } sinfo;
 
@@ -179,6 +180,7 @@ struct SimulatorInfo {
  * <vendor> (0 = intel, 1 = amd)
  * <family> <model> <stepping> <ext_family> <ext_model>
  * <num_cores> <logical_cpus>
+ * <cache_size_in_KB>
  * <cpu_brand_string>
 */
 bool simulator_readinfo(const char *fn)
@@ -190,6 +192,7 @@ bool simulator_readinfo(const char *fn)
 	if (5 != fscanf(f, "%d%d%d%d%d", &sinfo.family, &sinfo.model, &sinfo.stepping,
 		&sinfo.ext_family, &sinfo.ext_model)) goto FAIL;
 	if (2 != fscanf(f, "%d%d", &sinfo.num_cores, &sinfo.logical_cpus)) goto FAIL;
+	if (1 != fscanf(f, "%d", &sinfo.cache_size)) goto FAIL;
 	if (!fgets(sinfo.brand, 49, f)) goto FAIL;
 	if (!fgets(sinfo.brand, 49, f)) goto FAIL;
 	if (!strlen(sinfo.brand)) goto FAIL;
@@ -417,6 +420,8 @@ static code_t get_cpu_code_phase2(int vendor, code_t code)
 	}
 	
 	int cache_size = get_cache_size();
+	if (simulator)
+		cache_size = sinfo.cache_size;
 	
 	// Specialize for intel:
 	if (code == dc) {
