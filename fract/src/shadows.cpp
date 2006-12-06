@@ -23,7 +23,7 @@
 #include "array.h"
 #include "vector2f.h"
 #ifdef _WIN32
-#include <malloc.h>
+#include <malloc.h> // for alloca
 #endif
 
 
