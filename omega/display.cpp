@@ -10,12 +10,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_video.h>
 #include <SDL/SDL_keyboard.h>
 #include "display.h"
 
 static SDL_Surface *surface = NULL;
+
+int viewmode = 1;
+bool viewmode_changed = false;
 
 /**
  * @class FrameBuffer
@@ -62,6 +66,22 @@ void FrameBuffer::copy(const FrameBuffer &rhs)
 	memcpy(data, rhs.data, x*y*sizeof(Rgb));
 }
 
+void FrameBuffer::zero(void)
+{
+	if (x && y && data)
+		memset(data, 0, sizeof(Rgb) * x * y);
+}
+
+void FrameBuffer::inc_lum(int x, int y, int amount)
+{
+	if (x < 0 || y < 0 || x >= this->x || y >= this->y) return;
+	Rgb &pix = data[x + y * this->x];
+	int l = pix & 0xff;
+	l += amount;
+	if (l > 255) l = 255;
+	pix = RGB(l,l,l);
+}
+
 /**
  * @class GUI
 */
@@ -86,6 +106,7 @@ bool GUI::init(int x, int y)
 	surface = SDL_SetVideoMode(x, y, 32, 0);
 	if (!surface)
 		return false;
+	ticks = SDL_GetTicks();
 	return true;
 }
 
@@ -105,6 +126,14 @@ void GUI::update_view(View &v)
 			int s = e.key.keysym.sym;
 			switch (s) {
 				case SDLK_ESCAPE: she = true; break;
+				case SDLK_F1:
+				case SDLK_F2:
+				{
+					int newviewmode = s == SDLK_F1 ? 1 : 2;
+					viewmode_changed = newviewmode != viewmode;
+					viewmode = newviewmode;
+					break;
+				}
 			}
 		}
 		if (e.type == SDL_MOUSEBUTTONUP) {
@@ -123,4 +152,9 @@ void GUI::update_view(View &v)
 			v.size *= scaler;
 		}
 	}
+}
+
+double GUI::time() const
+{
+	return (SDL_GetTicks() - ticks)*0.001;
 }

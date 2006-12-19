@@ -2,11 +2,12 @@
 ## GNU Make Makefile for the omega project
 ## Written from scratch on 2006-12-18 by Veselin Georgiev
 ##
-## File version: 0.1.0
-## Version date: 2006-11-18
+## File version: 0.1.1
+## Version date: 2006-11-19
 ##
 ## Version History:
 ##	0.1.0: Initial script
+##	0.1.1: Some beautification of ouput
 ##
 
 
@@ -16,7 +17,7 @@ CXXLINK = $(CXX)
 OBJEXT = o
 
 ## Optimization flags
-OPTFLAGS = -O2 -g
+OPTFLAGS = -Wall -O3 -ffast-math -g
 
 ## Source files:
 OBJECTS = \
@@ -75,11 +76,11 @@ plugins-clean:
 ## Non-phony targets:
 
 $(BINARY): $(OBJECTS)
-	echo "C++[lnk] $(BINARY)"
+	echo "LINK [bin]    $(BINARY)"
 	$(CXXLINK) $(OPTFLAGS) $(OBJECTS) $(LIBSEARCH) $(LINK_WITH) -o $(BINARY)
 
 .cpp.$(OBJEXT): $(HEADERS)
-	echo "C++      $<"
+	echo "C++           $<"
 	$(CXX) $(OPTFLAGS) $(INCLUDES) -c $<
 
 ## export everything defined here to the subdirs

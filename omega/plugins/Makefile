@@ -1,11 +1,12 @@
 ##
 ## Makefile for Omega's plugins
 ##
-## File version: 0.1.0
-## Version date: 2006-11-18
+## File version: 0.1.1
+## Version date: 2006-11-19
 ##
 ## Version History:
 ##	0.1.0: Initial script
+##	0.1.1: Some beautification of output
 ##
 
 .PHONY: all clean
@@ -28,16 +29,21 @@ endif
 
 PLUGINS = \
 	mandelbrot.$(DYNLIBEXT) \
-	omega.$(DYNLIBEXT)
+	omega.$(DYNLIBEXT) \
+	newton.$(DYNLIBEXT)
 
 all: $(PLUGINS)
 
 mandelbrot.$(DYNLIBEXT): mandelbrot.cpp
-	echo "C++[lnk] $<"
+	echo "C++  [plugin] $<"
 	$(CXX) $(OPTFLAGS) -fPIC -shared -o $@ -Wl,-soname,$@ -I.. -lm $<
 
 omega.$(DYNLIBEXT): omega.cpp
-	echo "C++[lnk] $<"
+	echo "C++  [plugin] $<"
+	$(CXX) $(OPTFLAGS) -fPIC -shared -o $@ -Wl,-soname,$@ -I.. -lm $<
+
+newton.$(DYNLIBEXT): newton.cpp
+	echo "C++  [plugin] $<"
 	$(CXX) $(OPTFLAGS) -fPIC -shared -o $@ -Wl,-soname,$@ -I.. -lm $<
 
 clean:

@@ -30,7 +30,7 @@ public:
 		strcpy(info.name, "Omega");
 		strcpy(info.description,
 			"The set, generated with W_n = e^(-W_{n-1})");
-		info.priority = 0;
+		info.priority = 5;
 		return info;
 	}
 	View get_default_view() const
@@ -40,7 +40,7 @@ public:
 	}
 	int get_max_iters() const { return max_iters; }
 	void set_max_iters(int x) { max_iters = x; }
-	int num_iters(double x, double y)
+	Rgb shade(double x, double y)
 	{
 		DC z(x, y);
 		DC lz = z;
@@ -52,8 +52,16 @@ public:
 			lz = z;
 			++iters;
 		}
-		if (iters >= max_iters) return INF;
-		return (int) (iters * 12.5);
+		if (iters >= max_iters) return 0;
+		iters *= 12;
+		return iters;
+	}
+	bool iterate(IterationPoint *p)
+	{
+		DC z(p->x, p->y);
+		z = exp(-z);
+		p->x = real(z), p->y = imag(z);
+		return (real(z)*real(z) + imag(z)*imag(z) < 22);
 	}
 };
 

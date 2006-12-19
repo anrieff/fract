@@ -210,7 +210,6 @@ struct DllModule {
 	Plugin* theplugin;
 };
 
-static int plug_idx;
 static vector<DllModule> plugs;
 static int curplugin = 0;
 
@@ -246,6 +245,7 @@ bool load_plugins(void)
 		plugs.push_back(mod);
 	}
 	sort(plugs.begin(), plugs.end(), plug_cmp);
+	return !plugs.empty();
 }
 
 void free_plugins(void)

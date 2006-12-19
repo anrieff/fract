@@ -19,6 +19,11 @@ struct PluginInfo {
 	int priority;
 };
 
+typedef unsigned Rgb;
+
+#define RGB(R,G,B) ((R << 16)|(G<<8)|B)
+
+
 /**
  * @struct View
  * @brief represents a partial view of the complex plane
@@ -27,16 +32,18 @@ struct PluginInfo {
  * `size' determine the size in the x direction. E.g. the top-left
  * corner will display point (x - size, y - size * yres / xres) from
  * the complex plane, etc
- */
+*/
 struct View {
 	double x, y;
 	double size;
 };
 
+struct IterationPoint;
+
 /**
  * @class	Plugin
  * @brief	Abstract class, which each fractal routine must implement
- */
+*/
 class Plugin {
 public:
 	virtual ~Plugin() {}
@@ -55,11 +62,37 @@ public:
 
 	/**
 	 * the fractal routine. Given a point (x + iy), return the
-	 * number of iterations, needed to escape from the fractal set.
-	 * If the point is trapped in the set, then INF should
-	 * be returned.
+	 * resulting color (based on number of iterations, or, indeed,
+	 * whatever you like).
 	*/
-	virtual int num_iters(double x, double y) = 0;
+	virtual Rgb shade(double x, double y) = 0;
+
+	/**
+	 * this routine is used to initialize a moving point in the
+	 * dynamic system, defined by the fractal. 
+	 * IterationPoint's ::x and ::y fields are filled in with the
+	 * initial point coordinates prior to running init_point()
+	 * Usually you only need to implement this method if you want
+	 * to write fractal-specific data to IterationPoint::auxdata section
+	*/
+	virtual void init_point(IterationPoint *p) {}
+	
+	/// move the point by one fractal iteration
+	/// @returns false if the point cannot be iterated any more
+	virtual bool iterate(IterationPoint *p) = 0;
+};
+
+/**
+ * @struct IterationPoint
+ * @brief  Represents a point in the dynamic system
+*/
+struct IterationPoint {
+	/// coordinates of the point
+	double x, y;
+	
+	/// additional data, used to preserve e.g. some state information
+	/// for the given point. Might not be used at all.
+	char auxdata[48];
 };
 
 /// Convenience macro for an implemented plugin.
@@ -77,7 +110,7 @@ public:
         DLLEXPORT                                                             \
         Plugin* new_class_instance(void) { return new name; }                 \
         DLLEXPORT                                                             \
-        Plugin* delete_class_instance(Plugin *plug)                           \
+        void delete_class_instance(Plugin *plug)                              \
         {                                                                     \
                 delete dynamic_cast<name*>(plug);                             \
         }

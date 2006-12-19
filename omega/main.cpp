@@ -9,6 +9,7 @@
 ***************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "pluginmanager.h"
 #include "cxxptl.h"
 #include "display.h"
@@ -16,6 +17,7 @@
 static int def_xres = 640, def_yres = 480;
 static ThreadPool thread_pool;
 
+//static int cpucount = 1;
 static int cpucount = get_processor_count();
 
 static void init(void)
@@ -48,23 +50,9 @@ class Worker : public Parallel {
 	volatile int abort;
 	View v;
 	double ysize;
-	Rgb *coltable;
-	int coltable_size;
 public:
 	FrameBuffer f;
-	
-	Worker()
-	{
-		coltable_size = 1536;
-		coltable = new Rgb [coltable_size];
-		for (int i = 0; i < 256; i++) coltable[       i] = RGB(  255,     i,     0);
-		for (int i = 0; i < 256; i++) coltable[ 256 + i] = RGB(255-i,   255,     0);
-		for (int i = 0; i < 256; i++) coltable[ 512 + i] = RGB(    0,   255,     i);
-		for (int i = 0; i < 256; i++) coltable[ 768 + i] = RGB(    0, 255-i,   255);
-		for (int i = 0; i < 256; i++) coltable[1024 + i] = RGB(    i,     0,   255);
-		for (int i = 0; i < 256; i++) coltable[1280 + i] = RGB(  255,     0, 255-i);
-	}
-	
+		
 	void per_frame_init(View nv, Plugin *plg)
 	{
 		cline = 0;
@@ -78,11 +66,7 @@ public:
 	{
 		double x = v.x + (i - f.x/2) / (f.x/2.0) * v.size;
 		double y = v.y + (j - f.y/2) / (f.x/2.0) * v.size;
-		int iters = plugin->num_iters(x, y);
-		if (iters == INF) 
-			return 0;
-		if (iters < 0) iters = 0;
-		return coltable[iters % coltable_size];
+		return plugin->shade(x, y);
 	}
 	
 	void entry(int tidx, int ttotal)
@@ -102,6 +86,70 @@ public:
 	~Worker() {}
 };
 
+struct IterationSample {
+	IterationPoint p;
+	double lx[3], ly[3];
+	bool disabled;
+};
+
+class DynSysWorker : public Parallel {
+	Plugin *plugin;
+public:
+	volatile int abort;
+	volatile int idx;
+	int size;
+	IterationSample *data;
+	DynSysWorker()
+	{
+		data = NULL;
+	}
+	
+	~DynSysWorker()
+	{
+		if (data) delete [] data;
+		data = NULL;
+	}
+	
+	void init(Plugin *plg)
+	{
+		plugin = plg;
+		if (data) delete [] data;
+		abort = 0;
+		idx = 1;
+	}
+	
+	void entry(int tidx, int ttotal)
+	{
+		int lidx = -1;
+		while (1) {
+			if (abort) return;
+			while (!abort && idx == lidx) relent();
+			if (abort) return;
+			
+			int mi = idx;
+			int ni = (mi + 1) % 3;
+
+			for (int i = tidx; i * 64 < size; i += ttotal) {
+				for (int j = 0; j < 64; j++) {
+					int k = i * 64 + j;
+					if (k >= size) break;
+					IterationSample &s = data[k];
+					if (s.disabled) continue;
+					s.p.x = s.lx[mi];
+					s.p.y = s.ly[mi];
+					if (!plugin->iterate(&s.p))
+						s.disabled = true;
+					else {
+						s.lx[ni] = s.p.x;
+						s.ly[ni] = s.p.y;
+					}
+				}
+			}
+			lidx = mi;
+		}
+	}
+};
+
 static void do_main(void)
 {
 	FrameBuffer fb(def_xres, def_yres);
@@ -109,6 +157,11 @@ static void do_main(void)
 	bool newplug = true;
 	View v, nv;
 	Worker worker;
+	DynSysWorker dsworker;
+	int cpusdsw = cpucount-1; if (cpusdsw == 0) cpusdsw++;
+	double vm2time=0;
+
+
 	worker.f.init(def_xres, def_yres);
 	while (1) {
 		if (newplug) {
@@ -117,14 +170,82 @@ static void do_main(void)
 			nv = plug->get_default_view();
 			newplug = false;
 		}
-		worker.per_frame_init(nv, plug);
-		thread_pool.run(&worker, cpucount);
-		fb.copy(worker.f);
-		gui.display(fb);
+		if (viewmode == 1) {
+			if (viewmode_changed) {
+				dsworker.abort = 1;
+				thread_pool.wait(); //if needed
+				viewmode_changed = false;
+			}
+			worker.per_frame_init(nv, plug);
+			thread_pool.run(&worker, cpucount);
+			fb.copy(worker.f);
+		}
+		if (viewmode == 2) {
+			if (viewmode_changed) {
+				double C = 1.0 / (fb.x/2.0) * v.size;
+				dsworker.init(plug);
+				dsworker.size = 0;
+				dsworker.data = new IterationSample[fb.x * fb.y];
+				for (int j = 0; j < fb.y; j++) {
+					for (int i = 0; i < fb.x; i++) {
+						double dx = (rand() % 199) / 199.0;
+						double dy = (rand() % 199) / 199.0;
+						IterationSample sample;
+						sample.disabled = false;
+						sample.p.x = v.x + (i + dx - fb.x/2) * C;
+						sample.p.y = v.y + (j + dy - fb.y/2) * C;
+						plug->init_point(&sample.p);
+						sample.lx[0] = sample.p.x;
+						sample.ly[0] = sample.p.y;
+						if (!plug->iterate(&sample.p)) {
+							sample.disabled = true;
+						} else {
+							sample.lx[1] = sample.p.x;
+							sample.ly[1] = sample.p.y;
+						}
+						dsworker.data[dsworker.size++] = sample;
+					}
+				}
+				thread_pool.run_async(&dsworker, cpusdsw);
+				vm2time = gui.time();
+				viewmode_changed = false;
+			}
+			fb.zero();
+			double t = gui.time() - vm2time;
+			if (t > 1) {
+				vm2time = gui.time();
+				
+				dsworker.idx = (dsworker.idx + 1) % 3;
+				
+				t = gui.time() - vm2time;
+			}
+			double CC = 1.0 / v.size * fb.x / 2.0;
+			int ni = dsworker.idx;
+			int mi = (ni + 2) % 3;
+			for (int i = 0; i < dsworker.size; i++) {
+				IterationSample &s = dsworker.data[i];
+				if (s.disabled) continue;
+				double px = s.lx[mi] + (s.lx[ni] - s.lx[mi]) * t;
+				double py = s.ly[mi] + (s.ly[ni] - s.ly[mi]) * t;
+				double x = fb.x / 2.0 + (px - v.x) * CC;
+				double y = fb.y / 2.0 + (py - v.y) * CC;
+				if (x < 0 || y < 0 || x >= fb.x - 1 || y >= fb.y - 1) continue;
+				Rgb &pix = fb.data[((int) y) * fb.x + ((int) x)];
+				int lum = (pix &0xff) + 64;
+				if (lum > 255) lum = 255;
+				pix = RGB(lum,lum,lum);
+			}
+		}
 		v = nv;
+		gui.display(fb);
 		gui.update_view(nv);
-		if (gui.should_exit())
+		if (gui.should_exit()) {
+			if (viewmode == 2 || viewmode_changed) {
+				dsworker.abort = 1;
+				thread_pool.wait();
+			}
 			break;
+		}
 	}
 }
 
