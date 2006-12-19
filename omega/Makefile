@@ -16,12 +16,17 @@ CXXLINK = $(CXX)
 OBJEXT = o
 
 ## Optimization flags
-OPTFLAGS = -O0 -g
+OPTFLAGS = -O2 -g
 
 ## Source files:
 OBJECTS = \
 	main.$(OBJEXT) \
-	pluginmanager.$(OBJEXT)
+	pluginmanager.$(OBJEXT) \
+	display.$(OBJEXT)
+
+HEADERS = \
+	pluginmanager.h \
+	display.h
 
 ##determine our host OS (if not defined check with uname)
 ifndef OSTYPE
@@ -73,7 +78,7 @@ $(BINARY): $(OBJECTS)
 	echo "C++[lnk] $(BINARY)"
 	$(CXXLINK) $(OPTFLAGS) $(OBJECTS) $(LIBSEARCH) $(LINK_WITH) -o $(BINARY)
 
-.cpp.$(OBJEXT):
+.cpp.$(OBJEXT): $(HEADERS)
 	echo "C++      $<"
 	$(CXX) $(OPTFLAGS) $(INCLUDES) -c $<
 

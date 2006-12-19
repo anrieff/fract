@@ -27,11 +27,16 @@ endif
 .SILENT:
 
 PLUGINS = \
-	mandelbrot.$(DYNLIBEXT)
+	mandelbrot.$(DYNLIBEXT) \
+	omega.$(DYNLIBEXT)
 
 all: $(PLUGINS)
 
 mandelbrot.$(DYNLIBEXT): mandelbrot.cpp
+	echo "C++[lnk] $<"
+	$(CXX) $(OPTFLAGS) -fPIC -shared -o $@ -Wl,-soname,$@ -I.. -lm $<
+
+omega.$(DYNLIBEXT): omega.cpp
 	echo "C++[lnk] $<"
 	$(CXX) $(OPTFLAGS) -fPIC -shared -o $@ -Wl,-soname,$@ -I.. -lm $<
 

@@ -8,42 +8,48 @@
  *   (at your option) any later version.                                   *
 ***************************************************************************/
 #include <string.h>
-#include <math.h>
+#include <cmath>
 #include "pluginmanager.h"
 #include <complex>
 
-typedef std::complex<double> DC;
+using namespace std;
 
-class Mandelbrot : public Plugin {
+typedef complex<double> DC;
+
+class Omega : public Plugin {
 	int max_iters;
 public:
-	Mandelbrot() 
+	Omega() 
 	{
 		max_iters = 100;
 	}
-	~Mandelbrot() {}
+	~Omega() {}
 	PluginInfo get_info() const
 	{
 		PluginInfo info;
-		strcpy(info.name, "Mandelbrot");
+		strcpy(info.name, "Omega");
 		strcpy(info.description,
-			"The standard mandelbrot set");
-		info.priority = 10;
+			"The set, generated with W_n = e^(-W_{n-1})");
+		info.priority = 0;
 		return info;
 	}
 	View get_default_view() const
 	{
-		View v = { 0, 0, 2 };
+		View v = { 0, 0, 3 };
 		return v;
 	}
 	int get_max_iters() const { return max_iters; }
 	void set_max_iters(int x) { max_iters = x; }
 	int num_iters(double x, double y)
 	{
-		DC c(x, y), z(0, 0);
+		DC z(x, y);
+		DC lz = z;
 		int iters = 0;
-		while (real(z)*real(z) + imag(z)*imag(z) < 4 && iters < max_iters) {
-			z = z*z + c;
+		while (real(z)*real(z) + imag(z)*imag(z) < 22 && iters < max_iters) {
+			z = exp(-z);
+			DC diff = lz-z;
+			if (real(diff) * real(diff) + imag(diff) * imag(diff) < 1e-16) break;
+			lz = z;
 			++iters;
 		}
 		if (iters >= max_iters) return INF;
@@ -51,4 +57,4 @@ public:
 	}
 };
 
-EXPORT_CLASS(Mandelbrot)
+EXPORT_CLASS(Omega)
