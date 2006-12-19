@@ -332,7 +332,7 @@ struct ThreadInfoStruct {
 */ 
 class ThreadPool {
 	ThreadInfoStruct info[MAX_CPU_COUNT];
-	int active_count;
+	int active_count, m_n;
 	InterlockedInt counter;
 	Event thread_pool_event;
 	volatile bool waiting;
@@ -356,12 +356,39 @@ public:
 	 * created or used; the method just calls what->entry(0, 1) and returns.
 	*/ 
 	void run(Parallel *what, int threads_count);
+
+	/**
+	 * @param what          - the algorithm to run;
+	 * @param threads_count - on how many threads to run the algorithm.
+	 *
+	 * run_async() returns after it has spawned the sufficient number
+	 * of threads and has given them assignments. Threads will usually run
+	 * even after this method returns; so the only difference from the 
+	 * run() method is that run_async() does not wait for threads to 
+	 * complete their work before returning.
+	 *
+	 * This poses a great hazard if you use run() or run_async() after a
+	 * call to run_async() - you must be certain that all threads have
+	 * finished their work and gone to sleep before a new invocation of
+	 * run() or run_async(). To specifically enforce this, use wait()
+	 *
+	 * NOTE: contrary to run(), when threads_count == 1, a thread is spawned
+	 * and run as usual. I.e. the thread manager does not try being smart
+	*/
+	void run_async(Parallel *what, int threads_count);
 	
-	/** 
+	/**
+	 * waits for threads, spawned from run_async(), to come to rest
+	 * NOTE: in other words, run() is equivallent to consecutive calls
+	 * of run_async() and wait()
+	*/
+	void wait(void);
+	
+	/**
 	 * Stops all threads and frees the resources, allocated by them
 	 * NOTE: the destructor of ThreadPool does this, so you don't need to
 	 * do it explicitly.
-	*/ 
+	*/
 	void killall_threads(void);
 };
 

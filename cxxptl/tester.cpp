@@ -71,7 +71,7 @@ int main(void)
 			sum += dowork.data[i*100];
 		}
 		printf("pi = %.9lf\n", sqrt(sum * 6.0));
-		printf("Result produced in %u sec\n", xt);
+		printf("Result produced in %u sec\n", (unsigned)xt);
 	}
 	return 0;
 }

@@ -68,6 +68,7 @@ ThreadPool::ThreadPool()
 {
 	active_count = 0;
 	counter = 0;
+	m_n = -1;
 }
 
 ThreadPool::~ThreadPool()
@@ -95,6 +96,7 @@ void ThreadPool::run(Parallel *para, int threads_count)
 	while (active_count < threads_count) 
 		one_more_thread();
 	int n = threads_count;
+	m_n = -1;
 	
 	waiting = true;
 	counter = n;
@@ -119,6 +121,54 @@ void ThreadPool::run(Parallel *para, int threads_count)
 		relent();
 	}
 }
+
+void ThreadPool::run_async(Parallel *para, int threads_count)
+{
+	while (active_count < threads_count) 
+		one_more_thread();
+	int n = threads_count;
+	m_n = n;
+	
+	waiting = true;
+	counter = n;
+	for (int i = 0; i < n; i++) {
+		info[i].thread_index = i;
+		info[i].thread_count = n;
+		info[i].execute_class = para;
+		while (info[i].state != THREAD_SLEEPING) {
+			relent();
+		}
+		info[i].state = THREAD_RUNNING;
+		info[i].myevent.signal();
+	}
+}
+
+void ThreadPool::wait(void)
+{
+	int n = m_n;
+	if (n < 0) {
+		/*
+		 * Hmm...
+		 * 1) wait() called twice?
+		 * 2) wait() called after run() (not after run_async())?
+		 * 3) wait() called after ThreadPool creation
+		 * even more idiotic scenarios are possible...
+		 */
+		return;
+	}
+	thread_pool_event.wait();
+	waiting = false;
+	
+	// round robin all threads until they come to rest
+	while (1) {
+		bool good = true;
+		for (int i = 0; i < n; i++) if (info[i].state != THREAD_SLEEPING) good = false;
+		if (good) break;
+		relent();
+	}
+	m_n = -1; // prevent wait()ing again
+}
+
 
 void ThreadPool::preload_threads(int count)
 {
