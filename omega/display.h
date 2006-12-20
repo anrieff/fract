@@ -36,6 +36,7 @@ public:
 	bool init(int xr, int yr);
 	void display(const FrameBuffer &fb);
 	void update_view(View &v);
+	void display_fractal_selection_menu(void);
 	/**
 	 * Displays a multiple-choice menu, using the currently-painted picture
 	 * on the surface as background

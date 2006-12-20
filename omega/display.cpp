@@ -125,6 +125,25 @@ void GUI::display(const FrameBuffer& fb)
 	SDL_Flip(surface);
 }
 
+void GUI::display_fractal_selection_menu(void)
+{
+	char choices[1024];
+	choices[0] = 0;
+	for (int i = 0; i < get_plugin_count(); i++) {
+		PluginInfo info = get_plugin(i)->get_info();
+		strcat(choices, info.name);
+		strcat(choices, " - ");
+		strcat(choices, info.description);
+		if (i < get_plugin_count() - 1) 
+			strcat(choices, "|");
+	}
+	int res = menu("Choose fractal", choices);
+	if (res != -1) {
+		set_plugin(res);
+		newplug = true;
+	}
+}
+
 void GUI::update_view(View &v)
 {
 	SDL_Event e;
@@ -145,27 +164,20 @@ void GUI::update_view(View &v)
 				}
 				case SDLK_RETURN:
 				{
-					char choices[1024];
-					choices[0] = 0;
-					for (int i = 0; i < get_plugin_count(); i++) {
-						PluginInfo info = get_plugin(i)->get_info();
-						strcat(choices, info.name);
-						strcat(choices, " - ");
-						strcat(choices, info.description);
-						if (i < get_plugin_count() - 1) 
-							strcat(choices, "|");
-					}
-					int res = menu("Choose fractal", choices);
-					if (res != -1) {
-						set_plugin(res);
-						newplug = true;
-					}
+					display_fractal_selection_menu();
 					break;
 				}
 			}
 		}
 		if (e.type == SDL_MOUSEBUTTONUP) {
-			double scaler = e.button.button == 1 ? 0.75 : 1.3333333;
+			if (e.button.button != SDL_BUTTON_LEFT && 
+			    e.button.button != SDL_BUTTON_RIGHT) {
+				// convenience, and it seems weird to use the
+				// middle button for zooming so assign it here.
+				display_fractal_selection_menu();
+				continue;
+			}
+			double scaler = e.button.button == SDL_BUTTON_LEFT ? 0.75 : 1.3333333;
 			int ix = e.button.x;
 			int iy = e.button.y;
 			double rx = (ix - xres/2) / (xres/2.0) * v.size;
@@ -258,6 +270,28 @@ int GUI::menu(const char *prompt, const char * choices)
 					default:
 						break;
 				}
+			}
+			if (e.type == SDL_MOUSEMOTION) {
+				int tx = e.motion.x - sx;
+				int ty = e.motion.y - sy;
+				if (tx < 0 || tx >= mx || ty < 0 || ty >= my)  continue;
+				ty -= fy + 10;
+				if (ty < 0) continue;
+				ty /= (fy + 2);
+				if (ty >= n) continue;
+				cursel = ty;
+			}
+			if (e.type == SDL_MOUSEBUTTONUP) {
+				if (e.button.button != 1) continue;
+				int tx = e.button.x - sx;
+				int ty = e.button.y - sy;
+				if (tx < 0 || tx >= mx || ty < 0 || ty >= my)  continue;
+				ty -= fy + 10;
+				if (ty < 0) continue;
+				ty /= (fy + 2);
+				if (ty >= n) continue;
+				cursel = ty;
+				return cursel;
 			}
 		}
 	}
