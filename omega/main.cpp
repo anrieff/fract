@@ -52,6 +52,12 @@ class Worker : public Parallel {
 	double ysize;
 public:
 	FrameBuffer f;
+	int resolution;
+	
+	Worker()
+	{
+		resolution = 1;
+	}
 		
 	void per_frame_init(View nv, Plugin *plg)
 	{
@@ -60,6 +66,7 @@ public:
 		v = nv;
 		ysize = v.size * f.y / f.x;
 		plugin = plg;
+		if (resolution == 0) resolution = 1;
 	}
 	
 	Rgb shade(int i, int j)
@@ -72,13 +79,20 @@ public:
 	void entry(int tidx, int ttotal)
 	{
 		int j;
+		int n = f.y / resolution;
 		for (;;) {
 			if (abort) break;
 			j = cline++;
-			if (j >= f.y) break;
-			Rgb *line = f.data + (j * f.x);
-			for (int i = 0; i < f.x; i++) {
-				line[i] = shade(i, j);
+			if (j >= n) break;
+			Rgb *line = f.data + (j * resolution * f.x);
+			for (int i = 0; i < f.x; i += resolution) {
+				line[i] = shade(i, j * resolution);
+				if (resolution > 1) {
+					for (int k = 0; k < resolution; k++)
+						for (int l = 0; l < resolution; l++) if (k|l) {
+							line[i+l+(k*f.x)] = line[i];
+						}
+				}
 			}
 		}
 	}
@@ -154,7 +168,6 @@ static void do_main(void)
 {
 	FrameBuffer fb(def_xres, def_yres);
 	Plugin *plug = get_current_plugin();
-	bool newplug = true;
 	View v, nv;
 	Worker worker;
 	DynSysWorker dsworker;
@@ -164,6 +177,7 @@ static void do_main(void)
 
 	worker.f.init(def_xres, def_yres);
 	while (1) {
+		plug = get_current_plugin();
 		if (newplug) {
 			v.x = v.y = 0;
 			v.size = 10;
@@ -176,6 +190,10 @@ static void do_main(void)
 				thread_pool.wait(); //if needed
 				viewmode_changed = false;
 			}
+			if (viewmode_changed || zoom_updated)
+				worker.resolution = 4;
+			else 
+				worker.resolution /= 2;
 			worker.per_frame_init(nv, plug);
 			thread_pool.run(&worker, cpucount);
 			fb.copy(worker.f);

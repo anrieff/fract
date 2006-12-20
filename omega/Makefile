@@ -23,7 +23,9 @@ OPTFLAGS = -Wall -O3 -ffast-math -g
 OBJECTS = \
 	main.$(OBJEXT) \
 	pluginmanager.$(OBJEXT) \
-	display.$(OBJEXT)
+	display.$(OBJEXT) \
+	luxi_font.$(OBJEXT) \
+	fonts.$(OBJEXT)
 
 HEADERS = \
 	pluginmanager.h \
