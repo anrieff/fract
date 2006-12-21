@@ -113,6 +113,7 @@ bool GUI::init(int x, int y)
 	surface = SDL_SetVideoMode(x, y, 32, 0);
 	if (!surface)
 		return false;
+	SDL_WM_SetCaption("Veselin Georgiev's Fractal zoomer", NULL);
 	ticks = SDL_GetTicks();
 	fm = new FontMan(NULL, x, y);
 	return true;

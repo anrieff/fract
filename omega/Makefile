@@ -53,7 +53,11 @@ INCLUDES = -I../cxxptl
 LIBSEARCH = -L../cxxptl
 
 ## Link with those libraries
+ifeq "$(OSTYPE)" "linux-gnu"
 LINK_WITH = -lSDL -lcxxptl -lpthread -ldl -lm
+else
+LINK_WITH = -lmingw32 -lcxxptl -lSDL -lSDLmain -lm
+endif
 
 
 ## Don't output those needless info

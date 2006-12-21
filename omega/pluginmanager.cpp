@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <vector>
 #include <algorithm>
-#ifdef XWIN32
+#ifdef _WIN32
 #include <windows.h>
 #include <stdlib.h>
 #else
@@ -109,9 +109,9 @@ bool FindData::_populate(const char* path)
 		int outlen = 1 + fileLen + rootLen;
 		char *s = new char[outlen];
 		if (!s) continue;
-		vutils_memcpy(s, path, rootLen);
-		vutils_memcpy(s+rootLen, findData.cFileName, fileLen+1);
-		all += s;
+		memcpy(s, path, rootLen);
+		memcpy(s+rootLen, findData.cFileName, fileLen+1);
+		all.push_back( s );
 	} while ( 0 != FindNextFile(fd, &findData));
 	FindClose(fd);
 	qsort(&all[0], all.size(), sizeof(char*), cmp_charp);
