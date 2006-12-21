@@ -6,12 +6,19 @@
 ## Date: 2006-06-15
 ##
 
+OSNAME := $(shell uname -s)
+
+
 CXX = g++
 CXXLD = $(CXX)
 RANLIB = ranlib
 AR = ar
 OPTFLAGS = -Wall -O2 -g
+ifeq "$(OSNAME)" "Linux"
 LINKFLAGS = -lpthread -lm
+else
+LINKFLAGS = -lmingw32 -lm
+endif
 BINARY = cxxptl
 LIBRARY = libcxxptl.a
 lib_OBJECTS = cxxptl.o sysspec_linux.o sysspec_win32.o sysspec_apple.o\
