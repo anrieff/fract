@@ -18,10 +18,20 @@ typedef complex<double> DC;
 
 class Omega : public Plugin {
 	int max_iters;
+	Rgb coltable[1536];
+	int coltable_size;
 public:
 	Omega() 
 	{
 		max_iters = 100;
+		coltable_size = 1536;
+		for (int i = 0; i < 256; i++) coltable[       i] = RGB(    0,     i,   255);
+		for (int i = 0; i < 256; i++) coltable[ 256 + i] = RGB(    0,   255, 255-i);
+		for (int i = 0; i < 256; i++) coltable[ 512 + i] = RGB(    i,   255,     0);
+		for (int i = 0; i < 256; i++) coltable[ 768 + i] = RGB(  255, 255-i,     0);
+		for (int i = 0; i < 256; i++) coltable[1024 + i] = RGB(  255,     0,     i);
+		for (int i = 0; i < 256; i++) coltable[1280 + i] = RGB(255-i,     0,   255);
+
 	}
 	~Omega() {}
 	PluginInfo get_info() const
@@ -45,7 +55,7 @@ public:
 		DC z(x, y);
 		DC lz = z;
 		int iters = 0;
-		while (real(z)*real(z) + imag(z)*imag(z) < 22 && iters < max_iters) {
+		while (real(z)*real(z) + imag(z)*imag(z) < 100 && iters < max_iters) {
 			z = exp(-z);
 			DC diff = lz-z;
 			if (real(diff) * real(diff) + imag(diff) * imag(diff) < 1e-16) break;
@@ -53,8 +63,8 @@ public:
 			++iters;
 		}
 		if (iters >= max_iters) return 0;
-		iters *= 12;
-		return iters;
+		iters *= 42;
+		return coltable[iters % coltable_size];
 	}
 	bool iterate(IterationPoint *p)
 	{
