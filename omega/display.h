@@ -31,6 +31,10 @@ class GUI {
 	bool she;
 	unsigned ticks;
 	FontMan *fm;
+	bool help_on, help_hint_on;
+	//
+	void display_help_hint(void);
+	void display_help(void);
 public:
 	GUI();
 	bool init(int xr, int yr);

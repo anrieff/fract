@@ -28,6 +28,16 @@ bool viewmode_changed = false;
 bool zoom_updated = false;
 bool newplug = true;
 
+const char *help_hint_text = "Press [h] to display keys...";
+const char *help_text =
+	"[h] - Toggle help\n"
+	"[F1] - Fractal mode\n"
+	"[F2] - Attractor mode\n"
+	"[ENTER] - Choose Fractal\n"
+	"Mouse 1 - Zoom in\n"
+	"Mouse 2 - Zoom out\n"
+	"[ESC] - Quit\n";
+
 /**
  * @class FrameBuffer
 */ 
@@ -98,6 +108,8 @@ GUI gui;
 GUI::GUI()
 {
 	she = false;
+	help_on = false;
+	help_hint_on = true;
 }
 
 bool GUI::should_exit() const { return she; }
@@ -123,6 +135,10 @@ void GUI::display(const FrameBuffer& fb)
 {
 	if (fb.x != xres || fb.y != yres || !fb.data) return;
 	memcpy(surface->pixels, fb.data, sizeof(Rgb) * xres * yres);
+	if (help_hint_on)
+		display_help_hint();
+	else if (help_on)
+		display_help();
 	SDL_Flip(surface);
 }
 
@@ -142,6 +158,10 @@ void GUI::display_fractal_selection_menu(void)
 	if (res != -1) {
 		set_plugin(res);
 		newplug = true;
+		if (viewmode == 2) {
+			viewmode = 1;
+			viewmode_changed = true;
+		}
 	}
 }
 
@@ -166,6 +186,12 @@ void GUI::update_view(View &v)
 				case SDLK_RETURN:
 				{
 					display_fractal_selection_menu();
+					break;
+				}
+				case SDLK_h:
+				{
+					help_on = !help_on;
+					help_hint_on = false;
 					break;
 				}
 			}
@@ -296,4 +322,50 @@ int GUI::menu(const char *prompt, const char * choices)
 			}
 		}
 	}
+}
+
+void GUI::display_help_hint(void)
+{
+	fm->set_fb((unsigned *)surface->pixels);
+	fm->set_color(0xdddddd);
+	double t = time();
+	int fy = fm->get_current_font()->y;
+	if (t < 5) {
+		fm->printxy(3, yres - 2 - fy, help_hint_text);
+	} else {
+		t -= 5;
+		if (t < 1) {
+			fm->set_opacity(1-t);
+			fm->printxy(3, yres - 2 - fy, help_hint_text);
+			fm->set_opacity(1);
+		}
+	}
+}
+
+void GUI::display_help(void)
+{
+	fm->set_fb((unsigned*)surface->pixels);
+	fm->set_color(0xffffff);
+	fm->set_opacity(0.66f);
+	int fy = fm->get_current_font()->y;
+	const char* t = help_text;
+	int lines = 0;
+	for (int i = 0; t[i]; i++)
+		if (t[i] == '\n')
+			lines++;
+	char temp[200];
+	int j = 0;
+	for (int i = 0; i < lines; i++) {
+		if (i) {
+			while (t[j] != '\n') j++;
+			j++;
+		}
+		int k = j;
+		while (t[k] != '\n') k++;
+		strncpy(temp, t + j, k-j+1);
+		temp[k-j+1] = 0;
+		fm->print(temp);
+		fm->set_cursor(3, yres - 2 - (lines-i) * (1 + fy));
+	}
+	fm->set_opacity(1);
 }

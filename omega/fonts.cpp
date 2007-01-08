@@ -56,6 +56,7 @@ FontMan::FontMan(unsigned *p, int resx, int resy)
 	fontcount = 1;
 	curfont = 0;
 	fontlist[0] = new LuxiFont;
+	global_opacity = 1.0f;
 }
 
 FontMan::~FontMan()
@@ -72,6 +73,11 @@ void FontMan::set_cursor(int x, int y)
 {
 	if (x != -1) cx = x;
 	if (y != -1) cy = y;
+}
+
+void FontMan::set_opacity(float new_opacity)
+{
+	global_opacity = new_opacity;
 }
 
 void FontMan::set_font(const char *name)
@@ -149,6 +155,8 @@ static inline int iabs(int x) { return x < 0 ? -x:x; }
 void FontMan::draw(int x, int y, unsigned char opacity)
 {
 	if (x < 0 || x >= xr || y < 0 || y >= yr) return;
+
+	unsigned opc = (unsigned) (0.5f + opacity * global_opacity);
 	
 	unsigned t = buff[y*xr+x];
 	unsigned col1[3] = { t&0xff, (t>>8)&0xff, (t>>16)&0xff};
@@ -165,7 +173,7 @@ void FontMan::draw(int x, int y, unsigned char opacity)
 	}
 	t = 0;
 	for (int i = 2; i >= 0; i--) {
-		t = (t << 8) | ((opacity*col2[i]+(255-opacity)*col1[i])>>8);
+		t = (t << 8) | ((opc*col2[i]+(255-opc)*col1[i])>>8);
 	}
 	buff[y*xr+x] = t;
 }

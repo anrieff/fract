@@ -36,6 +36,7 @@ class FontMan {
 	int fontcount, curfont;
 	int cx, cy;
 	bool contrast;
+	float global_opacity;
 	
 	void draw(int x, int y, unsigned char opacity);
 public:
@@ -45,6 +46,7 @@ public:
 	void set_color(unsigned);
 	void set_cursor(int x, int y);
 	void set_contrast(bool on);
+	void set_opacity(float new_opacity);
 	void set_fb(unsigned *p);
 	FractFont * get_current_font() const;
 	int get_x() const;
