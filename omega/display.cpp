@@ -372,8 +372,8 @@ void GUI::display_help(void)
 		while (t[k] != '\n') k++;
 		strncpy(temp, t + j, k-j+1);
 		temp[k-j+1] = 0;
-		fm->print(temp);
 		fm->set_cursor(3, yres - 2 - (lines-i) * (1 + fy));
+		fm->print(temp);
 	}
 	fm->set_opacity(1);
 }
