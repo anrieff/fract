@@ -27,15 +27,17 @@ int viewmode = 1;
 bool viewmode_changed = false;
 bool zoom_updated = false;
 bool newplug = true;
+bool defaultview_pressed = false;
 
 const char *help_hint_text = "Press [h] to display keys...";
 const char *help_text =
-	"[h] - Toggle help\n"
 	"[F1] - Fractal mode\n"
 	"[F2] - Attractor mode\n"
 	"[ENTER] - Choose Fractal\n"
 	"Mouse 1 - Zoom in\n"
 	"Mouse 2 - Zoom out\n"
+	"[d] - Recall default position\n"
+	"[h] - Toggle help\n"
 	"[ESC] - Quit\n";
 
 /**
@@ -169,6 +171,7 @@ void GUI::update_view(View &v)
 {
 	SDL_Event e;
 	zoom_updated = false;
+	defaultview_pressed = false;
 	while (SDL_PollEvent(&e)) {
 		if (e.type == SDL_QUIT) she = true;
 		if (e.type == SDL_KEYDOWN) {
@@ -192,6 +195,11 @@ void GUI::update_view(View &v)
 				{
 					help_on = !help_on;
 					help_hint_on = false;
+					break;
+				}
+				case SDLK_d:
+				{
+					defaultview_pressed = true;
 					break;
 				}
 			}

@@ -184,6 +184,8 @@ static void do_main(void)
 			nv = plug->get_default_view();
 			newplug = false;
 		}
+		if (defaultview_pressed)
+			nv = plug->get_default_view();
 		if (viewmode == 1) {
 			if (viewmode_changed) {
 				dsworker.abort = 1;

@@ -63,5 +63,6 @@ extern int viewmode;
 extern bool viewmode_changed;
 extern bool zoom_updated;
 extern bool newplug;
+extern bool defaultview_pressed;
 
 #endif //__DISPLAY_H__
