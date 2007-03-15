@@ -3020,7 +3020,7 @@ static inline Uint32	igrated(Uint32 color, int x, int y, int lx, int ly, int ysq
  "	movd	%%mm0,	%%eax	\n"
  "	emms	\n"
  :
- :"r"(x), "r"(y), "r"(lx), "r"(ly), "m"(w2_22_8), "m"(color), "m"(ysq)
+ :"m"(x), "r"(y), "m"(lx), "r"(ly), "m"(w2_22_8), "m"(color), "m"(ysq)
  :"memory", "eax"
  );
  return rezult; // the assembly equivallent to this is "do nothing",
@@ -3294,6 +3294,7 @@ void ConvertRGB2YUV_X86_ASM(Uint32 *dest, Uint32 *src, size_t count)
  while (count--) {
  	__asm __volatile(
 	//  Y0 ::
+	"push		%%edx\n"
 	"mov		%1,		%%ecx\n"
 	"movzbl		%%cl,		%%eax\n"
 	"imull		8%2\n"
@@ -3358,9 +3359,10 @@ void ConvertRGB2YUV_X86_ASM(Uint32 *dest, Uint32 *src, size_t count)
 	"add		%%esi,		%%eax\n"
 	"and		$0xff0000,	%%eax\n"
 	"or 		%%eax,		%0\n"
+	"pop		%%edx\n"
 	:"=m"(*dest)
 	:"m"(*src), "m"(*s)
-	:"memory", "eax", "ecx", "edx", "esi");
+	:"memory", "eax", "ecx", "esi");
 	dest++;
 	src+=2;
  	}
