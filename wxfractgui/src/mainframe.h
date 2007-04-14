@@ -21,13 +21,14 @@
 #ifndef __MAINFRAME_H__
 #define __MAINFRAME_H__
 #include <wx/wx.h>
+#include <wx/notebook.h>
 #include <wx/propdlg.h>
 #include <wx/generic/propdlg.h>
 
 class Tabbed : public wxNotebook
 {
 public:
-	Tabbed(wxWindow * parent, int id, const wxPoint & p, const wxSize & s, wxTextCtrl *rl);	
+	Tabbed(wxWindow * parent, int id, const wxPoint & p, const wxSize & s, wxTextCtrl *rl);
 };
 
 class MainFrame : public wxFrame {
@@ -36,6 +37,7 @@ class MainFrame : public wxFrame {
 	wxButton *run_button;
 	wxComboBox *run_prog;
 	Tabbed *tabbed;
+	bool creating_tabbed;
 	DECLARE_EVENT_TABLE();
 public:
 	MainFrame(const wxString &, const wxPoint &, const wxSize &);

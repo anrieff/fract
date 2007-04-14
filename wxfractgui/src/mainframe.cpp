@@ -113,9 +113,11 @@ MainFrame::MainFrame(const wxString & title,
 	run_button = new wxButton(this, myRunButton, "&Run Fract", 
 				  wxPoint(cw / 2 - 100, ch - 70),
 				  wxSize(200, 60));
-	/* 10, 128 */	
+	/* 10, 128 */
+	creating_tabbed = true;
 	tabbed = new Tabbed(this, myTabbedCtrl, wxPoint(10, 128),
 			    wxSize(cw - 20, ch - 108 - 128), run_line);
+	creating_tabbed = false;
 }
 
 Tabbed::Tabbed(wxWindow * parent, int id, const wxPoint & p, const wxSize & s, wxTextCtrl *rl) :
@@ -134,13 +136,8 @@ Tabbed::Tabbed(wxWindow * parent, int id, const wxPoint & p, const wxSize & s, w
 
 void MainFrame::TabChanged(wxNotebookEvent & event)
 {
-#if defined __WIN32__ || defined __APPLE__
-	static bool firstchange = true;
-	if (firstchange) {
-		firstchange = false;
-		return;
-	}
-#endif
+	if (creating_tabbed)
+		return; /*the wxNotebook is still under construction - bail out */
 	GenericTab *current = dynamic_cast<GenericTab*>(tabbed->GetCurrentPage());
 	if (current->CanRun()) {
 		run_button->Enable();

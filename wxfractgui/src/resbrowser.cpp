@@ -460,6 +460,7 @@ void ResultBrowser::AddLastResult(void)
 	rn.status = STATUS_HOT;
 	if (!my) my = new ResultXml("my.xml");
 	my->add_entry(rn);
+	my->save();
 	UpdateGrid();
 }
 

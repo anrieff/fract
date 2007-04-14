@@ -617,7 +617,7 @@ void AdvancedTab::Rebuild(void)
 		a += "--developer ";
 	}
 	if (m_tbCustomScene->IsEnabled() && m_tbCustomScene->GetValue() != "" ) {
-		a += "--scene=" + m_tbCustomScene->GetValue() + " ";
+		a += "--scene=\"" + m_tbCustomScene->GetValue() + "\" ";
 	}
 	cmd->SetValue(a);
 }

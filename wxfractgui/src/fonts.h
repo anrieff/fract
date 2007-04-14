@@ -22,6 +22,7 @@ struct FractFont {
 	int x, y, charwidth;
 	unsigned char *data;
 	virtual const char * get_name() const = 0;
+	virtual ~FractFont(){}
 };
 
 struct LuxiFont : public FractFont {
