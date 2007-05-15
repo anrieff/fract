@@ -79,7 +79,7 @@ const char *cmd_detailedhelp[] = {
 			"Used to bind a key to some action.\n"
 			"The first form (no params) just shows all bindings.\n"
 			"The second form shows the binding for the given key.\n"
-			"The thirt form sets or changes the binding for the given key.\n"
+			"The third form sets or changes the binding for the given key.\n"
 			"\nExample: bind q \"toggle bilinear\"\n",
 	"unbindall|"
 			"Usage: unbindall\n\nRemoves all key bindings.\n",
