@@ -37,5 +37,9 @@ DECLARE_VARIABLE(int,    v_maxdiff   , 10   , "threshold for corners' colors dif
 DECLARE_VARIABLE(int,    shadow_algo , 0    , "0 - raster shadow algo, 1 - raytracing");
 DECLARE_VARIABLE(int,    shadowquality,  1  , "shadow quality selector");
 DECLARE_VARIABLE(int,    lmsize,       0    , "light map size");
-
-
+DECLARE_VARIABLE(int,    gloss_samples, 1   , "glossiness samples per raytrace");
+DECLARE_VARIABLE(bool,   physics     , true , "toggles the physics engine");
+DECLARE_VARIABLE(bool,   collisions  , true , "toggles the collision detection engine");
+DECLARE_VARIABLE(bool,   animation   , true , "toggles overall object animation");
+DECLARE_VARIABLE(double, sv_gravity  ,166.66, "gravity coefficient");
+DECLARE_VARIABLE(double, sv_air      , 3.99 , "air drag coefficient");

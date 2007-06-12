@@ -69,8 +69,6 @@ extern int loops_remaining;
 extern int ysqrd; // light y distance to the current plane (floor or ceiling), squared
 extern int ysqrd_floor, ysqrd_ceil;
 
-extern int CollDetect;
-extern int Physics;
 extern double play_time;
 extern int cd_frames;
 extern int kbd_control;

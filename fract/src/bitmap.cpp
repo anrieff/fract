@@ -24,6 +24,8 @@
 #include "MyTypes.h"
 #include "bitmap.h"
 #include "common.h"
+#include "gfx.h"
+#include "render.h"
 
 /**************************************
  * Internal Proc - Create Raw         *
@@ -366,19 +368,23 @@ void RawImg:: render_hack()
  // consult Shrink() method for more info
 }
 
-void take_snapshot(RawImg & a)
-{int i=1;
- char fn[30];
- FILE *f;
-
- while (42) {
-	sprintf(fn, "fract_snapshot%02d.bmp", i);
-	f = fopen(fn, "rb");
-	if (f==NULL) break;
-	   else fclose(f);
-	i++;
- 	}
- a.save_bmp(fn);
+void take_snapshot(char *output_file)
+{
+	int i = 1;
+	char fn[30];
+	FILE *f;
+	RawImg a(xres(), yres(), get_frame_buffer());
+	
+	while (42) {
+		sprintf(fn, "fract_snapshot%02d.bmp", i);
+		f = fopen(fn, "rb");
+		if (f==NULL) break;
+		else fclose(f);
+		i++;
+	}
+	a.save_bmp(fn);
+	if (output_file)
+		strcpy(output_file, fn);
 }
 
 RawImg:: RawImg(const char*fn)

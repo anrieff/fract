@@ -47,6 +47,7 @@ CommandStruct allcommands[] = {
 	CMD(bind),
 	CMD(unbindall),
 	CMD(where),
+	CMD(screenshot),
 };
 
 int cmdcount(void)

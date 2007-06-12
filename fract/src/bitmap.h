@@ -114,7 +114,7 @@ void gridify_texture(RawImg & a);
 // make a checker texture, with color1 and color2 alternating
 void checker_texture(RawImg & a, int size = 8, unsigned color1=0x0, unsigned color2=0xffffff);
 
-void take_snapshot(RawImg & a);
+void take_snapshot(char *output_file = NULL);
 void bitmap_close(void);
 
 Uint32 byteswap_32(Uint32);

@@ -41,6 +41,7 @@ const char *cmd_quickhelp[] = {
 	"bind|bind a key to an action or shows current binding",
 	"unbindall|removes all bindings",
 	"where|prints the current camera location",
+	"screenshot|takes a screenshot",
 	
 	""
 };
@@ -361,5 +362,13 @@ extern Vector cur;
 int cmd_where(int argc, char **argv)
 {
 	konsole.write("Camera is at (%.3lf, %.3lf, %.3lf)\n", cur[0], cur[1], cur[2]);
+	return 0;
+}
+
+int cmd_screenshot(int argc, char **argv)
+{
+	char filename[64];
+	take_snapshot(filename);
+	konsole.write("Screenshot written as `%s'\n", filename);
 	return 0;
 }

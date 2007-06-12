@@ -453,66 +453,70 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 	prof_leave(PROF_PREFRAME_MEMSET);
 	// preframe things -----------------------------------
 	prof_enter(PROF_SPHERE_THINGS);
-	btm = bTime();
-	if (stereo_mode <= STEREO_MODE_LEFT) {
-		if (cd_frames && vframe % cd_frames == 0) { // first frame
-			for (i=0;i<spherecount;i++) {
-				if (sp[i].flags & ANIMATED) {
-					calculate_XYZ(sp+i, btm, obex);
-					sp[i].pos = obex;
-					sp[i].mov.zero();
+	if (CVars::animation) {
+		btm = bTime();
+		if (stereo_mode <= STEREO_MODE_LEFT) {
+			if (cd_frames && vframe % cd_frames == 0) { // first frame
+				for (i=0;i<spherecount;i++) {
+					if (sp[i].flags & ANIMATED) {
+						calculate_XYZ(sp+i, btm, obex);
+						sp[i].pos = obex;
+						sp[i].mov.zero();
+						sp[i].time = btm;
+					}
 					sp[i].time = btm;
 				}
-				sp[i].time = btm;
+				camera_moved = 1;
 			}
-			camera_moved = 1;
-		}
-		if (!cd_frames || vframe % cd_frames != 0) { // every frame but the first
-			for (i=0;i<spherecount;i++) {
-				if (sp[i].flags & ANIMATED) {
-					calculate_XYZ(sp+i, btm, obex);
-					if (btm - sp[i].time == 0) sp[i].mov.zero();
-					else sp[i].mov = (obex-sp[i].pos) * (1.0/(btm - sp[i].time));
-					camera_moved = 1;
+			if (!cd_frames || vframe % cd_frames != 0) { // every frame but the first
+				for (i=0;i<spherecount;i++) {
+					if (sp[i].flags & ANIMATED) {
+						calculate_XYZ(sp+i, btm, obex);
+						if (btm - sp[i].time == 0) sp[i].mov.zero();
+						else sp[i].mov = (obex-sp[i].pos) * (1.0/(btm - sp[i].time));
+						camera_moved = 1;
+					}
 				}
 			}
 		}
 	}
 	prof_leave(PROF_SPHERE_THINGS);
 	prof_enter(PROF_PHYSICS);
-	physics_preprocess_hooks(btm);
-	if (Physics && SceneType == TIME_BASED && stereo_mode <= STEREO_MODE_LEFT) { // should we process physics?
-		camera_moved = 1;
-		for (i=0;i<spherecount;i++)
-			apply_gravity(sp+i, btm); // first of all, Gravity
-		for (i=0;i<spherecount;i++)
-			apply_air(sp+i, btm, APPLY_ALL, 1);    // air resistance
-		if (CollDetect)	{		 // do we process collisions?
-		/* The algorythm is simple:
-			We iterate thru all collideable spheres and check for collision.
-			If a collision occurs, we update vectors (and other data), and set the collided balls'
-			time to the moment of the collision. The balls are ready to collide again within the same
-			time segment of the frame, but now they differ from the others, being advanced a little
-			in the future (this is very important). After everything is completed, all balls' times
-			are synced to the new time
-		*/
-			//first of all, we make a list with all the spheres, which "move"
-			
-			check_moving();
-			for (j=0;j<spherecount;j++) if (sp[j].flags & COLLIDEABLE)
-				for (i=j+1;i<spherecount;i++) if ((sp[i].flags & COLLIDEABLE) && can_collide(j, i))
-					if ((ttm=collide(sp+i, sp+j, btm))>0) // collision detected
-						process_incident(sp+i, sp+j, ttm);
+	if (CVars::animation) {
+		physics_preprocess_hooks(btm);
+		if (CVars::physics && SceneType == TIME_BASED && stereo_mode <= STEREO_MODE_LEFT) { // should we process physics?
+			camera_moved = 1;
+			for (i=0;i<spherecount;i++)
+				apply_gravity(sp+i, btm); // first of all, Gravity
+			for (i=0;i<spherecount;i++)
+				apply_air(sp+i, btm, APPLY_ALL, 1);    // air resistance
+			if (CVars::collisions)	{		 // do we process collisions?
+			/* The algorythm is simple:
+				We iterate thru all collideable spheres and check for collision.
+				If a collision occurs, we update vectors (and other data), and set the collided balls'
+				time to the moment of the collision. The balls are ready to collide again within the same
+				time segment of the frame, but now they differ from the others, being advanced a little
+				in the future (this is very important). After everything is completed, all balls' times
+				are synced to the new time
+			*/
+				//first of all, we make a list with all the spheres, which "move"
+				
+				check_moving();
+				for (j=0;j<spherecount;j++) if (sp[j].flags & COLLIDEABLE)
+					for (i=j+1;i<spherecount;i++) if ((sp[i].flags & COLLIDEABLE) && can_collide(j, i))
+						if ((ttm=collide(sp+i, sp+j, btm))>0) // collision detected
+							process_incident(sp+i, sp+j, ttm);
+			}
+			/*
+				Here is where advance takes place. All uncollided (and some collided, too)
+				spheres are moved with respect to the remaining time to the sync time and
+				their movement vectors, too.
+			*/
+			for (i=0;i<spherecount;i++)
+				advance(sp+i, btm);
 		}
-		/*
-			Here is where advance takes place. All uncollided (and some collided, too)
-			spheres are moved with respect to the remaining time to the sync time and
-			their movement vectors, too.
-		*/
-		for (i=0;i<spherecount;i++)
-			advance(sp+i, btm);
+		physics_postprocess_hooks(btm);
 	}
-	physics_postprocess_hooks(btm);
 	prof_leave(PROF_PHYSICS);
 	prof_enter(PROF_SORT);
 	allobjects.clear(cur);

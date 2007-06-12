@@ -46,7 +46,7 @@ int  project_point_shadow(const Vector &vs, const Vector& l, int *x_2d, int *y_2
 int  project_point_shadow(const Vector &vs, const Vector& l, float *coords, int xres, int yres, const Vector &cur, const Vector &tt, const Vector &a, const Vector &b, bool & isfloor, Vector& casted);
 double normangle(double angle);
 //int testsphere(Sphere *a, double *v, double *cur);
-Uint32 Raytrace(const Vector& src, Vector& v, int recursive, int iteration, Object *last_object, FilteringInfo &);
+Uint32 Raytrace(const Vector& src, Vector& v, int recursive, int iteration, Object *last_object, FilteringInfo &, float glossiness);
 void pass_pre(double *p, double plc, const Vector& LL);
 void apply_gravity(Sphere *a, double t);
 void apply_air(Sphere *a, double t, int mask, int dir);

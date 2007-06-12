@@ -104,8 +104,6 @@ bool official = false;
 
 int user_pp_state = 0;
 
-extern int CollDetect;
-extern int Physics;
 extern int r_shadows;
 extern double play_time;
 extern int cd_frames;
@@ -234,8 +232,7 @@ void kbd_tiny_do(int *ShouldExit)
 		if ( e.type == SDL_KEYDOWN ) {
 			if (e.key.keysym.sym == SDLK_ESCAPE) *ShouldExit = RUN_CANCELLED;
 			if (e.key.keysym.sym == SDLK_F12) { // F12 is screenshot shortcut
-				RawImg tempf(xres(), yres(), get_frame_buffer());
-				take_snapshot(tempf);
+				take_snapshot();
 			}
 			if (developer) {
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
@@ -301,8 +298,7 @@ void kbd_do(int *ShouldExit)
 	int deltax, deltay;
 	keystate = SDL_GetKeyState(NULL);
 	if (recordmode) {
-		RawImg tempf(xres(), yres(), get_frame_buffer());
-		take_snapshot(tempf);
+		take_snapshot();
 	}
 	if (WantToQuit) *ShouldExit = 1;
 	while ( SDL_PollEvent(&e)) { // handle keyboard & mouse
@@ -310,8 +306,7 @@ void kbd_do(int *ShouldExit)
 		if ( e.type == SDL_KEYDOWN ) {
 			if (e.key.keysym.sym == SDLK_ESCAPE) *ShouldExit = RUN_CANCELLED;
 			if (e.key.keysym.sym == SDLK_F12) { // F12 is screenshot shortcut
-				RawImg tempf(xres(), yres(), get_frame_buffer());
-				take_snapshot(tempf);
+				take_snapshot();
 			}
 			if (developer) {
 				if (e.key.keysym.sym == SDLK_BACKQUOTE) {

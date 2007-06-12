@@ -42,6 +42,7 @@ struct Sphere : public Object, public ShadowCaster {
 /* 8*/ double dist; //distance from the user
 /* 4*/ float refl; //reflection strength
 /* 4*/ float opacity; // opacity if the object is SEETHROUGH
+/* 4*/ float gloss; // glossiness
 /* 4*/ int AniIndex;// index in the array (see sphere.cpp). Used if the object is ANIMATED
 /* 4*/ RawImg *tex; // used if the object is MAPPED - points to the texture to map.
 /*12*/ int r, g, b; //sphere color

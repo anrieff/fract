@@ -196,6 +196,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 		intensity += ambient * 0.5 * perlin(tic->u, tic->v);
 	}
 	Vector Normal;
+	float gloss = mesh[get_mesh_index()].glossiness;
 	if (flags & NORMAL_MAP) {
 		Mesh *m = mesh + (get_mesh_index());
 		Vector xu, xv;
@@ -292,7 +293,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 			finfo.IP = I;
 			result = blend(
 				Raytrace(I, ray_reflected, flags & RECURSIVE | RAYTRACE_BILINEAR_MASK, 
-					 iteration +1, this, finfo), result, refl);
+					 iteration +1, this, finfo, gloss), result, refl);
 		}
 		// calculate the refracted ray
 		if (flags & SEETHROUGH) {
@@ -406,7 +407,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 						q += temp * (a_div_x-1);
 						result = blend (
 								Raytrace(O, q, flags & RECURSIVE | RAYTRACE_BILINEAR_MASK,
-								iteration + 3, this, finfo), result, this->opacity
+								iteration + 3, this, finfo, gloss), result, this->opacity
 					       		);
 						found = true;
 						break;

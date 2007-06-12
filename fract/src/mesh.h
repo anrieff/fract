@@ -118,6 +118,7 @@ struct Mesh : public BBox, public ShadowCaster {
 	int triangle_count;
 	int flags;
 	int map_size;
+	float glossiness;
 	Vector *normal_map;
 	RawImg *image;
 	Vector center;

@@ -30,6 +30,7 @@
 #include "infinite_plane.h"
 #include "voxel.h"
 #include "cvars.h"
+#include "random.h"
 #include <math.h>
 
 #ifdef _MSC_VER
@@ -63,10 +64,6 @@ extern int spherecount;
 extern int vframe;
 extern int ysqrd_floor, ysqrd_ceil;
 
-int CollDetect = 1;
-int Physics = 1;
-double sv_gravity = 166.66;
-double sv_air     = 3.99;
 
 Vector lix;
 
@@ -434,33 +431,21 @@ static inline int find_normal_vector(const Vector& a, const Vector& b, const Vec
  return 1;
 }
 
-
-// returns the color of the ray v, originating from `cur'.
-// `iteration' is a counter which prevents a ray from entering an endless cycle (very rare, but possible!)
-// `recursive' is a boolean flag: if 0, the procedure won't check if the ray hits any sphere.
-//                                if 1 and a sphere is being hit the same procedure is recursively called for the ray
-//                                that goes out of the sphere then.
-// `last_object' a pointer to the object the ray is traced from. This avoids a ray to hit again the sphere it just hit.
-// `finfo' is a helper to determine which mipmap level to use
-
-Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Object *last_object, FilteringInfo & finfo)
+static Uint32 Raytrace_one_ray(const Vector& cur, Vector& w, int recursive, int iteration, Object *last_object, FilteringInfo &finfo)
 {
 	double ydist,scalefactor;
 	double cx, cy, dist, mind;
 	char context[128];
 	float dp;
 	bool is_trio = false;
-
+	
 	Object *z;
 	int i;
-	if (iteration > MAX_RAYTRACE_ITERATIONS)
-		return RAYTRACE_BLEND_COLOR;
 	if (recursive&RECURSIVE) {
-		v.norm();
 		mind = 999999999.0;
 		z = NULL;
 		for (i = 0; i < spherecount; i++) if (sp + i != last_object) {
-			if (sp[i].intersect(v, cur, context)) {
+			if (sp[i].intersect(w, cur, context)) {
 				dist = sp[i].intersection_dist(context);
 				if (dist > 0.0f && dist < mind) {
 					mind = dist;
@@ -474,10 +459,10 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 			is_trio = true;
 		}
 		for (int j = 0; j < mesh_count; j++) {
-			if (j != group_to_avoid && mesh[j].testintersect(cur,v)) {
+			if (j != group_to_avoid && mesh[j].testintersect(cur,w)) {
 				if (g_speedup && mesh[j].sdtree) {
 					Triangle *t;
-					if (mesh[j].sdtree->testintersect(cur, v, context, &t)) {
+					if (mesh[j].sdtree->testintersect(cur, w, context, &t)) {
 						dist = t->intersection_dist(context);
 						if (dist < mind) {
 							mind = dist;
@@ -487,13 +472,13 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 				} else {
 					for (i = 0; i < mesh[j].triangle_count; i++) {
 						Triangle * t = trio + i + (j << TRI_ID_BITS);
-	
+						
 						if (!t->okplane(cur)) {
 							i += t->tri_offset;
 							continue;
 						}
-	
-						if (t != last_object && t->intersect(v, cur, context)) {
+						
+						if (t != last_object && t->intersect(w, cur, context)) {
 							dist = t->intersection_dist(context);
 							if (dist > 0.0f && dist < mind) {
 								mind = dist;
@@ -505,39 +490,39 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 			}
 		}
 		if (z!=NULL) {
-			z->intersect(v, cur, context);
-			return z->shade(v, cur, lix, 1.0, dp, context, iteration + 1, finfo);
+			z->intersect(w, cur, context);
+			return z->shade(w, cur, lix, 1.0, dp, context, iteration + 1, finfo);
 		}
 	}
 	if (BackgroundMode == BACKGROUND_MODE_VOXEL) {
-		return voxel_raytrace(cur, cur+v);
+		return voxel_raytrace(cur, cur+w);
 	}
-	ydist = fabs(v.v[1]);
+	ydist = fabs(w.v[1]);
 	if (ydist<DST_THRESHOLD)
 		return RAYTRACE_BLEND_COLOR;
-
-	dp             = v.v[1] < 0.0f ? -daFloor : +daCeiling;
-	dp            -= copysign(cur.v[1], v.v[1]);
-	int ysqrd_raytrace = v.v[1] < 0.0f ? ysqrd_floor : ysqrd_ceil;
+	
+	dp             = w.v[1] < 0.0f ? -daFloor : +daCeiling;
+	dp            -= copysign(cur.v[1], w.v[1]);
+	int ysqrd_raytrace = w.v[1] < 0.0f ? ysqrd_floor : ysqrd_ceil;
 	scalefactor = dp/ydist;
-	cx = cur.v[0] + v.v[0]*scalefactor;
-	cy = cur.v[2] + v.v[2]*scalefactor;
+	cx = cur.v[0] + w.v[0]*scalefactor;
+	cy = cur.v[2] + w.v[2]*scalefactor;
 #ifdef TEX_OPTIMIZE
 	int level = iteration == 1 ? last_object->get_best_miplevel(cx, cy, finfo) : TEX_S;
-	/*
-	int level = TEX_S;
-	if (1 == iteration) {
-		if (is_trio) {
-			if (finfo.ml->obj == NULL) {
-				finfo.ml->obj = last_object;
-				finfo.ml->value = last_object->GetBestMipLevel(cx, cy, finfo);
+		/*
+		int level = TEX_S;
+		if (1 == iteration) {
+			if (is_trio) {
+				if (finfo.ml->obj == NULL) {
+					finfo.ml->obj = last_object;
+					finfo.ml->value = last_object->GetBestMipLevel(cx, cy, finfo);
+				}
+				level = finfo.ml->value;
+			} else {
+				level = last_object->GetBestMipLevel(cx, cy, finfo);
 			}
-			level = finfo.ml->value;
-		} else {
-			level = last_object->GetBestMipLevel(cx, cy, finfo);
 		}
-	}
-	*/
+		*/
 #else
 	int level = TEX_S;
 #endif
@@ -545,6 +530,53 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 		texture_handle_bilinear(cx, cy, level, ysqrd_raytrace):
 		texture_handle_nearest((int) cx, (int) cy, level, ysqrd_raytrace );
 }
+
+static inline void create_mangled_vector(const Vector &orig, float gloss, Vector &v, float &weight)
+{
+	weight = 1;
+	
+	float x = drandom();
+	x = (x - 0.5f) * M_PI * gloss; 
+	x = tan(x);
+	Vector z = perpendicular(orig);
+	Vector t = z ^ orig;
+	float angle = drandom() * 2.0f * M_PI;
+	v = orig + (z * cos(angle) + t * sin(angle)) * x;
+	v.norm();
+}
+
+// returns the color of the ray v, originating from `cur'.
+// `iteration' is a counter which prevents a ray from entering an endless cycle (very rare, but possible!)
+// `recursive' is a boolean flag: if 0, the procedure won't check if the ray hits any sphere.
+//                                if 1 and a sphere is being hit the same procedure is recursively called for the ray
+//                                that goes out of the sphere then.
+// `last_object' a pointer to the object the ray is traced from. This avoids a ray to hit again the sphere it just hit.
+// `finfo' is a helper to determine which mipmap level to use
+Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Object *last_object, FilteringInfo & finfo, float glossiness)
+{
+	if (iteration > MAX_RAYTRACE_ITERATIONS)
+		return RAYTRACE_BLEND_COLOR;
+	v.norm();
+	float r_total = 0, g_total = 0, b_total = 0, weight_total = 0, weight = 1.0f;
+	int num_samples = glossiness > 0 ? CVars::gloss_samples : 1;
+	for (int sample = 0; sample < num_samples; ++sample) {
+		Vector w;
+		if (num_samples == 1)
+			w = v;
+		else
+			create_mangled_vector(v, glossiness, w, weight);
+		weight_total += weight;
+		Uint32 result = Raytrace_one_ray(cur, w, recursive, iteration, last_object, finfo);
+		b_total += weight * (result & 0xff); result >>= 8;
+		g_total += weight * (result & 0xff); result >>= 8;
+		r_total += weight * (result & 0xff);
+	}
+	float rweight = 1.0f / weight_total;
+	return ((Uint32)(b_total * rweight)) +
+		(((Uint32)(g_total * rweight)) << 8) +
+		(((Uint32)(r_total * rweight)) << 16);
+}
+
 
 
 // performs time calculation.
@@ -575,7 +607,7 @@ double time_calc(double time, double resistance, double value, int dir)
 void apply_gravity(Sphere *a, double t)
 {
  if (a->flags & GRAVITY) {
- 	a->mov.v[1] -= sv_gravity*(t-a->time);
+ 	a->mov.v[1] -= CVars::sv_gravity*(t-a->time);
  }
 }
 
@@ -586,8 +618,8 @@ void apply_air(Sphere *a, double t, int mask, int dir)
 {
  double multiplyer;
  if (a->flags & AIR) {
- 	if (a->flags & GRAVITY) multiplyer = sv_air * AIRTHICKNESS_NORMAL;
- 			 else   multiplyer = sv_air * AIRTHICKNESS_HIGH;
+ 	if (a->flags & GRAVITY) multiplyer = CVars::sv_air * AIRTHICKNESS_NORMAL;
+ 			 else   multiplyer = CVars::sv_air * AIRTHICKNESS_HIGH;
 
  	if (mask & APPLY_X) a->mov.v[0] = time_calc((t-a->time) , multiplyer, a->mov.v[0], dir);
  	if (mask & APPLY_Y) a->mov.v[1] = time_calc((t-a->time) , multiplyer, a->mov.v[1], dir);
@@ -646,10 +678,10 @@ void advance(Sphere *a, double t)
 		// before that, undo air resistance:
 		apply_air(a,t, APPLY_Y, -1);
 		// undo gravity
-		a->mov.v[1]+= sv_gravity * rtime;
+		a->mov.v[1]+= CVars::sv_gravity * rtime;
 
 		// calculate when it hits the floor.
-		x = a->time + get_hit_time(-sv_gravity, a->mov[1], a->pos[1] - a->d);
+		x = a->time + get_hit_time(-CVars::sv_gravity, a->mov[1], a->pos[1] - a->d);
 
 		if (x>t) {
 			//printf("Bug: bounce time was outside the sync time!\n");
@@ -658,9 +690,9 @@ void advance(Sphere *a, double t)
 			//printf("Bug: bounce time was before start time!\n");
 			x = a->time;
 			}
-		a->mov.v[1] = -(a->mov.v[1] - (x-a->time) * sv_gravity) * BOUNCE_COEFF;
+		a->mov.v[1] = -(a->mov.v[1] - (x-a->time) * CVars::sv_gravity) * BOUNCE_COEFF;
 		a->pos.v[1] = a->d + daFloor + (t-x)*a->mov.v[1];
-		a->mov.v[1] -= (t-x)*sv_gravity;
+		a->mov.v[1] -= (t-x)*CVars::sv_gravity;
 
 		if (a->mov[1]<YI_THRESH) {
 		// if the ball is slowed down enough, we may consider it stopped jumping and avoid
@@ -783,7 +815,7 @@ void process_incident(Sphere *a, Sphere *b, double t)
 
 
 void set_gravity(double new_gravity) {
-	sv_gravity = new_gravity;
+	CVars::sv_gravity = new_gravity;
 }
 
 int ograve=0;
@@ -795,9 +827,9 @@ void switch_gravity(void)
 	ograve++;
 	switch (ograve%4) {
 		case 0:
-		case 2: sv_gravity = 0.001; break;
+		case 2: CVars::sv_gravity = 0.001; break;
 		case 1: sign = -1;
-		case 3: sv_gravity = -sign * 166.0;
+		case 3: CVars::sv_gravity = -sign * 166.0;
 			for (i=0;i<spherecount;i++)
 				if (sp[i].flags & AIR)
 					sp[i].flags |= GRAVITY;

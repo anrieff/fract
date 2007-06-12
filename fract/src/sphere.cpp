@@ -544,7 +544,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 		rt.make_vector(e, i);
 
 		finfo.lectionType = REFLECTION;
-		ttt = blend(Raytrace(i,rt, (flags & RECURSIVE) | RAYTRACE_BILINEAR_MASK, iteration+1, this, finfo), rezult, refl);
+		ttt = blend(Raytrace(i,rt, (flags & RECURSIVE) | RAYTRACE_BILINEAR_MASK, iteration+1, this, finfo, gloss), rezult, refl);
 		if (flags & SEETHROUGH) { // is the sphere transparent?
 		/*
 			Explanation of the refraction algorithm:
@@ -602,7 +602,7 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 			finfo.lectionType = REFRACTION;
 		// Ip is the exit point, q is the exit vector...
 			ttt = blend(
-				Raytrace(Ip,q , (flags & RECURSIVE) | RAYTRACE_BILINEAR_MASK, iteration+1, this, finfo),
+				Raytrace(Ip,q , (flags & RECURSIVE) | RAYTRACE_BILINEAR_MASK, iteration+1, this, finfo, gloss),
 				ttt,
 				this->opacity);
 		}

@@ -39,13 +39,10 @@
 extern int spherecount;
 extern Sphere sp[];
 extern Vector cur;
-extern int Physics;
-extern int CollDetect;
 extern char floor_texture[];
 extern char default_font[];
 extern AniSphere AS[];
 extern int anicnt;
-extern double sv_gravity, sv_air;
 
 /* ----------------------------------- variables ------------------------------------------ */
 
@@ -162,12 +159,12 @@ int save_context(const char *fn)
 	fprintf(f, "alpha=%.6lf\n", CVars::alpha);
 	fprintf(f, "beta=%.6lf\n", CVars::beta);
 	fprintf(f, "\n# Physics (1=on)\n");
-	fprintf(f, "Physics=%d\n", Physics);
+	fprintf(f, "Physics=%d\n", CVars::physics);
 	fprintf(f, "\n# Collision Detection (1=on)\n");
-	fprintf(f, "CollDetect=%d\n", CollDetect);
+	fprintf(f, "CollDetect=%d\n", CVars::collisions);
 	fprintf(f, "\n# Physics engine parameters\n");
-	fprintf(f, "sv_gravity=%.6lf\n", sv_gravity);
-	fprintf(f, "sv_air=%.6lf\n", sv_air);
+	fprintf(f, "sv_gravity=%.6lf\n", CVars::sv_gravity);
+	fprintf(f, "sv_air=%.6lf\n", CVars::sv_air);
 	fprintf(f, "fov=%.6lf\n", CVars::fov);
 	fprintf(f, "\n# Some vital file names\n");
 	fprintf(f, "floor_texture=\"%s\"\n", floor_texture);
@@ -410,6 +407,7 @@ static void get_sphere_info(char *si, Sphere *sph)
 		case 0x0062: sph->b	=	get_int (s); break;
 		case 0xd212: sph->AniIndex =	get_int (s); break;
 		case 0xa8e8: get_sphere_flags(s+6, &sph->flags);break;
+		case 0xe749: sph->gloss = get_real(s); break;
 		default:
 			printf("LoadContext: The following line has no meaning to me:\n[%s]\n", s); fflush(stdout);
 			break;
@@ -526,6 +524,11 @@ static void get_mesh_info(char *basedir, char *si)
 				trio[i + mesh[index].get_triangle_base()].color = thiscolor;
 			break;
 		}
+		case 0xe749:
+		{
+			mesh[index].glossiness = get_real(s);
+			break;
+		}
 		default:
 			printf("LoadContext: The following line has no meaning to me:\n[%s]\n", s); fflush(stdout);
 			break;
@@ -610,10 +613,10 @@ int load_context(const char *fn)
 				case 0xa6c5: CVars::alpha = get_real(line); break;
 				case 0x3b9d: CVars::beta = get_real(line); break;
 			/* Physics: */
-				case 0x9501: Physics = get_int (line); break;
-				case 0xa3e0: CollDetect = get_int (line); break;
-				case 0xdf4d: sv_gravity = get_real(line); break;
-				case 0x1386: sv_air = get_real(line); break;
+				case 0x9501: CVars::physics = (bool) get_int (line); break;
+				case 0xa3e0: CVars::collisions = (bool) get_int (line); break;
+				case 0xdf4d: CVars::sv_gravity = get_real(line); break;
+				case 0x1386: CVars::sv_air = get_real(line); break;
 				case 0xe5a3: CVars::fov = get_real(line); break;
 			/* Textures: */
 				case 0x314d: get_str (line, floor_texture); break;
