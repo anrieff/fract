@@ -24,7 +24,7 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 	yrhl = xr*yr;
 
 
-	dCX = 1.0/tan(fov*0.75*FOURTY_FIVE_DEGREES);
+	dCX = 1.0/tan(CVars::fov*0.75*FOURTY_FIVE_DEGREES);
 	double tgB = tan(CVars::beta);
 	float sinb = sin(-CVars::beta), cosb = cos(-CVars::beta);
 	double Thing = sqrt(1+ sqr(tgB));
@@ -54,10 +54,10 @@ void voxel_single_frame_do1(Uint32 *fb, int thread_index, Vector & tt, Vector & 
 		sizemask = sz-1;
 		sizeshift = power_of_2(sz);
 		texandmask = sz*sz-1;
-		fx = cur[0] + sin(CVars::alpha - fov * FOURTY_FIVE_DEGREES)*render_dist;
-		fz = cur[2] + cos(CVars::alpha - fov * FOURTY_FIVE_DEGREES)*render_dist;
-		fxi = ((cur[0] + sin(CVars::alpha + fov * FOURTY_FIVE_DEGREES)*render_dist) - fx) / xr;
-		fzi = ((cur[2] + cos(CVars::alpha + fov * FOURTY_FIVE_DEGREES)*render_dist) - fz) / xr;
+		fx = cur[0] + sin(CVars::alpha - CVars::fov * FOURTY_FIVE_DEGREES)*render_dist;
+		fz = cur[2] + cos(CVars::alpha - CVars::fov * FOURTY_FIVE_DEGREES)*render_dist;
+		fxi = ((cur[0] + sin(CVars::alpha + CVars::fov * FOURTY_FIVE_DEGREES)*render_dist) - fx) / xr;
+		fzi = ((cur[2] + cos(CVars::alpha + CVars::fov * FOURTY_FIVE_DEGREES)*render_dist) - fz) / xr;
 		fx += thread_index * fxi;
 		fz += thread_index * fzi;
 

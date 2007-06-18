@@ -556,6 +556,11 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 {
 	if (iteration > MAX_RAYTRACE_ITERATIONS)
 		return RAYTRACE_BLEND_COLOR;
+	if (glossiness == 0.0f) {
+		if (recursive & RECURSIVE)
+			v.norm();
+		return Raytrace_one_ray(cur, v, recursive, iteration, last_object, finfo);
+	}
 	v.norm();
 	float r_total = 0, g_total = 0, b_total = 0, weight_total = 0, weight = 1.0f;
 	int num_samples = glossiness > 0 ? CVars::gloss_samples : 1;
