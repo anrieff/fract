@@ -95,7 +95,7 @@ const char *cmd_detailedhelp[] = {
 			"Example (intended) usage:\n\n"
 			"alias zoom_in  'fov 0.3; bind z zoom_out'\n"
 			"alias zoom_out 'fov 1.0; bind z zoom_in'\n"
-			"bind z zoom_in\n"
+			"bind z zoom_in\n",
 	"",
 };
 
