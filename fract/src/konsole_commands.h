@@ -36,6 +36,7 @@ int cmd_bind(int argc, char **argv);
 int cmd_unbindall(int argc, char **argv);
 int cmd_where(int argc, char **argv);
 int cmd_screenshot(int argc, char **argv);
+int cmd_alias(int argc, char **argv);
 
 
 #endif // __CONSOLE_COMMANDS_H__

@@ -42,7 +42,7 @@ const char *cmd_quickhelp[] = {
 	"unbindall|removes all bindings",
 	"where|prints the current camera location",
 	"screenshot|takes a screenshot",
-	
+	"alias|create a new konsole command",
 	""
 };
 
@@ -84,6 +84,18 @@ const char *cmd_detailedhelp[] = {
 			"\nExample: bind q \"toggle bilinear\"\n",
 	"unbindall|"
 			"Usage: unbindall\n\nRemoves all key bindings.\n",
+	"alias|"
+			"Usage: alias <newcmd> <old-command(s)>.\n"
+			"Used to bind a command name to some action, specified in\n"
+			"<old-command(s)>, which may be a single command\n"
+			"or a list of commands, seperated by `;'. The new alias\n"
+			"may be included in <old-commands(s)> as long as it doesn't\n"
+			"call itself recursively. If the <newcmd> is already\n"
+			"specified, its old action is discarded\n"
+			"Example (intended) usage:\n\n"
+			"alias zoom_in  'fov 0.3; bind z zoom_out'\n"
+			"alias zoom_out 'fov 1.0; bind z zoom_in'\n"
+			"bind z zoom_in\n"
 	"",
 };
 
@@ -370,5 +382,32 @@ int cmd_screenshot(int argc, char **argv)
 	char filename[64];
 	take_snapshot(filename);
 	konsole.write("Screenshot written as `%s'\n", filename);
+	return 0;
+}
+
+int cmd_alias(int argc, char **argv)
+{
+	if (argc < 3) {
+		konsole.write("Usage: alias <newcmd> <old-command(s)>\n");
+		return -1;
+	}
+	if ((int)strlen(argv[1]) > 31) {
+		konsole.write("alias: name too long\n");
+		return -2;
+	}
+	Alias a;
+	strcpy(a.name, argv[1]);
+	int len_required = 1;
+	for (int i = 2; i < argc; i++) {
+		len_required += 1 + strlen(argv[i]);
+	}
+	a.statement = new char[len_required];
+	a.statement[0] = 0;
+	for (int i = 2; i < argc; i++) {
+		if (i != 2)
+			strcat(a.statement, " ");
+		strcat(a.statement, argv[i]);
+	}
+	konsole.add_alias(a);
 	return 0;
 }

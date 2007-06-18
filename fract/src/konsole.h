@@ -14,6 +14,7 @@
 #include "MyTypes.h"
 #include "bitmap.h"
 #include "gfx.h"
+#include "array.h"
 
 struct KonsoleChar {
 	int color;
@@ -42,6 +43,18 @@ struct KeyBinding {
 	static bool key_exists(const char *);
 };
 
+class Alias {
+	void destroy(void);
+	void _kopy(const Alias&);
+public:
+	char name[32];
+	char *statement;
+	Alias();
+	~Alias();
+	Alias(const Alias &);
+	Alias& operator = (const Alias &);
+};
+
 class Konsole {
 	int lines, cols;
 	int xr, yr;
@@ -57,6 +70,7 @@ class Konsole {
 	Font *font;
 	HistoryEntry *history, *selected_history;
 	KeyBinding *keys;
+	Array<Alias> aliases;
 	int keys_size;
 	
 	void advance(void);
@@ -86,6 +100,8 @@ public:
 	int execute(const char *cmd);
 	void add_key(const KeyBinding &);
 	KeyBinding *get_keys(void);
+	Alias *find_alias_by_name(const char * name);
+	void add_alias(const Alias&);
 	int get_keys_count(void) const;
 	void keys_unbind_all(void);
 	bool key_bound(int code, bool shift);

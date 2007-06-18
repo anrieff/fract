@@ -39,8 +39,8 @@
 #endif
 // this should be 45 degrees, or M_PI/4
 #define A_ALPHA_OFFSET 0.78539816339745
-// this should be 3/4 of A_ALPHA_OFFSET
-#define A_BETA_OFFSET  0.58904862254809
+// this used to be 3/4 of A_ALPHA_OFFSET, now commanded by CVars::aspect_ratio
+//#define A_BETA_OFFSET  0.58904862254809
 
 //#define PRINT_COLLISIONS
 
@@ -103,6 +103,7 @@ void calc_grid_point(const Vector & c, double a, double b, double alphaorig, Vec
 // calculates the three ending points of the vector grid given a user viewpoint and a direction
 void calc_grid_basics(const Vector &c, double alpha, double beta, Vector w[3])
 {
+	double A_BETA_OFFSET = A_ALPHA_OFFSET / CVars::aspect_ratio;
 	calc_grid_point(
 			c, 
 			alpha-A_ALPHA_OFFSET*CVars::fov*FOV_CORRECTION,

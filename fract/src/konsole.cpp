@@ -48,6 +48,7 @@ CommandStruct allcommands[] = {
 	CMD(unbindall),
 	CMD(where),
 	CMD(screenshot),
+	CMD(alias),
 };
 
 int cmdcount(void)
@@ -150,6 +151,49 @@ bool KeyBinding::key_exists(const char *s)
 	if (s[1] == 0 && (s[0] >= 32 && s[0] <= 126)) return true;
 	
 	return false;
+}
+
+/**
+ * @class Alias
+ */
+
+void Alias::destroy(void)
+{
+	if (statement)
+		delete [] statement;
+	statement = NULL;
+}
+
+void Alias::_kopy(const Alias &rhs)
+{
+	strcpy(name, rhs.name);
+	statement = new char[strlen(rhs.statement) + 1 ];
+	strcpy(statement, rhs.statement);
+}
+
+Alias::Alias()
+{
+	statement = NULL;
+	name[0] = 0;
+}
+
+Alias::~Alias()
+{
+	destroy();
+}
+
+Alias::Alias(const Alias& rhs)
+{
+	_kopy(rhs);
+}
+
+Alias& Alias::operator = (const Alias& rhs)
+{
+	if (&rhs != this) {
+		destroy();
+		_kopy(rhs);
+	}
+	return *this;
 }
 
 /**
@@ -763,9 +807,17 @@ public:
 
 int Konsole::execute(const char *rawcmd)
 {
+	static int nested_depth = 0;
+	if (++nested_depth > 8) {
+		konsole.write("INTERNAL ERROR: recursion prevention cutoff\n");
+		konsole.write("(command is `%s')\n", rawcmd);
+		--nested_depth;
+		return -1;
+	}
 	KonsoleCmdParser parser(rawcmd);
 	if (!parser.valid()) {
 		konsole.write("%s\n", parser.error_message());
+		--nested_depth;
 		return -1;
 	}
 	
@@ -795,10 +847,18 @@ int Konsole::execute(const char *rawcmd)
 			}
 			continue;
 		}
+
+		Alias *alias = find_alias_by_name(parser.command[i].argv[0]);
+		if (alias) {
+			execute(alias->statement);
+			continue;
+		}
+		
 		konsole.write("No such cvar or command: `%s'\n", parser.command[i].argv[0]);
 		res = -1;
 		
 	}
+	--nested_depth;
 	return res;
 }
 
@@ -824,6 +884,13 @@ bool Konsole::wants_exit()
 
 void Konsole::add_key(const KeyBinding& kb)
 {
+	for (int i = 0; i < keys_size; i++) {
+		if (!strcmp(keys[i].key, kb.key)) {
+			keys[i] = kb;
+			return;
+		}
+	}
+	// try adding
 	if (keys_size == max_keys) {
 		printf("%s: too many key bindings!\n", __FUNCTION__);
 		return;
@@ -862,6 +929,27 @@ bool Konsole::key_bound(int code, bool shift)
 void Konsole::keys_unbind_all(void)
 {
 	keys_size = 0;
+}
+
+void Konsole::add_alias(const Alias& alias)
+{
+	for (int i = 0; i < aliases.size(); i++) {
+		if (!strcmp(aliases[i].name, alias.name)) {
+			aliases[i] = alias;
+			return;
+		}
+	}
+	aliases += alias;
+}
+
+Alias *Konsole::find_alias_by_name(const char * name)
+{
+	for (int i = 0; i < aliases.size(); i++) {
+		if (!strcmp(aliases[i].name, name)) {
+			return &aliases[i];
+		}
+	}
+	return NULL;
 }
 
 //////// data...

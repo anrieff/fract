@@ -43,3 +43,4 @@ DECLARE_VARIABLE(bool,   collisions  , true , "toggles the collision detection e
 DECLARE_VARIABLE(bool,   animation   , true , "toggles overall object animation");
 DECLARE_VARIABLE(double, sv_gravity  ,166.66, "gravity coefficient");
 DECLARE_VARIABLE(double, sv_air      , 3.99 , "air drag coefficient");
+DECLARE_VARIABLE(double, aspect_ratio, 4./3., "screen aspect ratio");
