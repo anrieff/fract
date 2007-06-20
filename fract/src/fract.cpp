@@ -446,7 +446,8 @@ void commandline_parse(void)
 		}
 		printf("Warning: Unknown query: %s\n", option_value_string("--query"));
 	}
-	if (option_exists("--parallel") || option_exists("--para") || option_exists("--anaglyph")) {
+	if (option_exists("--parallel") || option_exists("--para") || 
+		option_exists("--anaglyph") || option_exists("--cross")) {
 		defaultconfig = 0;
 		stereo_type = option_exists("--anaglyph") ? STEREO_TYPE_ANAGLYPH : STEREO_TYPE_PARALLEL;
 		if (stereo_type == STEREO_TYPE_PARALLEL) {
@@ -457,6 +458,10 @@ void commandline_parse(void)
 			stereo_separation = option_value_float("--stereo-separation");
 		if (option_exists("--stereo-depth"))
 			stereo_depth = option_value_float("--stereo-depth");
+		stereo_crossed = false;
+		if (option_exists("--cross")) {
+			stereo_crossed = true;
+		}
 	}
 	if (option_exists("--developer")) {
 		developer = 1;

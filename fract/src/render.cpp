@@ -73,6 +73,7 @@ int UseThreads = -1;
 int r_shadows  = 1;
 int stereo_type = STEREO_TYPE_NONE;
 int stereo_mode = STEREO_MODE_NONE;
+bool stereo_crossed = false;
 Uint32 anaglyph_left_mask = 0xff0000, anaglyph_right_mask = 0x0000ff;
 double stereo_depth = 1e6;
 double stereo_separation = 6;
@@ -393,7 +394,8 @@ void postframe_do(void)
 		}
 		if (stereo_type == STEREO_TYPE_PARALLEL) {
 			int xx = xres();
-			int xoffset = stereo_mode == STEREO_MODE_LEFT ? 0 : xx + 8;
+			bool isleft = stereo_mode == STEREO_MODE_LEFT;
+			int xoffset = (stereo_crossed ^ isleft) ? 0 : xx + 8;
 			
 			for (int j = 0; j < yres(); j++) 
 				memcpy(&stereo_buffer[xoffset + j * (xx * 2+8)], &framebuffer[j * xx], xx * 4);
