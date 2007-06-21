@@ -55,6 +55,7 @@ void check_moving(void);
 int can_collide(int i, int j);
 double collide (Sphere *a, Sphere *b, double btm);
 void process_incident(Sphere *a, Sphere *b, double t);
+void process_shot(Vector cur, double strength);
 
 void set_gravity(double new_gravity);
 void switch_gravity(void);

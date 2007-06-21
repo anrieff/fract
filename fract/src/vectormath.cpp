@@ -31,6 +31,7 @@
 #include "voxel.h"
 #include "cvars.h"
 #include "random.h"
+#include "matrix.h"
 #include <math.h>
 
 #ifdef _MSC_VER
@@ -101,7 +102,7 @@ void calc_grid_point(const Vector & c, double a, double b, double alphaorig, Vec
 }
 
 // calculates the three ending points of the vector grid given a user viewpoint and a direction
-void calc_grid_basics(const Vector &c, double alpha, double beta, Vector w[3])
+void calc_grid_basics_old(const Vector &c, double alpha, double beta, Vector w[3])
 {
 	double A_BETA_OFFSET = A_ALPHA_OFFSET / CVars::aspect_ratio;
 	calc_grid_point(
@@ -117,6 +118,22 @@ void calc_grid_basics(const Vector &c, double alpha, double beta, Vector w[3])
 			alpha-A_ALPHA_OFFSET*CVars::fov*FOV_CORRECTION,
 			beta-A_BETA_OFFSET*CVars::fov*FOV_CORRECTION,
 			alpha, w[2]);
+}
+
+static Vector rotate(Vector v, double alpha, double beta)
+{
+	return rotation(AXIS_Y, -alpha + M_PI_2) * (rotation(AXIS_Z, -beta) * v);
+}
+
+void calc_grid_basics(const Vector &c, double alpha, double beta, Vector w[3])
+{
+	double l = sqrt(2.0) * 0.5;
+	double angleofview = (CVars::fov * M_PI_2) * 0.5;
+	double x = tan(angleofview) * l;
+	double y = x / CVars::aspect_ratio;
+	w[0] = rotate(Vector(l, y, x), alpha, beta) + c;
+	w[1] = rotate(Vector(l, y, -x), alpha, beta) + c;
+	w[2] = rotate(Vector(l, -y, x), alpha, beta) + c;
 }
 
 void InitMatrix(double m[3][3], const Vector&a, const Vector &b, const Vector &c) 
@@ -842,6 +859,92 @@ void switch_gravity(void)
 			break;
 	}
 
+}
+
+double find_closest_intersection(const Vector &cur, const Vector& w, Object **hit_object = NULL, void *context = NULL)
+{
+	double mind = 1e99, dist;
+	Object *z = NULL;
+	char mycontext[128];
+	if (!context)
+		context = mycontext;
+
+	for (int i = 0; i < spherecount; i++) {
+		if (sp[i].intersect(w, cur, context)) {
+			dist = sp[i].intersection_dist(context);
+			if (dist > 0.0f && dist < mind) {
+				mind = dist;
+				z = sp + i;
+			}
+		}
+	}
+	for (int j = 0; j < mesh_count; j++) {
+		if (mesh[j].testintersect(cur, w)) {
+			if (g_speedup && mesh[j].sdtree) {
+				Triangle *t;
+				if (mesh[j].sdtree->testintersect(cur, w, context, &t)) {
+					dist = t->intersection_dist(context);
+					if (dist < mind) {
+						mind = dist;
+						z = t;
+					}
+				}
+			} else {
+				for (int i = 0; i < mesh[j].triangle_count; i++) {
+					Triangle * t = trio + i + (j << TRI_ID_BITS);
+					
+					if (!t->okplane(cur)) {
+						i += t->tri_offset;
+						continue;
+					}
+					
+					if (t->intersect(w, cur, context)) {
+						dist = t->intersection_dist(context);
+						if (dist > 0.0f && dist < mind) {
+							mind = dist;
+							z = t;
+						}
+					}
+				}
+			}
+		}
+	}
+	if (z != NULL)
+		z->intersect(w, cur, context);
+	if (hit_object)
+		*hit_object = z;
+	return mind;
+}
+
+void process_shot_sphere(Sphere *s, const Vector& camera, const Vector &v, const Vector &hit, double strength)
+{
+	if (s->flags & STATIC) {
+		s->mov.zero();
+		s->flags &= ~STATIC;
+		s->time = bTime();
+	}
+	if (s->mass <= 0) {
+		s->mass = 1;
+	}
+	Vector w = s->pos - hit;
+	w.norm();
+	w += v;
+	w.scale(100.0 * strength / s->mass);
+	s->mov += w;
+	s->flags &= ~ANIMATED;
+	s->flags |= GRAVITY|AIR;
+}
+
+void process_shot(Vector p, double strength)
+{
+	double a = CVars::alpha;
+	double b = CVars::beta;
+	Vector v(sin(a)*cos(b), sin(b), cos(a)*cos(b));
+	Object *obj;
+	double d = find_closest_intersection(p, v, &obj);
+	if (d < 1e99 && obj && obj->get_type( ) == OB_SPHERE) {
+		process_shot_sphere(static_cast<Sphere*>(obj), p, v, p + v * d, strength);
+	}
 }
 
 /** ** ** ** ** ** ** ** ** ** ** ** **

@@ -348,6 +348,17 @@ void postframe_do(void)
 		}
 	}
 #endif
+	if (developer && stereo_mode == STEREO_MODE_NONE && CVars::crosshair) {
+		for (int j = -6; j <= 6; j++)
+			for (int i = -6; i <= 6; i++) {
+				Uint32 &pixel = framebuffer[(yres()/2+j)*xres() + xres()/2 + i];
+				double dist = sqrt(i*i+j*j+0.0);
+				if (fabs(dist-5.0) <= 1.0) {
+					float intensity = 1.0f - fabs(dist-5.0);
+					pixel = blend(0xffffff, pixel, intensity);
+				}
+			}
+	}
 #ifdef DEBUG
 	if (developer && node_arr.size()) {
 		for (int i = 0; i < node_arr.size(); i++) {
@@ -486,7 +497,7 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 	prof_enter(PROF_PHYSICS);
 	if (CVars::animation) {
 		physics_preprocess_hooks(btm);
-		if (CVars::physics && SceneType == TIME_BASED && stereo_mode <= STEREO_MODE_LEFT) { // should we process physics?
+		if (CVars::physics && (SceneType == TIME_BASED || developer) && stereo_mode <= STEREO_MODE_LEFT) { // should we process physics?
 			camera_moved = 1;
 			for (i=0;i<spherecount;i++)
 				apply_gravity(sp+i, btm); // first of all, Gravity

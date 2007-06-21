@@ -409,6 +409,11 @@ void kbd_do(int *ShouldExit)
 			}
 #endif
 		}
+		if (CVars::crosshair && e.type == SDL_MOUSEBUTTONDOWN ) {
+			if (e.button.button == 1 || e.button.button == 3) {
+				process_shot(cur, e.button.button == 1 ? 1 : 5);
+			}
+		}
 	}
 
 	if (!konsole.visible()) {
