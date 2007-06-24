@@ -409,6 +409,9 @@
 				RelativePath=".\src\light.cpp">
 			</File>
 			<File
+				RelativePath=".\src\matrix.cpp">
+			</File>
+			<File
 				RelativePath=".\src\md5.cpp">
 			</File>
 			<File
@@ -553,6 +556,9 @@
 			</File>
 			<File
 				RelativePath=".\src\light.h">
+			</File>
+			<File
+				RelativePath=".\src\matrix.h">
 			</File>
 			<File
 				RelativePath=".\src\md5.h">
