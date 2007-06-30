@@ -82,7 +82,7 @@ T hermite(const T& a, const T& b, double t)
 }
 
 // min and max templates
-#ifndef _MSC_VER
+#ifndef _WIN32
 template <class T>
 static inline T min(T a, T b) { return a < b ? a : b; }
 template <class T>

@@ -27,12 +27,16 @@ INCLUDES=\
 	infinite_plane.h\
 	konsole.h\
 	konsole_commands.h\
+	light.h\
+	matrix.h\
 	md5.h\
 	memory.h\
 	mesh.h\
 	object.h\
+	physics.h\
 	profile.h\
 	progress.h\
+	radiosity.h\
 	random.h\
 	render.h\
 	resultfmt.h\
@@ -68,14 +72,19 @@ OBJECTS=\
 	cvars.o\
 	fract.o\
 	gfx.o\
+	hierarchy.o\
 	infinite_plane.o\
 	konsole.o\
 	konsole_commands.o\
+	light.o\
+	matrix.o\
 	md5.o\
 	memory.o\
 	mesh.o\
+	physics.o\
 	profile.o\
 	progress.o\
+	radiosity.o\
 	random.o\
 	render.o\
 	resultoutput.o\
@@ -94,8 +103,10 @@ OBJECTS=\
 	vectormath.o\
 	voxel.o
 
-OPTFLAGS=-Wall -O3 -ffast-math -msse -msse2 -mfpmath=sse
-DEFINES=-DSIMD_VECTOR
+##OPTFLAGS=-Wall -O3 -ffast-math -msse -msse2 -mfpmath=sse
+##DEFINES=-DSIMD_VECTOR
+OPTFLAGS=-Wall -O3 -ffast-math
+DEFINES=
 LINKPATHS=
 LINK_LIBS=-lmingw32 -lSDLmain -lSDL -lm
 
