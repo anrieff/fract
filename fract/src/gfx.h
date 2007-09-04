@@ -51,6 +51,7 @@ typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
  void paste_raw(SDL_Surface *p, const RawImg& a, int x, int y);
  void intro_progress(SDL_Surface *p, double prog);
  void intro_progress_init(SDL_Surface *p, const char * message);
+ void gfx_update_screen(SDL_Surface *p, SDL_Overlay *ov, Uint32 *ptr, int x0, int y0, int w, int h);
 #endif
 
  int xres(void);

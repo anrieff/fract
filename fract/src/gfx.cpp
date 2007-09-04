@@ -801,6 +801,46 @@ void outline_to_screen(Uint16 *sbuffer, Vector pt[], int sides, Uint16 color, Ve
 	}
 }
 
+#ifdef ACTUALLYDISPLAY
+#include "rgb2yuv.h"
+
+void gfx_update_screen(SDL_Surface *p, SDL_Overlay *ov, Uint32 *src, int x0, int y0, int w, int h)
+{
+	if (ov==NULL) { // use the surface directly
+		surface_lock(p);
+		
+		//memcpy(p->pixels, thebuffer, p->h*p->w*4);
+		Uint32 *dest = ((Uint32*) p->pixels) + x0 + y0*p->w;
+		src += x0 + y0 * p->w;
+		for (int j = 0; j < h; j++)
+			for (int i = 0; i < w; i++)
+				dest[i+j*p->w] = src[i+j*p->w];
+		
+		surface_unlock(p);
+		
+		SDL_UpdateRect(p, x0, y0, w, h);
+	} else { // use the overlay
+		SDL_LockYUVOverlay(ov);
+		
+		//ConvertRGB2YUV((Uint32 *) ov->pixels[0], thebuffer, p->h*p->w);
+		Uint32 *dest = ((Uint32*) ov->pixels[0]) + (x0 + y0*p->w) / 2;
+		src += x0 + y0 * p->w;
+		for (int j = 0; j < h; j++)
+			ConvertRGB2YUV(&dest[(j*p->w)/2], &src[j * p->w], w);
+
+		SDL_UnlockYUVOverlay(ov);
+		
+		SDL_Rect ddestrect;
+		ddestrect.x = 0;
+		ddestrect.y = 0;
+		ddestrect.w = p->w;
+		ddestrect.h = p->h;
+
+		SDL_DisplayYUVOverlay(ov, &ddestrect);
+	}
+}
+#endif
+
 void gfx_init(void)
 {
  int i,j;

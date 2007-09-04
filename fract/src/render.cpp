@@ -40,6 +40,7 @@
 #include "profile.h"
 #include "physics.h"
 #include "radiosity.h"
+#include "random.h"
 #include "render.h"
 #include "rgb2yuv.h"
 #include "scene.h"
@@ -78,6 +79,7 @@ Uint32 anaglyph_left_mask = 0xff0000, anaglyph_right_mask = 0x0000ff;
 double stereo_depth = 1e6;
 double stereo_separation = 6;
 Uint32 *stereo_buffer = NULL;
+bool prepass_photorealistic = true;
 
 ThreadPool thread_pool;
 
@@ -452,7 +454,7 @@ void postframe_do(void)
  *	This routine does the common stuff, identical for both the P5 and SSE version of Drawit
  */
 
-void preframe_do(Uint32 *ptr, const Vector& lw)
+void preframe_do(Uint32 *ptr, const Vector& lw, bool do_projection)
 {
 	int i, j;
 	double btm, ttm;
@@ -558,37 +560,48 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 	check_for_shadowed_spheres();
 	prof_leave(PROF_SHADOWED_CHECK);
 	
-	prof_enter(PROF_PROJECT);
-	for (i=0;i<RES_MAXY;i++) {
-		RowMin[i] = +65536;
-		RowMax[i] = -65536;
-	}
-	OR_size = 0;
 	for (i=0;i<allobjects.size();i++) {
 		allobjects[i]->id = i;
-		int y0 = 0, y1 = ysize_render(yres())-1;
-		project_it(allobjects[i], num_sides+i, ptr, cur, w, xsize_render(xres()), ysize_render(yres()), i+1,
-			y0, y1);
-		if (y1 >= 0) {
-			obj_rows[OR_size].object_id = i;
-			obj_rows[OR_size].y = y0 - 1;
-			obj_rows[OR_size++].type = OPENING;
-			obj_rows[OR_size].object_id = i;
-			obj_rows[OR_size].y = y1 + 1;
-			obj_rows[OR_size++].type = CLOSING;
-		}
 		if (allobjects[i]->get_type() == OB_SPHERE) {
 			Sphere *s = (Sphere*)allobjects[i];
 			pdlo[i] 	= lw.distto(s->pos);
 			sp[i].dist 	= cur.distto(s->pos);
 		}
 	}
-	prof_leave(PROF_PROJECT);
-
-	prof_enter(PROF_YSORT);
-	sort(obj_rows, OR_size);
-	prof_leave(PROF_YSORT);
-
+	if (do_projection) {
+		prof_enter(PROF_PROJECT);
+		for (i=0;i<RES_MAXY;i++) {
+			RowMin[i] = +65536;
+			RowMax[i] = -65536;
+		}
+		OR_size = 0;
+		for (i=0;i<allobjects.size();i++) {
+			int y0 = 0, y1 = ysize_render(yres())-1;
+			project_it(allobjects[i], num_sides+i, ptr, cur, w, xsize_render(xres()), 
+				ysize_render(yres()), i+1, y0, y1);
+			if (y1 >= 0) {
+				obj_rows[OR_size].object_id = i;
+				obj_rows[OR_size].y = y0 - 1;
+				obj_rows[OR_size++].type = OPENING;
+				obj_rows[OR_size].object_id = i;
+				obj_rows[OR_size].y = y1 + 1;
+				obj_rows[OR_size++].type = CLOSING;
+			}
+		}
+		prof_leave(PROF_PROJECT);
+	
+		prof_enter(PROF_YSORT);
+		sort(obj_rows, OR_size);
+		prof_leave(PROF_YSORT);
+	
+		if (is_adaptive_fsaa()) {
+			prof_enter(PROF_ANTIBUF_INIT);
+			antibuffer_init(ptr, xsize_render(xres()), ysize_render(yres()));
+			prof_leave(PROF_ANTIBUF_INIT);
+		}
+	}
+	
+	
 	prof_enter(PROF_PASS);
 	pass_pre(pdlo, pith(lw, cur), lw);
 	prof_leave(PROF_PASS);
@@ -596,12 +609,7 @@ void preframe_do(Uint32 *ptr, const Vector& lw)
 	prof_enter(PROF_MESHINIT);
 	mesh_frame_init(cur, lw);
 	prof_leave(PROF_MESHINIT);
-	
-	if (is_adaptive_fsaa()) {
-		prof_enter(PROF_ANTIBUF_INIT);
-		antibuffer_init(ptr, xsize_render(xres()), ysize_render(yres()));
-		prof_leave(PROF_ANTIBUF_INIT);
-	}
+
 	
 	if (pp_state & SHADER_ID_OBJECT_GLOW) {
 		shader_prepare_for_glow("mesh:0", ptr, fb_copy, xsize_render(xres()), ysize_render(yres()));
@@ -983,7 +991,7 @@ void render_single_frame_do(void)
 
 
 	prof_enter(PROF_BASH_PREFRAME);		bash_preframe(lw, tt, ti, tti);			prof_leave(PROF_BASH_PREFRAME);
-	prof_enter(PROF_PREFRAME_DO);		preframe_do( spherebuffer, lw);			prof_leave(PROF_PREFRAME_DO);
+	prof_enter(PROF_PREFRAME_DO);		preframe_do( spherebuffer, lw, true);		prof_leave(PROF_PREFRAME_DO);
 
 	if (BackgroundMode == BACKGROUND_MODE_VOXEL)
 		voxel_frame_init(tt, ti, tti, ptr);
@@ -1072,6 +1080,355 @@ void render_single_frame_do(void)
 #endif
 }
 
+class BackgroundObject : public Object {
+public:
+	double get_depth(const Vector &camera) { return 1e99; }
+	bool is_visible(const Vector & camera, Vector w[3]) { return true;}
+	int calculate_convex(Vector pt[], const Vector& camera) { return 0; }
+	void map2screen(Uint32 *framebuffer, int color, int sides, Vector pt[],
+		const Vector& camera, Vector w[3], int & min_y, int & max_y) {}
+
+	bool fastintersect(const Vector& ray, const Vector& camera,
+		const double& rls, void *IntersectContext) const
+	{
+		double *dist = (double *)IntersectContext;
+		if (BackgroundMode == BACKGROUND_MODE_VOXEL) {
+			*dist = voxel_raycast_distance(camera, camera + ray);
+			return ((*dist) < 1e6);
+		} else {
+			dist[1] = fabs(ray.v[1]);
+			if (dist[1] < DST_THRESHOLD)
+				return false;
+			double dp;
+			dp             = ray.v[1] < 0.0f ? -daFloor : +daCeiling;
+			dp            -= copysign(camera.v[1], ray.v[1]);
+			dist[2] = dp/dist[1];
+			//dist[0] - dist to obj; dist[1] = ydist; dist[2] = scalefactor
+			dist[0] = sqrt(rls) * dist[2];
+			return true;
+		}
+	}
+
+	bool intersect(const Vector& ray, const Vector &camera, void *ic)
+	{
+		return fastintersect(ray, camera, 1.0, ic);
+	}
+
+	double intersection_dist(void *IntersectContext) const
+	{
+		return *(double*) IntersectContext;
+	}
+
+	Uint32 shade(Vector& ray, const Vector& camera, const Vector& ll,
+		double rlsrcp, float &opacity, void *IntersectContext,
+		int iteration, FilteringInfo& finfo )
+	{
+		if (BackgroundMode == BACKGROUND_MODE_VOXEL)
+			return voxel_raytrace(camera, camera + ray);
+		double scalefactor = ((double*)IntersectContext)[2];
+		double cx, cy;
+		cx = camera.v[0] + ray.v[0]*scalefactor;
+		cy = camera.v[2] + ray.v[2]*scalefactor;
+		int ysqrd_raytrace = ray.v[1] < 0.0f ? ysqrd_floor : ysqrd_ceil;
+		int level = 0;
+		Uint32 result = texture_handle_bilinear(cx, cy, level, ysqrd_raytrace);
+		if (CVars::shadow_algo != 0) {
+			float d = light.shadow_density(Vector(cx, ray.v[1] < 0.0f ? daFloor : daCeiling, cy));
+			if (d > 0) {
+				result = multiplycolorf(result, (1.0f-d)*(1.0f-ambient) + ambient);
+			}
+		}
+		return result;
+	}
+	int get_best_miplevel(double x0, double z0, FilteringInfo & fi)
+	{
+		return TEX_S;
+	}
+
+	OBTYPE get_type(bool generic = true) const
+	{
+		return OB_BACKGROUND;
+	}
+};
+
+static double intersection_distance(const Vector &camera, const Vector &dir)
+{
+	double mdist = 1e99, dist;
+	double rls = dir.lengthSqr();
+	Vector w[3];
+	calc_grid_basics(camera, CVars::alpha, CVars::beta, w);
+	for (int i = 0; i <= allobjects.size(); i++) {
+		char ctx[128];
+		if (allobjects[i]->is_visible(camera, w) && allobjects[i]->fastintersect(dir, camera, rls, ctx)) {
+			allobjects[i]->intersect(dir, camera, ctx);
+			dist = allobjects[i]->intersection_dist(ctx);
+			if (dist >= 0 && dist < mdist)
+				mdist = dist;
+		}
+	}
+	return mdist;
+}
+
+static void render_single_frame_photorealistic(void *p, void *v)
+{
+	struct MultiThreadedPhotoRenderer : public Parallel {
+		int xr, yr;
+		Vector lw, tt, ti, tti;
+		Vector t0;
+		Uint32 *ptr;
+		void *sdl_p, *sdl_v;
+		InterlockedInt bucket;
+		Mutex display_mutex;
+		double focal_dist, fpd;
+		Vector fp0, fp1, fp_center, fpnorm;
+		bool my_exit;
+		
+		MultiThreadedPhotoRenderer()
+		{
+			my_exit = false;
+		}
+
+		void sample_lens_point(double &x, double &y)
+		{
+			double angle = drandom() * 2 * M_PI;
+			double r = drandom();
+			r = sqrt(r);
+			x = cos(angle) * r;
+			y = sin(angle) * r;
+		}
+
+		
+		Uint32 solve_single(int x, int y, FilteringInfo &fi)
+		{
+			/* Create ray */
+			Vector ray = tt + ti * (double)x + tti * (double) y;
+			ray -= cur;
+			ray.norm();
+			
+			/* Generate cone pinpoint */
+			double xd = cur * fpnorm + fpd;
+			double xdd = ray * fpnorm;
+			Vector t = cur + ray * (-xd / xdd);
+			
+			int r = 0, g = 0, b = 0;
+			int n = CVars::dof_samples;
+			if (n == 0) n = 1;
+			char context[128];
+			for (int i = 0; i < n; i++) {
+				Vector newcam, nr;
+				if (n>1) {
+					double xu, xv;
+					sample_lens_point(xu, xv);
+					newcam = cur + fp0 * xu + fp1 * xv;
+					nr = t - newcam;
+					nr.norm();
+				} else {
+					newcam = cur;
+					nr = ray;
+				}
+				
+				/* Setup filtering info */
+				if (n > 1) fi.camera = newcam;
+				fi.through = newcam+nr;
+
+				
+				Object *z = NULL;
+				Object *prevz = NULL;
+				double mdist = 1e99;
+				double prevdist = 1e99;
+				
+#define TESTD(obj) \
+	if (dist > 0.0f && dist < mdist) {\
+		prevdist = mdist; \
+		mdist = dist; \
+		prevz = z; \
+		z = obj; \
+	} else if (dist > 0.0f && dist < prevdist) { \
+		prevdist = dist; \
+		prevz = obj; \
+	}
+				//
+				double dist;
+				for (int i = 0; i < spherecount; i++) {
+					if (sp[i].intersect(nr, newcam, context)) {
+						dist = sp[i].intersection_dist(context);
+						TESTD(sp+i);
+					}
+				}
+				for (int j = 0; j < mesh_count; j++) {
+					if (mesh[j].testintersect(newcam, nr)) {
+						if (g_speedup && mesh[j].sdtree) {
+							Triangle *t;
+							if (mesh[j].sdtree->testintersect(newcam, nr, context, &t)) {
+								dist = t->intersection_dist(context);
+								TESTD(t);
+							}
+						} else {
+							for (int i = 0; i < mesh[j].triangle_count; i++) {
+								Triangle * t = trio + i + (j << TRI_ID_BITS);
+						
+								if (!t->okplane(newcam)) {
+									i += t->tri_offset;
+									continue;
+								}
+						
+								if (t->intersect(nr, newcam, context)) {
+									dist = t->intersection_dist(context);
+									TESTD(t);
+								}
+							}
+						}
+					}
+				}
+				Object *t = allobjects[allobjects.size()];
+				if (t->intersect(nr, newcam, context)) {
+					dist = t->intersection_dist(context);
+					TESTD(t);
+				}
+				//
+				/*
+				for (int j = 0; j <= allobjects.size(); j++) {
+					if (allobjects[j]->intersect(nr, newcam, ctx)) {
+						double dist = allobjects[j]->intersection_dist(ctx);
+						if (dist < mdist) {
+							prevdist = mdist;
+							mdist = dist;
+							prevz = z;
+							z = allobjects[j];
+						} else if (dist < prevdist) {
+							prevdist = dist;
+							prevz = allobjects[j];
+						}
+					}
+				}
+				*/
+				if (!z) continue;
+				z->intersect(nr, newcam, context);
+				FilteringInfo finfo;
+				float f = 1.0f;
+				int result = z->shade(nr, newcam, lw, 1.0, f, context, 0, fi);
+				if (f != 1.0f) {
+					int bgresult = 0;
+					float opc;
+					if (prevz) {
+						prevz->intersect(nr, newcam, context);
+						bgresult = prevz->shade(nr, newcam, lw, 1.0, opc, context, 0, fi);
+					}
+					b += (int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f));
+					result >>= 8; bgresult >>= 8;
+					g += (int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f));
+					result >>= 8; bgresult >>= 8;
+					r += (int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f));
+				} else {
+					b += result & 0xff; result >>= 8;
+					g += result & 0xff; result >>= 8;
+					r += result & 0xff;
+				}
+			}
+			//
+			b /= n;
+			g /= n;
+			r /= n;
+			return (r << 16) | (g << 8) | b;
+		}
+		
+		void entry(int thread_idx, int thread_count)
+		{
+			/* determine bucket size (bs) */
+			int bs = yr / 10;
+			bs &= 0xfff0;
+			if (!bs) bs = 16;
+			
+			/* see how many buckets we have */
+			int bxr, byr;
+			bxr = ((xr - 1) / bs + 1);
+			byr = ((yr - 1) / bs + 1);
+			int allbucks =  bxr * byr;
+			
+			/* Setup filtering info */
+			FilteringInfo fi;
+			fi.camera = cur;
+			fi.xinc = ti*0.5;
+			fi.yinc = tti*0.5;
+
+			
+			/* iterate them */
+			int bkt;
+			int pmul = prepass_photorealistic ? 2 : 1;
+			while ((bkt = bucket++) < allbucks*pmul && !my_exit) {
+				bool small = prepass_photorealistic && bkt < allbucks;
+				bkt %= allbucks;
+				/* See what bucket we have */
+				int x0 = (bkt % bxr) * bs;
+				int y0 = (bkt / bxr) * bs;
+				int w = min(bs, xr - x0);
+				int h = min(bs, yr - y0);
+				
+				/* Render our bucket */
+				for (int j = 0; j < h; j++) {
+					int y = y0 + j;
+					for (int i = 0; i < w; i++) {
+						bool sixteen = i % 16 == 0 && j % 16 == 0;
+						if (prepass_photorealistic && ((sixteen && !small) || (!sixteen && small))) continue;
+						int x = x0 + i;
+						framebuffer[xr * y + x] =
+							solve_single(x, y, fi);
+						if (sixteen) {
+							for (int q = 0; q < 16; q++)
+								for (int t = 0; t < 16; t++){
+									framebuffer[xr * (y+q) + x + t] =
+										framebuffer[xr * y + x];
+								}
+						}
+					}
+				}
+				
+				/* Display it onscreen */
+#ifdef ACTUALLYDISPLAY
+				if (sdl_p) {
+					SDL_Surface *p = (SDL_Surface*) sdl_p;
+					SDL_Overlay *ov = (SDL_Overlay*) sdl_v;
+					//
+					display_mutex.enter();
+					gfx_update_screen(p, ov, ptr, x0, y0, w, h);
+					int she = 0;
+					kbd_do(&she);
+					display_mutex.leave();
+					if (she || !CVars::photomode) my_exit = true;
+				}
+#endif
+			}
+		}
+		
+		void setup_focal_dist(Vector cur, Vector ray)
+		{
+			ray.norm();
+			focal_dist = intersection_distance(cur, ray);
+			fp_center = cur + ray * (focal_dist / ray.length());
+			fp0 = perpendicular(ray);
+			fp1 = ray ^ fp0;
+			fp0.make_length(CVars::dof_aperture);
+			fp1.make_length(CVars::dof_aperture);
+			fpnorm = fp0 ^ fp1;
+			fpd = - (fpnorm * fp_center);
+		}
+	} mt;
+
+	mt.xr = xsize_render(xres()); mt.yr = ysize_render(yres());
+	mt.ptr = framebuffer;
+	mt.sdl_p = p;
+	mt.sdl_v = v;
+	mt.bucket = 0;
+	bash_preframe(mt.lw, mt.tt, mt.ti, mt.tti);
+	preframe_do( spherebuffer, mt.lw, false);
+	static BackgroundObject bgnd;
+	allobjects[allobjects.size()] = &bgnd;
+	//
+	/* setup focal distance */
+	mt.setup_focal_dist(cur, mt.tt + mt.ti*(mt.xr/2.0) + mt.tti*(mt.yr/2.0) - cur);
+	
+	thread_pool.run(&mt, cpu.count);
+}
 
 /****************************************************************
  * This is the master function which chooses who to call to do  *
@@ -1081,17 +1438,23 @@ void render_single_frame_do(void)
 #ifdef ACTUALLYDISPLAY
 void render_single_frame(SDL_Surface *p, SDL_Overlay *ov)
 {
-	if (stereo_type) {
-		Vector camera_save = cur;
-		double alpha_save = CVars::alpha;
-		for (stereo_mode = STEREO_MODE_LEFT; stereo_mode <= STEREO_MODE_FINAL; stereo_mode++) {
-			cur = camera_save;
-			CVars::alpha = alpha_save;
-			camera_moved = true;
+	if (CVars::photomode) {
+		render_single_frame_photorealistic(p, ov);
+		prepass_photorealistic = false;
+	} else {
+		prepass_photorealistic = true;
+		if (stereo_type) {
+			Vector camera_save = cur;
+			double alpha_save = CVars::alpha;
+			for (stereo_mode = STEREO_MODE_LEFT; stereo_mode <= STEREO_MODE_FINAL; stereo_mode++) {
+				cur = camera_save;
+				CVars::alpha = alpha_save;
+				camera_moved = true;
+				render_single_frame_do(p, ov);
+			}
+		} else {
 			render_single_frame_do(p, ov);
 		}
-	} else {
-		render_single_frame_do(p, ov);
 	}
 }
 
@@ -1099,7 +1462,12 @@ void render_single_frame(SDL_Surface *p, SDL_Overlay *ov)
 void render_single_frame(void)
 {
 	if (vframe % 25 == 24) {printf("."); fflush(stdout);}
-	render_single_frame_do();
+	if (CVars::photomode) {
+		prepass_photorealistic = false;
+		render_single_frame_photorealistic(NULL, NULL);
+	} else {
+		render_single_frame_do();
+	}
 }
 #endif
 

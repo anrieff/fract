@@ -28,6 +28,7 @@ enum OBTYPE {
 	OB_SPHERE = 0x100,
 	OB_TRIANGLE = 0x200,
 	OB_WATER = 0x400,
+	OB_BACKGROUND = 0x800,
 	OB_UNDEFINED = 0xffffffff
 };
 
@@ -231,7 +232,7 @@ public:
 		++count;
 	}
 
-	Object * operator [] (const int idx) const
+	Object *& operator [] (const int idx)
 	{
 		return a[idx].obj;
 	}

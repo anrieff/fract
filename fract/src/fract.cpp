@@ -327,6 +327,9 @@ void kbd_do(int *ShouldExit)
 				if (e.key.keysym.sym == SDLK_F11) { // F11 is bilinear filtering toggle shortcut
 					CVars::bilinear = !CVars::bilinear;
 				}
+				if (e.key.keysym.sym == SDLK_F10) {
+					CVars::photomode = !CVars::photomode;
+				}
 //HACK FIXME HAX0RED
 
 				if (e.key.keysym.sym == SDLK_F1) {
@@ -516,6 +519,12 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
+	option_add("--developer");
+	option_add("--no-overlay");
+	option_add("--scene=data/teapot.fsv");
+	option_add("--xres=800");
+	//option_add("-w");
+	//option_add("--cpus=1");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }

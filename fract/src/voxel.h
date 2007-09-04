@@ -65,6 +65,7 @@ typedef struct {
 
 void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index, InterlockedInt&);
 Uint32 voxel_raytrace(const Vector & cur, const Vector & v);
+double voxel_raycast_distance(const Vector &cur, const Vector & v);
 
 extern int voxel_rendering_method, shadow_casting_method;
 extern bool light_moving;

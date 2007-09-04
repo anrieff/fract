@@ -1262,6 +1262,21 @@ Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
 			xx & 0xffff, yy & 0xffff);
 }
 
+double voxel_raycast_distance(const Vector &cur, const Vector &v)
+{
+	float mdist = 1e6;
+	bool found = false;
+	for (int k = 0; k < NUM_VOXELS; k++) {
+		Vector vv;
+		float t = vox[k].hierarchy.ray_intersect(cur, v, vv);
+		if (t < mdist) {
+			mdist = t;
+			found = true;
+		}
+	}
+	return mdist >= 1e6 ? (double)1e99 : (double) mdist;
+}
+
 void voxel_single_frame_do(Uint32 *fb, int, int, Vector & tt, Vector & ti, Vector & tti, int thread_index, InterlockedInt&)
 {
 	prof_enter(PROF_RENDER_VOXEL);

@@ -3234,7 +3234,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 	cpui = (-(y1 % cpuc) + cpuc + cpui) % cpuc + 1;
 	//
 	__asm __volatile (// 0 - p, 1 - ysize, 2 - xsize, 3 - xr
-			"	mov	%0,	%%esi\n"
+			//"	mov	%0,	%%esi\n"
 			"	mov	%1,	%%edx\n"
 			"	mov	%7,	%%ecx\n"
 			"	movq	%4,	%%mm7\n"
@@ -3242,8 +3242,10 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 			
 			XALIGN
 			"yyloop:\n"
-			"	mov	%%esi,	%%edi\n"
-			"	add	%3,	%%esi\n"
+			"	mov	%0,	%%eax\n"
+			"	mov	%%eax,	%%edi\n"
+			"	add	%3,	%%eax\n"
+			"	mov	%%eax,	%0\n"
 			
 			"	dec	%%ecx\n"
 			"	jnz	skip_row\n"
@@ -3272,7 +3274,7 @@ static void fast_reblend_mmx(int x1, int y1, int x2, int y2, Uint16 *sbuff, int 
 			
 			"	emms\n"
 	::"m"(p), "m"(ysize), "m"(xsize), "m"(xr), "m"(*x_mor), "m"(*x_add), "m"(cpuc), "m"(cpui)
-	:"memory", "eax", "edx", "esi", "edi");
+	:"memory", "eax", "edx", /*"esi",*/ "edi", "ecx");
 }
 
 #endif
