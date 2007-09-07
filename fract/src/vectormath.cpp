@@ -582,6 +582,7 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 	v.norm();
 	float r_total = 0, g_total = 0, b_total = 0, weight_total = 0, weight = 1.0f;
 	int num_samples = glossiness > 0 ? CVars::gloss_samples : 1;
+	qmc.init(num_samples);
 	for (int sample = 0; sample < num_samples; ++sample) {
 		Vector w;
 		if (num_samples == 1)

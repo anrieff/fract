@@ -36,7 +36,7 @@ Uint32 fba_temp[MAX_CPU_COUNT][2][RES_MAXX];
 /* ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 
 // simple unweighted 4x unaligned grid pattern
-static const fsaa_kernel aaa_kernel_4 = {
+const fsaa_kernel aaa_kernel_4 = {
         {
                 { 0.125, 0.125 },
                 { 0.625, 0.250 },
@@ -53,7 +53,7 @@ static const fsaa_kernel aaa_kernel_4 = {
 // with some transforms and scalings and with added weights
 
 // Courtesy of FELLIX
-static const fsaa_kernel aaa_kernel_16 = {
+const fsaa_kernel aaa_kernel_16 = {
         {
                 { 0.000, 0.625 },
                 { 0.125, 0.125 },
@@ -82,7 +82,7 @@ static const fsaa_kernel aaa_kernel_16 = {
 };
 
 // simple weighted Quincunx kernel, looks pretty good
-static const fsaa_kernel aaa_kernel_quincunx = {
+const fsaa_kernel aaa_kernel_quincunx = {
         {
                 { 0.375, 0.375 },
                 { 0.125, 0.125 },
@@ -99,7 +99,7 @@ static const fsaa_kernel aaa_kernel_quincunx = {
 
 // Another kernel by fellix; unweighted, 10-sample
 // Looks beautiful
-static const fsaa_kernel aaa_kernel_10 = {
+const fsaa_kernel aaa_kernel_10 = {
         {
                 { 0.250, 0.125 },
                 { 0.125, 0.500 },

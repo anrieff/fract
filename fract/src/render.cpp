@@ -1135,7 +1135,8 @@ public:
 		if (CVars::shadow_algo != 0) {
 			float d = light.shadow_density(Vector(cx, ray.v[1] < 0.0f ? daFloor : daCeiling, cy));
 			if (d > 0) {
-				result = multiplycolorf(result, (1.0f-d)*(1.0f-ambient) + ambient);
+				int mul = (int) (shadow_intensity * 256 * d);
+				result = multiplycolor(result, 65535-mul);
 			}
 		}
 		return result;
@@ -1188,10 +1189,16 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			my_exit = false;
 		}
 
-		void sample_lens_point(double &x, double &y)
+		void sample_lens_point(double &x, double &y, int qmc_serial)
 		{
-			double angle = drandom() * 2 * M_PI;
-			double r = drandom();
+			double angle, r;
+			if (CVars::qmc) {
+				angle = qmc.get(0, qmc_serial) * 2 * M_PI;
+				r = qmc.get(1, qmc_serial);
+			} else {
+				angle = drandom() * 2 * M_PI;
+				r = drandom();
+			}
 			r = sqrt(r);
 			x = cos(angle) * r;
 			y = sin(angle) * r;
@@ -1200,25 +1207,40 @@ static void render_single_frame_photorealistic(void *p, void *v)
 		
 		Uint32 solve_single(int x, int y, FilteringInfo &fi)
 		{
-			/* Create ray */
-			Vector ray = tt + ti * (double)x + tti * (double) y;
-			ray -= cur;
-			ray.norm();
-			
-			/* Generate cone pinpoint */
-			double xd = cur * fpnorm + fpd;
-			double xdd = ray * fpnorm;
-			Vector t = cur + ray * (-xd / xdd);
-			
+			/* Prepare for the gathering phase */
 			int r = 0, g = 0, b = 0;
 			int n = CVars::dof_samples;
 			if (n == 0) n = 1;
 			char context[128];
+			int total_weight = 0;
+			
+			/* Select antialiasing kernel */
+			const fsaa_kernel *kernel;
+			if (n < 10)
+				kernel = &aaa_kernel_quincunx;
+			else if (n < 16)
+				kernel = &aaa_kernel_10;
+			else kernel = &aaa_kernel_16;
+			qmc.init(n);
+			
 			for (int i = 0; i < n; i++) {
+				/* Create ray */
+				int ii = i % n;
+				Vector ray = tt + ti * (x + kernel->coords[ii][0]) + tti * (y + kernel->coords[ii][1]);
+				ray -= cur;
+				ray.norm();
+				int weight = (int) (65536 * kernel->weights[ii]);
+				total_weight += weight;
+			
+				/* Generate cone pinpoint */
+				double xd = cur * fpnorm + fpd;
+				double xdd = ray * fpnorm;
+				Vector t = cur + ray * (-xd / xdd);
+				
 				Vector newcam, nr;
 				if (n>1) {
 					double xu, xv;
-					sample_lens_point(xu, xv);
+					sample_lens_point(xu, xv, i);
 					newcam = cur + fp0 * xu + fp1 * xv;
 					nr = t - newcam;
 					nr.norm();
@@ -1280,28 +1302,20 @@ static void render_single_frame_photorealistic(void *p, void *v)
 						}
 					}
 				}
-				Object *t = allobjects[allobjects.size()];
-				if (t->intersect(nr, newcam, context)) {
-					dist = t->intersection_dist(context);
-					TESTD(t);
-				}
-				//
-				/*
-				for (int j = 0; j <= allobjects.size(); j++) {
-					if (allobjects[j]->intersect(nr, newcam, ctx)) {
-						double dist = allobjects[j]->intersection_dist(ctx);
-						if (dist < mdist) {
-							prevdist = mdist;
-							mdist = dist;
-							prevz = z;
-							z = allobjects[j];
-						} else if (dist < prevdist) {
-							prevdist = dist;
-							prevz = allobjects[j];
-						}
+				if (BackgroundMode == BACKGROUND_MODE_VOXEL) {
+					Object *z = voxel_water_object();
+					if (z->intersect(nr, newcam, context)) {
+						dist = z->intersection_dist(context);
+						TESTD(z);
 					}
 				}
-				*/
+				Object *tt = allobjects[allobjects.size()];
+				if (tt->intersect(nr, newcam, context)) {
+					dist = tt->intersection_dist(context);
+					TESTD(tt);
+				}
+				
+				//
 				if (!z) continue;
 				z->intersect(nr, newcam, context);
 				FilteringInfo finfo;
@@ -1314,21 +1328,21 @@ static void render_single_frame_photorealistic(void *p, void *v)
 						prevz->intersect(nr, newcam, context);
 						bgresult = prevz->shade(nr, newcam, lw, 1.0, opc, context, 0, fi);
 					}
-					b += (int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f));
+					b += ((int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f))) * weight;
 					result >>= 8; bgresult >>= 8;
-					g += (int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f));
+					g += ((int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f))) * weight;
 					result >>= 8; bgresult >>= 8;
-					r += (int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f));
+					r += ((int) ((result & 0xff) * f + (bgresult & 0xff) * (1-f))) * weight;
 				} else {
-					b += result & 0xff; result >>= 8;
-					g += result & 0xff; result >>= 8;
-					r += result & 0xff;
+					b += (result & 0xff) * weight; result >>= 8;
+					g += (result & 0xff) * weight; result >>= 8;
+					r += (result & 0xff) * weight;
 				}
 			}
 			//
-			b /= n;
-			g /= n;
-			r /= n;
+			b /= total_weight;
+			g /= total_weight;
+			r /= total_weight;
 			return (r << 16) | (g << 8) | b;
 		}
 		
@@ -1407,8 +1421,11 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			fp_center = cur + ray * (focal_dist / ray.length());
 			fp0 = perpendicular(ray);
 			fp1 = ray ^ fp0;
-			fp0.make_length(CVars::dof_aperture);
-			fp1.make_length(CVars::dof_aperture);
+			//
+			double pupil_diam = 22.4 / CVars::dof_aperture / CVars::fov;
+			//
+			fp0.make_length(pupil_diam);
+			fp1.make_length(pupil_diam);
 			fpnorm = fp0 ^ fp1;
 			fpd = - (fpnorm * fp_center);
 		}

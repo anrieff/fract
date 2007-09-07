@@ -27,7 +27,7 @@
       <terminal>true</terminal>
       <directoryradio>executable</directoryradio>
       <customdirectory>/</customdirectory>
-      <programargs>--developer --scene=data/oldbench.fsv --no-overlay</programargs>
+      <programargs>--no-overlay --developer</programargs>
       <autocompile>true</autocompile>
       <envvars/>
     </run>

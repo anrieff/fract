@@ -32,6 +32,8 @@ struct fsaa_kernel {
 	int count;
 };
 
+extern const fsaa_kernel aaa_kernel_4, aaa_kernel_16, aaa_kernel_quincunx, aaa_kernel_10;
+
 struct raycasting_ctx {
 	Vector sample[FSAA_MAX_SAMPLES];
 	float weights[FSAA_MAX_SAMPLES];
