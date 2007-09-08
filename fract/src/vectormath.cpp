@@ -32,6 +32,8 @@
 #include "cvars.h"
 #include "random.h"
 #include "matrix.h"
+#include "light.h"
+#include "shadows.h"
 #include <math.h>
 
 #ifdef _MSC_VER
@@ -478,7 +480,7 @@ static Uint32 Raytrace_one_ray(const Vector& cur, Vector& w, int recursive, int 
 		}
 		for (int j = 0; j < mesh_count; j++) {
 			if (j != group_to_avoid && mesh[j].testintersect(cur,w)) {
-				if (g_speedup && mesh[j].sdtree) {
+				if (CVars::g_speedup && mesh[j].sdtree) {
 					Triangle *t;
 					if (mesh[j].sdtree->testintersect(cur, w, context, &t)) {
 						dist = t->intersection_dist(context);
@@ -544,21 +546,39 @@ static Uint32 Raytrace_one_ray(const Vector& cur, Vector& w, int recursive, int 
 #else
 	int level = TEX_S;
 #endif
-	return (recursive&RAYTRACE_BILINEAR_MASK)?
-		texture_handle_bilinear(cx, cy, level, ysqrd_raytrace):
-		texture_handle_nearest((int) cx, (int) cy, level, ysqrd_raytrace );
+	if (CVars::photomode) {
+		Uint32 res = texture_handle_bilinear(cx, cy, level, ysqrd_raytrace);
+		if (CVars::shadow_algo != 0) {
+			float d = light.shadow_density(Vector(cx, w.v[1] < 0.0f ? daFloor : daCeiling, cy));
+			if (d > 0) {
+				int mul = (int) (shadow_intensity * 256 * d);
+				res = multiplycolor(res, 65535-mul);
+			}
+		}
+		return res;
+	} else {
+		return (recursive&RAYTRACE_BILINEAR_MASK)?
+			texture_handle_bilinear(cx, cy, level, ysqrd_raytrace):
+			texture_handle_nearest((int) cx, (int) cy, level, ysqrd_raytrace );
+	}
 }
 
-static inline void create_mangled_vector(const Vector &orig, float gloss, Vector &v, float &weight)
+static inline void create_mangled_vector(const Vector &orig, float gloss, Vector &v, float &weight, QMCIterator *iter)
 {
 	weight = 1;
 	
-	float x = drandom();
+	float x, angle;
+	if (iter) {
+		x = iter->next(0);
+		angle = (float)iter->next(1) * 2.0f * M_PI;
+	} else {
+		x = drandom();
+		angle = drandom() * 2.0f * M_PI;
+	}
 	x = (x - 0.5f) * M_PI * gloss; 
 	x = tan(x);
 	Vector z = perpendicular(orig);
 	Vector t = z ^ orig;
-	float angle = drandom() * 2.0f * M_PI;
 	v = orig + (z * cos(angle) + t * sin(angle)) * x;
 	v.norm();
 }
@@ -582,13 +602,16 @@ Uint32 Raytrace(const Vector& cur, Vector& v, int recursive, int iteration, Obje
 	v.norm();
 	float r_total = 0, g_total = 0, b_total = 0, weight_total = 0, weight = 1.0f;
 	int num_samples = glossiness > 0 ? CVars::gloss_samples : 1;
-	qmc.init(num_samples);
+	QMCIterator iter;
+	bool useqmc = CVars::qmc;
+	if (useqmc)
+		iter = qmc.init(num_samples);
 	for (int sample = 0; sample < num_samples; ++sample) {
 		Vector w;
 		if (num_samples == 1)
 			w = v;
 		else
-			create_mangled_vector(v, glossiness, w, weight);
+			create_mangled_vector(v, glossiness, w, weight, useqmc ? &iter : NULL);
 		weight_total += weight;
 		Uint32 result = Raytrace_one_ray(cur, w, recursive, iteration, last_object, finfo);
 		b_total += weight * (result & 0xff); result >>= 8;
@@ -881,7 +904,7 @@ double find_closest_intersection(const Vector &cur, const Vector& w, Object **hi
 	}
 	for (int j = 0; j < mesh_count; j++) {
 		if (mesh[j].testintersect(cur, w)) {
-			if (g_speedup && mesh[j].sdtree) {
+			if (CVars::g_speedup && mesh[j].sdtree) {
 				Triangle *t;
 				if (mesh[j].sdtree->testintersect(cur, w, context, &t)) {
 					dist = t->intersection_dist(context);

@@ -57,7 +57,7 @@ float PointLight::closest_intersection(const Vector &o, const Vector &dir)
 	
 	for (int i = 0; i < mesh_count; i++) {
 		if (mesh[i].testintersect(o, dir)) {
-			if (g_speedup && mesh[i].sdtree) {
+			if (CVars::g_speedup && mesh[i].sdtree) {
 				Triangle *t;
 				if (mesh[i].sdtree->testintersect(o, dir, ctx, &t)) {
 					cd = t->intersection_dist(ctx);

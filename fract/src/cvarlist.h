@@ -46,7 +46,8 @@ DECLARE_VARIABLE(double, sv_air      , 3.99 , "air drag coefficient");
 DECLARE_VARIABLE(double, aspect_ratio, 4./3., "screen aspect ratio");
 DECLARE_VARIABLE(bool,   crosshair   , true , "show crosshair toggle");
 DECLARE_VARIABLE(bool,   photomode   , false, "photorealistic rendering toggle");
-DECLARE_VARIABLE(double, dof_aperture, 1.0  , "DOF aperture");
-DECLARE_VARIABLE(int,    dof_samples , 1    , "DOF samples per pixel");
+DECLARE_VARIABLE(double, aperture    , 2.8  , "DOF aperture");
+DECLARE_VARIABLE(int,    dof_samples , 35   , "DOF samples per pixel");
 DECLARE_VARIABLE(bool,   qmc         , false, "Quasi-monte carlo sampling");
+DECLARE_VARIABLE(bool,   g_speedup   , true , "SDTree usage toggle");
 

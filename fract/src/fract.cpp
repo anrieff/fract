@@ -377,13 +377,13 @@ void kbd_do(int *ShouldExit)
 			if (e.key.keysym.sym == SDLK_i) {
 				CVars::anisotrophic = !CVars::anisotrophic;
 			}
-			
-			if (e.key.keysym.sym == SDLK_q) {
-				g_speedup = !g_speedup;
-			}
-			
+						
 			if (e.key.keysym.sym == SDLK_x) {
 				g_scpuabi = !g_scpuabi;
+			}
+			
+			if (e.key.keysym.sym == SDLK_q) {
+				CVars::qmc = !CVars::qmc;
 			}
 
 			if (e.key.keysym.sym == SDLK_t) {
@@ -519,12 +519,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	option_add("--developer");
-	option_add("--no-overlay");
-	option_add("--scene=data/teapot.fsv");
-	option_add("--xres=800");
-	//option_add("-w");
-	//option_add("--cpus=1");
+	//option_add("--no-overlay");
+	//option_add("--developer");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }

@@ -37,8 +37,6 @@
 
 #define fmax(a,b) ((a)>(b)?(a):(b))
 
-extern bool g_speedup;
-
 enum {
 	TYPE_OR,
 	TYPE_SET

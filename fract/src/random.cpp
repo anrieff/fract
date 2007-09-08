@@ -6,12 +6,14 @@
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
- *-------------------------------------------------------------------------*
- * Implements Mersenne Twister's random number generation                  *
  ***************************************************************************/
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "random.h"
+
+#define BASE0 5
+#define BASE1 7
 
 #ifndef _WIN32
 double drandom(void)
@@ -30,10 +32,39 @@ double drandom(void)
 }
 #endif
 
+static double radical_inverse(int base, int x)
+{
+	int t[20], c = 0;
+	while (x) {
+		t[c++] = x % base;
+		x /= base;
+	}
+	double r = 0, z = 1.0 / base;
+	for (int i = 0; i < c; i++) {
+		r += z * t[i];
+		z /= base;
+	}
+	return r;
+}
+
 QMCSampleGen::QMCSampleGen()
+{
+	setup();
+}
+
+void QMCSampleGen::setup(void)
 {
 	xx = yy = NULL;
 	l = 0;
+	//
+	l = 10000;
+	xx = new double[l];
+	yy = new double[l];
+	for (int i = 0; i < l; i++)
+	{
+		xx[i] = radical_inverse(BASE0, i+1);
+		yy[i] = radical_inverse(BASE1, i+1);
+	}
 }
 
 QMCSampleGen::~QMCSampleGen()
@@ -44,43 +75,25 @@ QMCSampleGen::~QMCSampleGen()
 	l = 0;
 }
 
-static int gcd(int a, int b)
+QMCIterator QMCSampleGen::init(int num_samples)
 {
-	while (a && b) {
-		b %= a;
-		if (b) a %= b;
-	}
-	return a + b;
+	QMCIterator it;
+	it.xidx = it.yidx = rand() % (qmc.l);
+	it.gen = &qmc;
+	return it;
 }
 
-void QMCSampleGen::init(int num_samples)
+double QMCIterator::next(int dim)
 {
-	if (num_samples <= l) return;
-	if (xx) delete [] xx;
-	if (yy) delete [] yy;
-	l = num_samples;
-	xx = new double [l];
-	yy = new double [l];
-	for (int dim = 0; dim < 2; dim++) {
-		int z = dim + 2;
-		int x = 1, y = z;
-		int i = 0;
-		double *r = dim ? yy : xx;
-		while (i < l) {
-			r[i++] = (double) x / y;
-			x++;
-			while (x < y && gcd(x, y) != 1) x++;
-			if (x >= y) {
-				y *= z;
-				x = 1;
-			}
-		}
+	int &i = dim ? yidx : xidx;
+	if (i >= gen->l) {
+		i = 0;
 	}
-}
-
-double QMCSampleGen::get(int dim, int index)
-{
-	return dim ? yy[index] : xx[index];
+	if (dim == 1) {
+		return gen->yy[i++];
+	} else {
+		return gen->xx[i++];
+	}
 }
 
 QMCSampleGen qmc;

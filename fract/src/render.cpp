@@ -1189,12 +1189,12 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			my_exit = false;
 		}
 
-		void sample_lens_point(double &x, double &y, int qmc_serial)
+		void sample_lens_point(double &x, double &y, QMCIterator *iter)
 		{
 			double angle, r;
-			if (CVars::qmc) {
-				angle = qmc.get(0, qmc_serial) * 2 * M_PI;
-				r = qmc.get(1, qmc_serial);
+			if (iter) {
+				angle = iter->next(0) * 2 * M_PI;
+				r = iter->next(1);
 			} else {
 				angle = drandom() * 2 * M_PI;
 				r = drandom();
@@ -1221,11 +1221,15 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			else if (n < 16)
 				kernel = &aaa_kernel_10;
 			else kernel = &aaa_kernel_16;
-			qmc.init(n);
+			
+			QMCIterator iter;
+			bool useqmc = CVars::qmc;
+			if (useqmc)
+				iter = qmc.init(n);
 			
 			for (int i = 0; i < n; i++) {
 				/* Create ray */
-				int ii = i % n;
+				int ii = i % kernel->count;
 				Vector ray = tt + ti * (x + kernel->coords[ii][0]) + tti * (y + kernel->coords[ii][1]);
 				ray -= cur;
 				ray.norm();
@@ -1240,7 +1244,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 				Vector newcam, nr;
 				if (n>1) {
 					double xu, xv;
-					sample_lens_point(xu, xv, i);
+					sample_lens_point(xu, xv, useqmc? &iter : NULL);
 					newcam = cur + fp0 * xu + fp1 * xv;
 					nr = t - newcam;
 					nr.norm();
@@ -1279,7 +1283,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 				}
 				for (int j = 0; j < mesh_count; j++) {
 					if (mesh[j].testintersect(newcam, nr)) {
-						if (g_speedup && mesh[j].sdtree) {
+						if (CVars::g_speedup && mesh[j].sdtree) {
 							Triangle *t;
 							if (mesh[j].sdtree->testintersect(newcam, nr, context, &t)) {
 								dist = t->intersection_dist(context);
@@ -1422,7 +1426,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			fp0 = perpendicular(ray);
 			fp1 = ray ^ fp0;
 			//
-			double pupil_diam = 22.4 / CVars::dof_aperture / CVars::fov;
+			double pupil_diam = 22.4 / CVars::aperture / CVars::fov;
 			//
 			fp0.make_length(pupil_diam);
 			fp1.make_length(pupil_diam);

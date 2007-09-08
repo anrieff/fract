@@ -14,30 +14,42 @@
 // returns random number in the interval [0; 1)
 double drandom(void);
 
+struct QMCPerm;
+class QMCSampleGen;
+
+// QMC iterator, needed by users of QMC numbers
+class QMCIterator {
+	QMCSampleGen *gen;
+	int xidx, yidx;
+public:
+	/**
+	 * Generate a new quasi-random point in the specified dimension
+	 * (currently only two dimensions are supported)
+	 * @param dimension - 0 or 1 - the dimension to generate point for
+	 * @retval double in [0..1] - the requested quasi-random point.
+	 */
+	double next(int dimension);
+	friend class QMCSampleGen;
+};
+
 // Quasi-monte carlo sample generator for 2D points
 class QMCSampleGen {
-	double *xx, *yy;
-	int l;
+	void setup(void);
 public:
+	int l;
+	double *xx, *yy;
 	QMCSampleGen();
 	~QMCSampleGen();
 	/**
 	 * init()
-	 * request the number of samples to be precalculated and stored
-	 * must be called before any call to the get() method
-	 * @param num_samples - the number of samples to generate
+	 * creates a new QMC iterator, which is to be used for
+	 * one QMC integration. Call iterator's next() function
+	 * to actually obtain the quasi-random points.
+	 * @param num_samples - The number of samples you are likely going to
+	 * need. If you use more than this, some sampling bias may 
+	 * be introduced.
 	 */
-	void init(int num_samples);
-	
-	/**
-	 * get()
-	 * gets a quasi-random point.
-	 * @param dim - dimension to use - 0 or 1
-	 * @param index - the index of the point in the series. Must not
-	 *                exceed the number, passed to ::init()
-	 * @retval the quasi-random value for the given dimension
-	*/
-	double get(int dim, int index);
+	QMCIterator init(int num_samples);
 };
 
 extern QMCSampleGen qmc;

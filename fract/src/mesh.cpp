@@ -45,8 +45,6 @@ struct trio_slot{
 	}
 };
 
-bool g_speedup = true;
-
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * @class Mesh::EdgeInfo                                      *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -703,13 +701,13 @@ bool Mesh::fullintersect(const Vector & start, const Vector &dir, int opt)
 	if (i >= 0 && i < triangle_count)
 		if (trio[base + i].intersect(dir, start, ctx)) return true;
 	
-	if (g_speedup && iprimitive) {
+	if (CVars::g_speedup && iprimitive) {
 		l_all_tests++;
 		bool res = iprimitive->testintersect(start, dir);
 		if (res) { l_all_success++; return true; }
 	}
 	
-	if (g_speedup && sdtree) {
+	if (CVars::g_speedup && sdtree) {
 		sd_all_tests++;
 		bool res = sdtree->testintersect(start, dir, ctx, NULL);
 		if (res) { sd_all_success++;}
