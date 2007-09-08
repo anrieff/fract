@@ -50,4 +50,5 @@ DECLARE_VARIABLE(double, aperture    , 2.8  , "DOF aperture");
 DECLARE_VARIABLE(int,    dof_samples , 35   , "DOF samples per pixel");
 DECLARE_VARIABLE(bool,   qmc         , false, "Quasi-monte carlo sampling");
 DECLARE_VARIABLE(bool,   g_speedup   , true , "SDTree usage toggle");
+DECLARE_VARIABLE(bool,   fisheye     , false, "Fisheye lens emulation in photomode");
 

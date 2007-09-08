@@ -519,8 +519,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
-	//option_add("--no-overlay");
-	//option_add("--developer");
+	option_add("--no-overlay");
+	option_add("--developer");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }

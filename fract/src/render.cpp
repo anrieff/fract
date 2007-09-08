@@ -1204,6 +1204,26 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			y = sin(angle) * r;
 		}
 
+		Vector get_fisheye_ray(double x, double y)
+		{
+			double l = sqrt(2.0) * 0.5;
+			double angleofview = (CVars::fov * M_PI_2) * 0.5;
+			double zx = tan(angleofview) * l;
+			double zy = zx / CVars::aspect_ratio;
+			Vector R(
+				-l,
+				zy - 2*zy*y/yr,
+				zx - 2*zx*x/xr);
+			double C = (1.0+sqrt(2.0)/2);
+			double B = 2*C*R[0];
+			double A = R.lengthSqr();
+			C = C*C - 1;
+			double D = B*B - 4 * A * C;
+			if (D < 0) return Vector(0.0, 0.0, 0.0);
+			double x1 = (-B - sqrt(D)) / (2 * A);
+			Vector res = Vector(1.0 + sqrt(2.0)/2.0, 0, 0) + R * x1;
+			return world_rotate(res, CVars::alpha, CVars::beta);
+		}
 		
 		Uint32 solve_single(int x, int y, FilteringInfo &fi)
 		{
@@ -1227,18 +1247,57 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			if (useqmc)
 				iter = qmc.init(n);
 			
-			for (int i = 0; i < n; i++) {
+			/* Prepare adaptive sampling stuff */
+			int prev_r=0, prev_g=0, prev_b=0, prev_w=0;
+			int expected;
+			
+			expected = n / 2 + n % 2;
+			
+			/* Determine what error we do accept */
+			float error = 12.0f / pow((float) n, 0.75f);
+			
+			for (int i = 0; ; i++) {
+				/* Check for exit conditions */
+				if (i == 10 * n) break;
+				if (i == expected) {
+					if (i < n) {
+						prev_r = r;
+						prev_g = g;
+						prev_b = b;
+						prev_w = total_weight;
+						expected = n;
+					} else {
+						float w1 = 1.0f / prev_w;
+						float w2 = 1.0f / total_weight;
+						if (fabs(prev_r * w1 - r * w2) <= error &&
+						    fabs(prev_g * w1 - g * w2) <= error &&
+						    fabs(prev_b * w1 - b * w2) <= error) break;
+						prev_r = r;
+						prev_g = g;
+						prev_b = b;
+						prev_w = total_weight;
+						expected += n/2;
+					}
+				}
+				
 				/* Create ray */
 				int ii = i % kernel->count;
-				Vector ray = tt + ti * (x + kernel->coords[ii][0]) + tti * (y + kernel->coords[ii][1]);
-				ray -= cur;
-				ray.norm();
+				Vector ray;
+				if (CVars::fisheye) {
+					ray = get_fisheye_ray(x + kernel->coords[ii][0], y + kernel->coords[ii][1]);
+					ray.norm();
+				} else {
+					ray = tt + ti * (x + kernel->coords[ii][0]) + tti * (y + kernel->coords[ii][1]);
+					ray -= cur;
+					ray.norm();
+				}
 				int weight = (int) (65536 * kernel->weights[ii]);
 				total_weight += weight;
 			
 				/* Generate cone pinpoint */
 				double xd = cur * fpnorm + fpd;
 				double xdd = ray * fpnorm;
+				if (xdd < 1e-6) continue;
 				Vector t = cur + ray * (-xd / xdd);
 				
 				Vector newcam, nr;

@@ -39,6 +39,7 @@
 void r0tate(double *c, double alpha, double beta);
 void r0tate2d(double *x, double *y, double angle);
 void calc_grid_basics(const Vector &c, double alpha, double beta, Vector w[3]);
+Vector world_rotate(Vector v, double alpha, double beta);
 int  project_sphere(Sphere *a, const Vector& cur, const Vector w[3], int *dx, int *dy, int xres, int yres);
 int  project_point(int *dx, int *dy, const Vector& d, const Vector& cur, Vector w[3], int xres, int yres);
 int  project_point(float *x, float *y, const Vector& d, const Vector& cur, Vector w[3], int xres, int yres);

@@ -122,7 +122,7 @@ void calc_grid_basics_old(const Vector &c, double alpha, double beta, Vector w[3
 			alpha, w[2]);
 }
 
-static Vector rotate(Vector v, double alpha, double beta)
+Vector world_rotate(Vector v, double alpha, double beta)
 {
 	return rotation(AXIS_Y, -alpha + M_PI_2) * (rotation(AXIS_Z, -beta) * v);
 }
@@ -133,9 +133,9 @@ void calc_grid_basics(const Vector &c, double alpha, double beta, Vector w[3])
 	double angleofview = (CVars::fov * M_PI_2) * 0.5;
 	double x = tan(angleofview) * l;
 	double y = x / CVars::aspect_ratio;
-	w[0] = rotate(Vector(l, y, x), alpha, beta) + c;
-	w[1] = rotate(Vector(l, y, -x), alpha, beta) + c;
-	w[2] = rotate(Vector(l, -y, x), alpha, beta) + c;
+	w[0] = world_rotate(Vector(l, y, x), alpha, beta) + c;
+	w[1] = world_rotate(Vector(l, y, -x), alpha, beta) + c;
+	w[2] = world_rotate(Vector(l, -y, x), alpha, beta) + c;
 }
 
 void InitMatrix(double m[3][3], const Vector&a, const Vector &b, const Vector &c) 
