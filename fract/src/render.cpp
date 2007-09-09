@@ -1221,8 +1221,11 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			double D = B*B - 4 * A * C;
 			if (D < 0) return Vector(0.0, 0.0, 0.0);
 			double x1 = (-B - sqrt(D)) / (2 * A);
-			Vector res = Vector(1.0 + sqrt(2.0)/2.0, 0, 0) + R * x1;
-			return world_rotate(res, CVars::alpha, CVars::beta);
+			Vector n = Vector(1.0 + sqrt(2.0)/2.0, 0, 0) + R * x1;
+			R.norm();
+			R += n * 2.0;
+			R.norm();
+			return world_rotate(R, CVars::alpha, CVars::beta);
 		}
 		
 		Uint32 solve_single(int x, int y, FilteringInfo &fi)

@@ -27,7 +27,7 @@
       <terminal>true</terminal>
       <directoryradio>executable</directoryradio>
       <customdirectory>/</customdirectory>
-      <programargs>--no-overlay --developer --voxel --scene=data/voxel.fsv --loft</programargs>
+      <programargs></programargs>
       <autocompile>true</autocompile>
       <envvars/>
     </run>
