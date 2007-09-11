@@ -73,6 +73,69 @@ void prof_statistics(void)
 	}
 }
 
+/*
+ * All the code below is dedicated to measuring CPU speed, in Mhz, for the
+ * official fract benchmarking.
+ *
+ * prof_get_cpu_speed() is the master function, which measures CPU speed by
+ * some method. The simplest method, implemented in ver 1.07a and before, is
+ * to wait some fixed amount of time and calculate the CPU MHz based on the
+ * delta of RDTSC's.
+ *
+ * This method was frequently fooled by power saving managers utilizing
+ * CPU scaling in newer chips. So in 1.07b, triple checked version was used.
+ *
+ * However, even this could be eventually fooled, so in 1.08a a new approach
+ * is taken: two measurements of time ticks and CPU HZ ticks are made
+ * while the bench actually renders. This ensures the CPUs are under stress
+ * and thus the frequency would be set to the highest available setting.
+ * Moreover, we are just counting the Hz the CPU has given to the bench,
+ * so efficiency charts are as accurate as possible.
+ *
+ * In order to avoid CPU scaling managers as much as we can, we make the first
+ * measurement just 3.5 seconds after the rendering has begun (to ensure
+ * the CPU has `spun up' and the frequency increased). The second measurement
+ * is made at the end of the bench.
+ *
+ * If prof_get_cpu_speed() decides the data gathered this way would be
+ * inacurate, the old method is used.
+ *
+ * Measurements are made by calling the mark_cpu_rdtsc() method.
+ */
+
+struct CPUHzStruct {
+	Uint32 ticks;
+	long long cpu_cycles;
+};
+
+static CPUHzStruct cpu_ticks[2];
+static int cpu_ticks_count = 0;
+
+void mark_cpu_rdtsc(void)
+{
+	if (cpu_ticks_count == 2)
+		--cpu_ticks_count;
+	cpu_ticks[cpu_ticks_count].ticks = get_ticks();
+	cpu_ticks[cpu_ticks_count].cpu_cycles = prof_rdtsc();
+	cpu_ticks_count++;
+}
+
+int get_marked_cpu_speed(void)
+{
+	// Not enough time points? bail off
+	if (cpu_ticks_count < 2) return -1;
+	long long timedelta = (long long) cpu_ticks[1].ticks - (long long) cpu_ticks[0].ticks;
+	// time points too close in time? bail off
+	if (timedelta < CPU_CALIBRATE_TIME) return -1;
+	long long hzdelta = cpu_ticks[1].cpu_cycles - cpu_ticks[0].cpu_cycles;
+	long long result = timedelta / hzdelta / 1000;
+	// some common sense checks for correctness
+	if (result < 1 || result > 99999) return -1;
+	// result looks good, use it...
+	return (int) result;
+}
+
+
 // gets the CPU speed using RDTSC.
 int prof_get_cpu_speed_once(void)
 {
@@ -95,7 +158,13 @@ int prof_get_cpu_speed_once(void)
 }
 
 /*
-** Gets the CPU speed, triple checked, in order to ensure result correctness
+** prof_get_cpu_speed() - gets the CPU speed, in MHz, by various methods.
+**
+** If official benchmarking completed, we rely on rendering code to call
+** our mark_cpu_rdtsc() function twice, which would give us two time/hz points
+** to accurately calculate CPU speed. If we don't have it, use the old method
+**
+** It is triple checked, in order to ensure result correctness
 **
 ** The algorithm is as follows: 
 ** 1. prof_get_cpu_speed_once() is called three times unconditionally;
@@ -104,6 +173,9 @@ int prof_get_cpu_speed_once(void)
 */
 int prof_get_cpu_speed(void)
 {
+	int r = get_marked_cpu_speed();
+	if (r != -1) return r;
+	//
 	int res[3];
 	for (int i = 0; i < 3; i++)
 		res[i] = prof_get_cpu_speed_once();

@@ -329,6 +329,11 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 		if (oc) {
 			oc->check(scene_no, vframe % (cd_frames != 0 ? cd_frames : 1), bTime());
 		}
+		static bool marked_cpu_speed = false;
+		if (!marked_cpu_speed && bTime() > 3.5) {
+			mark_cpu_rdtsc();
+			marked_cpu_speed = true;
+		}
 		if (!developer && SceneType == FRAME_BASED && vframe % cd_frames == 0) {
 			if (!loop_mode) {
 				she = RUN_OK;
@@ -352,6 +357,7 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 			}
 		}
 	}
+	mark_cpu_rdtsc();
 	clk = get_ticks() - clk;
 	if (watch) {
 		watch->stop(vframe);

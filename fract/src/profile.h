@@ -38,6 +38,7 @@ long long prof_rdtsc(void);
 void prof_statistics(void);
 
 int  prof_get_cpu_speed(void);
+void mark_cpu_rdtsc(void);
 
 
 // a list of IDs follow:
