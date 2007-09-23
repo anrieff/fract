@@ -89,6 +89,17 @@ template <class T>
 static inline T max(T a, T b) { return a > b ? a : b; }
 #endif
 
+// Adds two colors and aplies clamping
+static inline Uint32 add_clamp_rgb(Uint32 A, Uint32 B)
+{
+	int r, g, b;
+	b = (A&0xff) + (B&0xff); b = (b>255?255:b);
+	g = ((A>>8)&0xff) + ((B>>8)&0xff); g = (g>255?255:g);
+	r = ((A>>16)&0xff) + ((B>>16)&0xff); r = (r>255?255:r);
+	return ((r<<16)+(g<<8) + b);
+}
+
+
 
 #define SSSTORAGE_SIZE (1024*1024)
 extern char static_sort_storage[SSSTORAGE_SIZE];

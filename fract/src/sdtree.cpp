@@ -69,14 +69,14 @@ int SDTreeNode::testintersect(Triangle *base, const Vector& start, const Vector 
 		double mdist = 0.0;
 		for (int i = 0; i < primitive_count; i++) {
 			Triangle& t = base[primitives[i]];
-			if (t.intersect(dir, start, ctx)) {
+			double td;
+			if (t.intersect(dir, start, ctx) && ((td = t.intersection_dist(ctx)) > 1e-7)) {
 				if (bi == -1) {
 					bi = i;
-					mdist = t.intersection_dist(ctx);
+					mdist = td;
 				} else {
-					double temp = t.intersection_dist(ctx);
-					if (temp < mdist) {
-						mdist = temp;
+					if (td < mdist) {
+						mdist = td;
 						bi = i;
 					}
 				}

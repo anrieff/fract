@@ -80,6 +80,7 @@ double stereo_depth = 1e6;
 double stereo_separation = 6;
 Uint32 *stereo_buffer = NULL;
 bool prepass_photorealistic = true;
+bool frame_finished = false;
 
 ThreadPool thread_pool;
 
@@ -747,6 +748,9 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 			fbuffer += x_start;
 			fb += x_start;
 			for (i=x_start;i<=x_end;i++,fb++,fbuffer++,t+=ti) if (*fb) {
+				//if (i == 222 && j == 416) {
+				//	printf("BOO!\n");
+				//}
 				dropped = *fb;
 				fi.ml = mlbuff + (i/16);
 				if (dropped & 0x80000000) {
@@ -1418,6 +1422,8 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			int bs = yr / 10;
 			bs &= 0xfff0;
 			if (!bs) bs = 16;
+			if (CVars::bucket_size)
+				bs = CVars::bucket_size;
 			
 			/* see how many buckets we have */
 			int bxr, byr;
@@ -1521,6 +1527,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 #ifdef ACTUALLYDISPLAY
 void render_single_frame(SDL_Surface *p, SDL_Overlay *ov)
 {
+	frame_finished = false;
 	if (CVars::photomode) {
 		render_single_frame_photorealistic(p, ov);
 		prepass_photorealistic = false;
@@ -1539,6 +1546,7 @@ void render_single_frame(SDL_Surface *p, SDL_Overlay *ov)
 			render_single_frame_do(p, ov);
 		}
 	}
+	frame_finished = true;
 }
 
 #else

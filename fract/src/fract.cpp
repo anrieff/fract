@@ -301,6 +301,10 @@ void kbd_do(int *ShouldExit)
 		take_snapshot();
 	}
 	if (WantToQuit) *ShouldExit = 1;
+	if (CVars::shutdown && CVars::photomode && frame_finished) {
+		take_snapshot();
+		*ShouldExit = RUN_CANCELLED;
+	}
 	while ( SDL_PollEvent(&e)) { // handle keyboard & mouse
 		if ( e.type == SDL_QUIT ) *ShouldExit = RUN_CANCELLED;
 		if ( e.type == SDL_KEYDOWN ) {

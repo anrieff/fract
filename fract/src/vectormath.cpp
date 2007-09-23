@@ -528,7 +528,8 @@ static Uint32 Raytrace_one_ray(const Vector& cur, Vector& w, int recursive, int 
 	cx = cur.v[0] + w.v[0]*scalefactor;
 	cy = cur.v[2] + w.v[2]*scalefactor;
 #ifdef TEX_OPTIMIZE
-	int level = iteration == 1 ? last_object->get_best_miplevel(cx, cy, finfo) : TEX_S;
+	int level = (iteration == 1 || finfo.lectionType == REFRACTION) ?
+ 		last_object->get_best_miplevel(cx, cy, finfo) : TEX_S;
 		/*
 		int level = TEX_S;
 		if (1 == iteration) {

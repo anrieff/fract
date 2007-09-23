@@ -50,6 +50,7 @@ const flag2strmapper flag2str[32] = {
 	{ "stochastic",		STOCHASTIC},
 	{ "normal_map",		NORMAL_MAP},
 	{ "casts_shadow",	CASTS_SHADOW},
+	{ "fresnel",		FRESNEL },
 };
 
 /* ----------------------------------- prototype seciton --------------------------------- */

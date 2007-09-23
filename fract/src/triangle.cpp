@@ -28,6 +28,7 @@
 #include "vector3.h"
 #include "vectormath.h"
 #include "light.h"
+#include "cvars.h"
 
 // ********************** GLOBAL STORAGE ***********************************/
 Triangle trio[MAX_TRIANGLES];
@@ -178,6 +179,43 @@ double Triangle::intersection_dist(void *IntersectContext) const
 	return tic->dist;
 }
 
+static Vector refract(const Vector &I, const Vector &N, double eta)
+{
+	double dot = N * I;
+	double k = 1.0 - eta * eta * (1.0 - dot * dot);
+	if (k < 0) {
+		return Vector(0.0, 0.0, 0.0);
+	} else {
+		Vector temp = I * eta - N * (eta * dot + sqrt(k));
+		temp.norm();
+		return temp;
+	}
+}
+
+/** 
+ * fresnel() - given the cosine of incidence incoming angle, return
+ * the fresnel coefficient of the reflection/refraction. The returned
+ * value represents what part of the total radiance is transmitted,
+ * i.e. a value of 0.2 will mean that 20% of light is refracted and
+ * 80% is reflected
+ * NOTE: ior is assumed to be 1.5
+ * @param x the cosine of the incidence angle (must be in [0..1])
+ * @returns refracted/total ratio, [0..1]
+ */
+static float fresnel(float cosThetaI)
+{
+	
+	float sinThetaI = sqrtf(1 - cosThetaI * cosThetaI);
+	float sinThetaT = sinThetaI/1.5f;
+	float ThetaI = asin(sinThetaI);
+	float ThetaT = asin(sinThetaT);
+	//
+	float Rs = sin(ThetaT - ThetaI)/sin(ThetaT + ThetaI); Rs *= Rs;
+	float Rp = tan(ThetaT - ThetaI)/tan(ThetaT + ThetaI); Rp *= Rp;
+	float R = (Rs + Rp) * 0.5f;
+	return 1.0f - R;
+}
+
 Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, double rlsrcp,
 		float &opacity, void *IntersectContext, int iteration, FilteringInfo& finfo)
 {
@@ -185,6 +223,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 	Vector ray_one, ray_reflected;
 	Vector I;
 	triangle_intersect_context *tic = (triangle_intersect_context*)IntersectContext;
+	float specular_power = 0;
 
 #ifdef MAKE_PROFILING
 	if (!iteration) prof_enter(PROF_SOLVE3D);
@@ -240,27 +279,27 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 		ray_two.macc(LI, temp, -2.0);
 
 		// calculate phong illumination
-		float product = ((ray_one * ray_two)/ray_two.length());
+		specular_power = ((ray_one * ray_two)/ray_two.length());
 		//printf("[%.2f] ", product);
-		if (product < 0.0f) {
+		if (specular_power < 0.0f) {
 			//printf("product < 0!!!\n");
-			product = 0.0f;
+			specular_power = 0.0f;
 		}
 		// add up specular and diffuse
-		product *= 1.08f;
-		product *= product;
-		product *= product;
-		product *= product;
-		product *= product;
-		product *= product;
+		specular_power *= 1.08f;
+		specular_power *= specular_power;
+		specular_power *= specular_power;
+		specular_power *= specular_power;
+		specular_power *= specular_power;
+		specular_power *= specular_power;
 		
 		if (light.mode == LIGHTMAP) {
 			float xm = 1.0f - light.shadow_density(I);
-			product *= xm;
+			specular_power *= xm;
 			cp *= xm;
 		}
 		
-		intensity = specular * product + diffuse*cp + ambient;
+		intensity = specular * specular_power + diffuse*cp + ambient;
 	}
 	Uint32 kolor;
 	if (flags & MAPPED) {
@@ -284,141 +323,102 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 		prof_enter(PROF_RAYTRACE);
 	}
 #endif
-	if (flags & RAYTRACED) {
+	if (flags & RAYTRACED && CVars::photomode) {
 		//calculate the reflected ray
-		if (refl > 0.01f) {
+		Uint32 reflected = 0, refracted = 0;
+		if (refl > 0.01f || (flags & FRESNEL)) {
 			Vector temp = Normal * (ray * Normal);
 			ray_reflected.macc(ray, temp, -2.0);
 
 			finfo.IP = I;
-			result = blend(
-				Raytrace(I, ray_reflected, flags & RECURSIVE | RAYTRACE_BILINEAR_MASK, 
-					 iteration +1, this, finfo, gloss), result, refl);
+			reflected = Raytrace(I, ray_reflected, flags & RECURSIVE | RAYTRACE_BILINEAR_MASK, 
+					     iteration +1, this, finfo, gloss);
+//			result = blend(
+//				, result, refl);
 		}
 		// calculate the refracted ray
 		if (flags & SEETHROUGH) {
-			Vector Cp;
-			Vector vis;
-			vis.make_vector(I, camera);
-			double vis_len_sqr = vis.lengthSqr();
-			double I_Cp_len = -(vis * Normal);
-			Cp.macc(I, Normal, I_Cp_len);
-			Cp.scale(-1);
-			Cp += camera;
-			double C_Cp_len = sqrt(vis_len_sqr - I_Cp_len * I_Cp_len);
-			double vis_len = sqrt(vis_len_sqr);
-			double sin_alpha = C_Cp_len / vis_len;
-			//double sin_beta = REFRACT_FACTOR * sin_alpha;
-			//double x_div_a = REFRACT_FACTOR * sqrt((1 - sin_alpha * sin_alpha)/(1 - sin_beta * sin_beta));
-			double x_div_a = REFRACT_FACTOR * sqrt( 1- sin_alpha * sin_alpha * sin_alpha );
-			Vector out;
-			out.macc(vis, Cp, 1 - x_div_a);
-			out.norm();
-			// inside vector found. See where it breaks out
-			Mesh &M = mesh[get_mesh_index()];
-			int tbase = M.get_triangle_base();
-			double totdist = 0;
-			bool found = false;
-			Triangle *last_tri = this;
-			for (int inner_hits = 0; inner_hits < 6; inner_hits++)
-			{
-				double mindist = 1e99;
-				Triangle *bt = NULL;
-				Vector O;
-				int bestj = 0;
-				if (tic->rfc_size < 0 || tic->rfc_size > REFRACT_CACHE_SIZE) {
-					tic->rfc_size = 0;
-				}
-				for (int j = 0; j < tic->rfc_size; j++) {
-					int i = tic->last_refract[j];
-					if (i < 0 || i >= M.triangle_count) {
-						tic->rfc_size = 0;
-						break;
-					}
-					Triangle *t = trio + tbase + i;
-					triangle_intersect_context icontext;
-					if (t != last_tri) {
-						if (t->normal * out < 0 || !t->intersect(out, I, &icontext)) continue;
-						double dist = t->intersection_dist(&icontext);
-						if (dist > 0 && dist < mindist) {
-							mindist = dist;
-							bt = t;
-							O.macc(t->vertex[0], t->a, icontext.u);
-							O += t->b * icontext.v;
-							bestj = j;
-							if ((flags & RECURSE_SELF) == 0) {
-								break;
-							}
+			Vector xray = refract(ray, Normal, 1.0/1.5);
+			Vector myI = I;
+			bool good = false;
+			int max_bounces = CVars::photomode ? 100 : 8;
+			// trace up to 100 bounces inside the object
+			for (int probe = 0; probe < max_bounces; probe++) {
+				double mind = 1e99;
+				Triangle *is = NULL;
+				char ctx[128];
+				// for each bounce see the next triangle which the ray hits
+				for (int i = 0; i < mesh[get_mesh_index()].triangle_count; i++) {
+					Triangle *t = trio + mesh[get_mesh_index()].get_triangle_base() + i;
+					if (t == this) continue;
+					double d;
+					if (t->intersect(xray, myI, ctx) && ((d = t->intersection_dist(ctx))>1e-4)) {
+						if (d < mind) {
+							is = t;
+							mind = d;
 						}
 					}
 				}
-				if (bt && bestj) {
-					int x = tic->last_refract[0];
-					tic->last_refract[0] = tic->last_refract[bestj];
-					tic->last_refract[bestj] = x;
-				}
-				if (!bt) {
-					for (int i = 0; i < M.triangle_count; i++) {
-						Triangle *t = trio + tbase + i;
-						triangle_intersect_context icontext;
-						if (t != last_tri) {
-							if (t->normal * out < 0 || !t->intersect(out, I, &icontext)) continue;
-							double dist = t->intersection_dist(&icontext);
-							if (dist > 0 && dist < mindist) {
-								mindist = dist;
-								bt = t;
-								O.macc(t->vertex[0], t->a, icontext.u);
-								O += t->b * icontext.v;
-								
-								tic->rfc_size += (tic->rfc_size == 0);
-								if (tic->rfc_size < REFRACT_CACHE_SIZE) {
-									tic->last_refract[tic->rfc_size++] = tic->last_refract[0];
-								}
-								tic->last_refract[0] = i;
-								if ((flags & RECURSE_SELF) == 0) break;
-							}
-						}
-					}
-				}
-				if (bt) {
-					Vector Ip;
-					//
-					totdist += mindist;
-					double o_ip_dist = mindist * (bt->normal * out);
-					Ip.macc(O, bt->normal, -o_ip_dist);
-					double i_ip_dist = sqrt(mindist * mindist - o_ip_dist * o_ip_dist);
-					double sin_gamma = i_ip_dist / mindist;
-					double sin_delta = REFRACT_FACTOR_RECIPROCAL * sin_gamma;
-					if (sin_delta > 0.9999998) {
-						//result = blend(65535, result, this->opacity);
-						double temp = out * bt->normal;
-						out += bt->normal * (-2.0 * temp);
-						out.norm();
-						I = O;
-						last_tri = bt;
-					} else {
-						double a_div_x = 
-								REFRACT_FACTOR_RECIPROCAL * sqrt((1 - sqr(sin_gamma))/
-									(1 - sqr(sin_delta)));
-						Vector q;
-						q.make_vector(O,I);
-						Vector temp;
-						temp.make_vector(Ip, I);
-						q += temp * (a_div_x-1);
-						result = blend (
-								Raytrace(O, q, flags & RECURSIVE | RAYTRACE_BILINEAR_MASK,
-								iteration + 3, this, finfo, gloss), result, this->opacity
-					       		);
-						found = true;
-						break;
-					}
-				} else {
-					result = blend(0xff0000, result, this->opacity);
+				if (!is) {
+					// no triangle? bad, but possible, will handle later
 					break;
 				}
+				is->intersect(xray, myI, ctx);
+				// obtain normal at intersection point. Since the normal
+				// is usually meant to be on the other side, just flip it
+				triangle_intersect_context *mytic = (triangle_intersect_context*) ctx;
+				Vector Ni;
+				if (flags & NORMAL_MAP) {
+					Mesh *m = mesh + (get_mesh_index());
+					Vector xu, xv;
+					xu.make_vector(m->normal_map[is->nm_index[1]], m->normal_map[is->nm_index[0]]);
+					xv.make_vector(m->normal_map[is->nm_index[2]], m->normal_map[is->nm_index[0]]);
+					Ni.add3(
+							m->normal_map[is->nm_index[0]],
+					xu*(mytic->u),
+					xv*(mytic->v)
+						   );
+					Ni.norm();
+				} else {
+					Ni = is->normal;
+				}
+				// Reflection or refraction? See what happens
+				Ni.scale(-1.0);
+				myI.macc(is->vertex[0], is->a, mytic->u);
+				myI += is->b * mytic->v;
+				Vector newray = refract(xray, Ni, 1.5);
+				if (newray.lengthSqr() > 0) {
+					xray = newray;
+					good = true;
+					break;
+				} else {
+					xray += Ni * ((Ni * xray) * -2.0);
+					xray.norm();
+				}
 			}
-			if (!found)
-				result = blend(0xff, result, this->opacity);
+			int newflags = flags & RECURSIVE | RAYTRACE_BILINEAR_MASK;
+			if (!good) newflags &= ~RECURSE_SELF;
+			finfo.IP = myI;
+			finfo.lectionType = REFRACTION;
+			
+			refracted = Raytrace(myI, xray, newflags, iteration + 1, this, finfo, gloss);
+
+			//result = blend(
+					//, result, opacity);
+		}
+		if (flags & FRESNEL) {
+			Uint32 total_rr = blend(refracted, reflected, fresnel(-(ray * Normal)));
+			specular_power *= 0.1f;
+			specular_power *= specular_power;
+			specular_power *= specular_power;
+			Uint32 temp_spec = multiplycolor(result, (int) (65536 * specular_power));
+			result = blend(result, total_rr, this->opacity);
+			result = add_clamp_rgb(temp_spec, result);
+		} else {
+			if (refl > 0.01f)
+				result = blend(reflected, result, refl);
+			if (flags & SEETHROUGH)
+				result = blend(result, refracted, this->opacity);
 		}
 	}
 #ifdef MAKE_PROFILING
@@ -428,6 +428,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 }
 int Triangle::get_best_miplevel(double x0, double z0, FilteringInfo & fi)
 {
+	if (fi.lectionType == REFRACTION) return 1;
 	int& last_val = fi.last_val;
 	Vector through0, through1;
 	through0.add2(fi.through, fi.xinc);

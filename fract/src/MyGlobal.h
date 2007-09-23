@@ -118,6 +118,12 @@
 // Defined if the object casts shadows on other objects
 #define CASTS_SHADOW	0x00010000
 
+// Defined if the object is transparent, but the coefficients of reflection and
+// transmittance are not fixed, but calculated via fresnel equations. When set,
+// the .refl property of the object is ignored, and the opacity field determines
+// contribution of reflection+refraction to the color.
+#define FRESNEL		0x00100000
+
 // This is a temporal, per-frame flag - it is set when the whole object is under shadow
 #define SHADOWED	0x01000000
 
