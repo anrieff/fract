@@ -34,6 +34,7 @@
 #include "thorus.h"
 #include "tracer.h"
 #include "radiosity.h"
+#include "sor.h"
 
 /* ------------------------------------ export section ------------------------------------ */
 extern int spherecount;
@@ -564,6 +565,87 @@ static void get_ani_info(char *si)
 		}
 }
 
+static void get_sor_info(char * basedir, char *si, Sor *sor)
+{
+	int i;
+	char *s;
+	static Vector v_translation;
+
+	for (i = 0; si[i] != ']'; i++);
+	s = si+i+2;
+	switch (hashid(s)) {
+		//.file_name
+		case 0x3d5d:
+		{
+			char sorfn[256];
+			strcpy(sorfn, strstr(s, "=") + 1);
+			sorfn[strlen(sorfn)-1]=0;
+			// if any directory delimiters are given, use the path provided
+			// else use the directory of the .fsv file
+			if (!strchr(sorfn, '/')) {
+				char temp[256];
+				strcpy(temp, basedir);
+				strcat(temp, sorfn);
+				strcpy(sorfn, temp);
+			}
+			int l = strlen(sorfn);
+			//l--;
+			while (l--) if (sorfn[l] < 32) sorfn[l] = 0;
+			if (!sor->read_from_file(sorfn)) {
+				printf("LoadContext: unable to open sor description (file: `%s')\n", sorfn);
+				break;
+			}
+			break;
+		}
+		//.scale
+		case 0x96c7:
+			sor->set_scale(get_real(s));
+			break;
+		//.translate
+		case 0x5d0f:
+			get_vector(s, v_translation);
+			if (strstr(s, ".z")) {
+				sor->move(v_translation);
+			}
+			break;
+		//.refl
+		case 0x38a8:
+			sor->set_reflectivity(get_real(s));
+			break;
+		//.opacity
+		case 0x8cfb:
+			sor->set_opacity(get_real(s));
+			break;
+		//.color
+		case 0xbdde:
+			sor->set_color(get_int(s), s[6]);
+			break;
+		//.texture
+		case 0x9fcb:
+			char texfn[256];
+			strcpy(texfn, strstr(s, "=") + 1);
+			for (int i = 0; i < (int) strlen(texfn); i++)
+				if(texfn[i] < 32) texfn[i] = 0;
+			if (!strchr(texfn, '/')) {
+				char temp[256];
+				strcpy(temp, basedir);
+				strcat(temp, texfn);
+				strcpy(texfn, temp);
+			}
+			if (!sor->set_texture(texfn)) {
+				printf("Cannot load texture for a sor object (texture file `%s')\n", texfn);
+			}
+			break;
+		//.flags
+		case 0xa8e8:
+			get_sphere_flags(s + 6, &sor->flags); 
+			break;
+		default:
+			printf("Bad line -- [%s]\n", s);
+			break;
+	}
+}
+
 // gets a context from a fract-written text file. On failure, returns 0.
 // Loads everything (including textures)
 int load_context(const char *fn)
@@ -646,6 +728,9 @@ int load_context(const char *fn)
 			/* Tracers: */
 				case 0x0d79: tracers_count = get_int(line); break;
 				case 0x0f63: get_tracer_info(line, tracer + get_index(line)); break;
+			/* Sori: */
+				case 0x0d7e: sorcount = get_int(line); break;
+				case 0xe1b0: get_sor_info(basedir, line, sor + get_index(line)); break;
 			/* MISC: */
 				case 0x2988: input_type = SAVLOAD_COORDS; shb = 1; break;
 				case 0xc0df: input_type = SAVLOAD_COORDS_106; shb = 1; break;
@@ -690,6 +775,8 @@ int load_context(const char *fn)
 		}
 	}
 	fclose(f);
+	mesh_scene_init();
+	light.postload_init();
 	if (input_type)
 		return (input_type);
 		else

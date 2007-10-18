@@ -26,8 +26,10 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include "cvar.h"
 #include "cvars.h"
 #include "mesh.h"
+#include "light.h"
 #include "triangle.h"
 #include "memory.h"
 #include "progress.h"
@@ -579,8 +581,10 @@ bool Mesh::read_from_obj(const char *fn)
 #ifdef DEBUG
 	printf("%s: Loaded, %d triangles\n", fn, triangle_count);
 #endif
-	if (triangle_count > 2500)
-		CVars::shadow_algo = 1;
+	if (triangle_count > 2500) {
+		CVars::shadow_algo = 2;
+		light.mode = LIGHTMAP;
+	}
 	return true;
 }
 
@@ -684,6 +688,14 @@ void Mesh::rebuild_normal_map(void)
 		}
 		normal_map[i].scale(1.0/normal_div[i]);
 		
+	}
+}
+
+void Mesh::scene_init(void)
+{
+	int base = get_triangle_base();
+	for (int i = 0; i < triangle_count; i++) {
+		trio[base+i].recalc_normal();
 	}
 }
 
@@ -882,6 +894,13 @@ void mesh_frame_init(const Vector & camera, const Vector & light)
 	for (int i = 0; i < mesh_count; i++) {
 		if (mesh[i].get_flags() & NORMAL_MAP)
 			mesh[i].rebuild_normal_map();
+	}
+}
+
+void mesh_scene_init(void)
+{
+	for (int i = 0; i < mesh_count;i++) {
+		mesh[i].scene_init();
 	}
 }
 

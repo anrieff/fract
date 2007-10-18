@@ -29,6 +29,7 @@ enum OBTYPE {
 	OB_TRIANGLE = 0x200,
 	OB_WATER = 0x400,
 	OB_BACKGROUND = 0x800,
+	OB_SOR = 0x1000,
 	OB_UNDEFINED = 0xffffffff
 };
 

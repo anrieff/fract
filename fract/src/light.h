@@ -136,6 +136,12 @@ public:
 	
 	/// rebuilds the lightmaps (CVars::lmsize *MUST* be set to some size)
 	void rebuild_lightmaps(void);
+	
+	/**
+	 * Must be called after each scene load, just after the scene is built
+	 * and set-up.
+	*/ 
+	void postload_init(void);
 };
 
 extern Light light;

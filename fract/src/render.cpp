@@ -46,6 +46,7 @@
 #include "scene.h"
 #include "shaders.h"
 #include "shadows.h"
+#include "sor.h"
 #include "sphere.h"
 #include "threads.h"
 #include "thorus.h"
@@ -545,8 +546,12 @@ void preframe_do(Uint32 *ptr, const Vector& lw, bool do_projection)
 			t->recalc_zdepth(cur);
 			allobjects += t.current();
 		}
-		for (i = 0; i < thors_count; i++) 
+		for (i = 0; i < thors_count; i++)
 			allobjects += &thor[i];
+		for (i = 0; i < sorcount; i++) {
+			sor[i].perframe_init();
+			allobjects += &sor[i];
+		}
 		
 		if (BackgroundMode == BACKGROUND_MODE_VOXEL)
 			allobjects += voxel_water_object();
@@ -1370,6 +1375,13 @@ static void render_single_frame_photorealistic(void *p, void *v)
 								}
 							}
 						}
+					}
+				}
+				for (int j = 0; j < sorcount; j++) {
+					Sor *t = sor + j;
+					if (t->intersect(nr, newcam, context)) {
+						dist = t->intersection_dist(context);
+						TESTD(t);
 					}
 				}
 				if (BackgroundMode == BACKGROUND_MODE_VOXEL) {

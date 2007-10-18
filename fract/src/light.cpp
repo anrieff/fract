@@ -14,6 +14,7 @@
 #include "triangle.h"
 #include "mesh.h"
 #include "sphere.h"
+#include "sor.h"
 #include "vectormath.h"
 #include "light.h"
 #include "cross_vars.h"
@@ -80,6 +81,12 @@ float PointLight::closest_intersection(const Vector &o, const Vector &dir)
 			}
 		}
 	}
+	for (int i = 0; i < sorcount; i++) {
+		if (sor[i].intersect(dir, o, ctx)) {
+			cd = sor[i].intersection_dist(ctx);
+			if (cd > 0 && cd < mdist) mdist = cd;
+		}
+	}
 	
 	return mdist < 1e50 ? (float) mdist : 0.0f;
 }
@@ -122,7 +129,7 @@ int PointLight::in_shadow(const Vector & point)
 {
 	Vector dir;
 	dir.make_vector(point, p);
-	float dist = dir.length();
+	float dist = dir.lengthSqr();
 	
 	// see max component
 	double mc = 0;
@@ -138,17 +145,28 @@ int PointLight::in_shadow(const Vector & point)
 	float * map = maps[bi * 2 + (dir[bi] > 0 ? 0 : 1)];
 	if (!map) return -1;
 	
-	int map_coords[2], k = 0;
-	for (int i = 0; i < 3; i++) {
-		if (i != bi) {
-			map_coords[k] = (int) ((dir[i] * 0.5 + 0.5) * size);
-			if (map_coords[k] >= size) map_coords[k] = size - 1;
-			k++;
-		}
+	int mx, my;
+	switch (bi) {
+		case 0:
+			mx = (int) ((dir[1] * 0.5 + 0.5) * size);
+			my = (int) ((dir[2] * 0.5 + 0.5) * size);
+			break;
+		case 1:
+			mx = (int) ((dir[0] * 0.5 + 0.5) * size);
+			my = (int) ((dir[2] * 0.5 + 0.5) * size);
+			break;
+		case 2:
+			mx = (int) ((dir[0] * 0.5 + 0.5) * size);
+			my = (int) ((dir[1] * 0.5 + 0.5) * size);
+			break;
+		default:
+			mx = my = 0;
 	}
+	if (mx >= size) mx = size;
+	if (my >= size) my = size;
 	
-	float mapdist = map[map_coords[0] * size + map_coords[1]];
-	return (mapdist != 0 && mapdist + BIAS < dist);
+	float mapdist = map[mx * size + my];
+	return (mapdist != 0 && mapdist * mapdist + 2*BIAS*mapdist + BIAS*BIAS < dist);
 }
 
 void PointLight::rebuild_lightmap(void)
@@ -218,6 +236,15 @@ void Light::rebuild_lightmaps(void)
 	progressman.add_weight(13*6);
 	for (int i = 0; i < 13; i++) {
 		points[i].rebuild_lightmap();
+	}
+}
+
+void Light::postload_init(void)
+{
+	if (mode == LIGHTMAP) {
+		if (CVars::lmsize == 0)
+			CVars::lmsize = 128;
+		rebuild_lightmaps();
 	}
 }
 

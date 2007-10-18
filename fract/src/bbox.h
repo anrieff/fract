@@ -70,7 +70,7 @@ struct BBox {
 		vmax += trans;
 	}
 	
-	inline bool inside(const Vector & v)
+	inline bool inside(const Vector & v) const
 	{
 		return
 				v.v[0] >= vmin.v[0] && v.v[0] <= vmax.v[0] &&
@@ -79,7 +79,7 @@ struct BBox {
 	}
 
 	// does a ray, starting at `start' and heading to `dir' intersect the BBox?
-	inline bool testintersect(const Vector & start, const Vector & dir)
+	inline bool testintersect(const Vector & start, const Vector & dir) const
 	{
 		if (inside(start)) {
 			return true;

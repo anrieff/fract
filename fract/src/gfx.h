@@ -96,6 +96,31 @@ int accumulate(Vector pt[], int sides, const Vector& c, Vector w[3], bool (*fun)
 void map_to_screen(Uint16 *sb, Vector pt[], int sides, Uint16 color, Vector& cur, Vector w[3], int xr, int yr);
 void outline_to_screen(Uint16 *sbuffer, Vector pt[], int sides, Uint16 color, Vector &cur, Vector w[3], int xres, int yres);
 
+// Combines two colors with their appropriate multiplication coefficients. Handles clipping
+static inline Uint32 combine(Uint32 color1, float multiplier1, Uint32 color2, float multiplier2)
+{
+	int b1, b2, g1, g2, r1, r2, m1, m2;
+	m1 = (int) (multiplier1 * 65536);
+	m2 = (int) (multiplier2 * 65536);
+	b1 = color1 & 0xff;
+	b2 = color2 & 0xff;
+	color1 >>= 8;
+	color2 >>= 8;
+	g1 = color1 & 0xff;
+	g2 = color2 & 0xff;
+	color1 >>= 8;
+	color2 >>= 8;
+	r1 = color1 & 0xff;
+	r2 = color2 & 0xff;
+	int b, g, r;
+	b = b1 * m1 + b2 * m2;
+	g = g1 * m1 + g2 * m2;
+	r = r1 * m1 + r2 * m2;
+	if (b > 0xff0000) b = 0xff0000;
+	if (g > 0xff0000) g = 0xff0000;
+	if (r > 0xff0000) r = 0xff0000;
+	return (b >> 16) | ((g >> 8) & 0xff00) | (r & 0xff0000);
+}
 
 struct AbstractDrawer {
 	virtual inline bool draw_line(int,int,int) { return false; }

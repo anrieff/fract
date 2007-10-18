@@ -133,6 +133,9 @@ struct Mesh : public BBox, public ShadowCaster {
 	
 	EdgeInfo *edges;
 	int num_edges;
+	
+	/// Initializes per-scene stuff.
+	void scene_init(void);
 
 	/// get the index (in the trio[] array) of the first triangle of the mesh
 	int get_triangle_base() const;
@@ -250,6 +253,7 @@ public:
 };
 
 void mesh_frame_init(const Vector & camera, const Vector & light);
+void mesh_scene_init(void); // prepare all meshes for per-scene stuff
 void mesh_close(void);
 
 #endif // __MESH_H__
