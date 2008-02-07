@@ -1202,15 +1202,35 @@ static void render_single_frame_photorealistic(void *p, void *v)
 		{
 			double angle, r;
 			if (iter) {
-				angle = iter->next(0) * 2 * M_PI;
+				angle = iter->next(0);
 				r = iter->next(1);
 			} else {
-				angle = drandom() * 2 * M_PI;
+				angle = drandom();
 				r = drandom();
 			}
-			r = sqrt(r);
-			x = cos(angle) * r;
-			y = sin(angle) * r;
+			if (CVars::dof_blades < 3) {
+				r = sqrt(r);
+				angle *= 2 * M_PI;
+				x = cos(angle) * r;
+				y = sin(angle) * r;
+			} else {
+				int segment;
+				double u, v;
+				// figure out segment
+				angle *= (double) CVars::dof_blades;
+				segment = (int) floor(angle);
+				u = angle - segment;
+				v = r;
+				if (u + v > 1.0) {
+					u = 1.0 - u;
+					v = 1.0 - v;
+				}
+				double alpha1 = 2 * M_PI / (double) CVars::dof_blades;
+				double alpha2 = alpha1 * (segment + 1);
+				       alpha1 = alpha2 - alpha1;
+				x = cos(alpha1) * u + cos(alpha2) * v;
+				y = sin(alpha1) * u + sin(alpha2) * v;
+			}
 		}
 
 		Vector get_fisheye_ray(double x, double y)
@@ -1425,6 +1445,14 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			b /= total_weight;
 			g /= total_weight;
 			r /= total_weight;
+			if (CVars::brightness != 1.0) {
+				b = (int) (b * CVars::brightness);
+				g = (int) (g * CVars::brightness);
+				r = (int) (r * CVars::brightness);
+				if (b > 255) b = 255;
+				if (g > 255) g = 255;
+				if (r > 255) r = 255;
+			}
 			return (r << 16) | (g << 8) | b;
 		}
 		
