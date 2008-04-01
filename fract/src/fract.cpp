@@ -509,7 +509,7 @@ void commandline_parse(void)
 		system("rm video/*.bmp");
 	}
 	if (defaultconfig && !developer && !design) {
-		outrocap = new OutroCapturer(0, 0, 5);
+		outrocap = new OutroCapturer(0, 0, 0);
 		if (option_exists("--official")) {
 			official = true;
 		}

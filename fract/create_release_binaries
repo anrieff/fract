@@ -96,7 +96,7 @@ else
     echo "Creating SSE2 scalar graphics build"
 fi
 
-COMPFLAGS="-O3 -g0 -ffast-math -mfpmath=sse -msse -msse2"; LIBFLAGS="-lm -lSDL"; OUT_BINARY="fract_sse2"; compile
+COMPFLAGS="-Wall -g0 -O3 -ffast-math -msse -msse2 -mfpmath=sse"; LIBFLAGS="-lm -lSDL"; OUT_BINARY="fract_sse2"; compile
 
 if [ $SHORTVIEW -eq 1 ]; then
     echo -n "Creating SSE2 vector graphics build  ["

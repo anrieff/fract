@@ -1192,10 +1192,17 @@ static void render_single_frame_photorealistic(void *p, void *v)
 		double focal_dist, fpd;
 		Vector fp0, fp1, fp_center, fpnorm;
 		bool my_exit;
+		int *perm;
+		
 		
 		MultiThreadedPhotoRenderer()
 		{
 			my_exit = false;
+		}
+		
+		~MultiThreadedPhotoRenderer()
+		{
+			delete [] perm;
 		}
 
 		void sample_lens_point(double &x, double &y, QMCIterator *iter)
@@ -1456,19 +1463,28 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			return (r << 16) | (g << 8) | b;
 		}
 		
-		void entry(int thread_idx, int thread_count)
+		int get_bucket_size(void)
 		{
-			/* determine bucket size (bs) */
 			int bs = yr / 10;
 			bs &= 0xfff0;
 			if (!bs) bs = 16;
 			if (CVars::bucket_size)
 				bs = CVars::bucket_size;
-			
+			return bs;
+		}
+		
+		void get_bucketed_image_size(int &bxr, int &byr, int bs)
+		{
 			/* see how many buckets we have */
-			int bxr, byr;
 			bxr = ((xr - 1) / bs + 1);
 			byr = ((yr - 1) / bs + 1);
+		}
+		
+		void entry(int thread_idx, int thread_count)
+		{
+			int bs = get_bucket_size();
+			int bxr, byr;
+			get_bucketed_image_size(bxr, byr, bs);
 			int allbucks =  bxr * byr;
 			
 			/* Setup filtering info */
@@ -1484,6 +1500,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			while ((bkt = bucket++) < allbucks*pmul && !my_exit) {
 				bool small = prepass_photorealistic && bkt < allbucks;
 				bkt %= allbucks;
+				bkt = perm[bkt];
 				/* See what bucket we have */
 				int x0 = (bkt % bxr) * bs;
 				int y0 = (bkt / bxr) * bs;
@@ -1541,6 +1558,39 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			fpnorm = fp0 ^ fp1;
 			fpd = - (fpnorm * fp_center);
 		}
+		
+		void calculate_permutation(void)
+		{
+			int bs = get_bucket_size();
+			int bxr, byr;
+			get_bucketed_image_size(bxr, byr, bs);
+			int allbucks =  bxr * byr;
+			//
+			perm = new int[allbucks];
+			int *F = new int[bxr * byr];
+			memset(F, 0, sizeof(int) * bxr * byr);
+			int x = -1, y = 0;
+			int dirs[4][2] = {{+1,0},{0,+1},{-1,0},{0,-1}};
+			int dir = 0;
+			int done = 0;
+			while (done < allbucks) {
+				int nx, ny;
+				dir--;
+				do {
+					dir++;
+					dir %= 4;
+					nx = x + dirs[dir][0];
+					ny = y + dirs[dir][1];
+				} while (nx < 0 || ny < 0 || nx >= bxr || ny >= byr || F[nx + ny * bxr]);
+				F[nx + ny * bxr] = 1;
+				x = nx;
+				y = ny;
+				perm[done] = x + ny * bxr;
+				done++;
+			}
+			//
+			delete [] F;
+		}
 	} mt;
 
 	mt.xr = xsize_render(xres()); mt.yr = ysize_render(yres());
@@ -1548,6 +1598,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 	mt.sdl_p = p;
 	mt.sdl_v = v;
 	mt.bucket = 0;
+	mt.calculate_permutation();
 	bash_preframe(mt.lw, mt.tt, mt.ti, mt.tti);
 	preframe_do( spherebuffer, mt.lw, false);
 	static BackgroundObject bgnd;

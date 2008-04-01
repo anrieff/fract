@@ -54,10 +54,9 @@ static int def_resx = 640, def_resy = 480;
 double beta_limit_low, beta_limit_high;
 background_rendering_method render_background;
 
-int scene_count = 2;
+int scene_count = 1;
 char scenes[5][256] ={
-	"data/benchmark.fsv",
-	"data/oldbench.fsv",
+	"data/af_final.fsv",
 };
 char dev_scene[256] = "data/benchmark.fsv";
 char default_font[64] = "data/font1.bmp";
@@ -310,14 +309,14 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 			kbd_tiny_do(&she);
 		}
 #endif
-		if (file_control) {
+		/*if (file_control) {
 			camera_moved = 1;
 			if (!load_frame(vframe%(cd_frames?cd_frames:1), bTime(), SceneType, loop_mode, loops_remaining)) {
 				she = RUN_OK;
 				if (loop_mode && SceneType == TIME_BASED)
 					she = RUN_LOOPS_FINISHED;
 			}
-		}
+		}*/
 #ifdef RECORD
 		record_do(bTime());
 #endif
@@ -334,7 +333,7 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 			mark_cpu_rdtsc();
 			marked_cpu_speed = true;
 		}
-		if (!developer && SceneType == FRAME_BASED && vframe % cd_frames == 0) {
+		if (true) {
 			if (!loop_mode) {
 				she = RUN_OK;
 			} else {
@@ -537,12 +536,12 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	//font0.printxy(screen, framebuffer, 264,52, 0x22ff33, 0.99, "%.2lf FPS.", 1000.0 * (double) vframe / (double) clk);
 	int y = 72;
 	for (int i = 0; i < watch.size(); i++, y += 20) {
-		font0.printxy(screen, framebuffer, 45, y, 0xeef9ff, 0.75, "Scene %d: %.2lf FPS.", i + 1, 
-			watch.get_data(i) / watch[i]);
+		font0.printxy(screen, framebuffer, 45, y, 0xeef9ff, 0.75, "Scene %d: %.2lf seconds.", i + 1, 
+			watch[i]);
 	}	
 	y += 10;
 	font0.printxy(screen, framebuffer, 54, y, 0xffffff, 0.8, "Total: ");
-	font0.printxy(screen, framebuffer, 131, y, 0x22ff33, 0.99, "%.2lf FPS", watch.total_data() / watch.total());
+	font0.printxy(screen, framebuffer, 131, y, 0x22ff33, 0.99, "%.2lf seconds.", watch.total());
 	y += 30;
 	//font0.printxy(screen, framebuffer, 45, 72, 0xeef9ff, 0.75, "Rendering time: %.2lf seconds.", clk / 1000.0);
 #ifdef SHOW_CPU_SPEED

@@ -16,6 +16,7 @@
 #	ifdef SIMD_VECTOR
 #		define Mod_Instruction_Set "SSE3v"
 #	else
+
 #		define Mod_Instruction_Set "SSE3"
 #	endif
 #else

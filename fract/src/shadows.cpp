@@ -33,7 +33,7 @@
 
 double light_radius = 7.5f;
 int g_biasmethod = 1;
-ShadowCaster* occluders[2000];
+ShadowCaster* occluders[10000];
 const int max_neighs = 7;
 
 const double YOFFSET = 0.125;
@@ -941,7 +941,7 @@ void check_for_shadowed_spheres(void)
 			}
 		s.occluders_size = csize;
 	}
-	if (all.size() > 2000) printf("Too much occluders!!!\n");
+	if (all.size() > 10000) printf("Too much occluders!!!\n");
 	for (int i = 0; i < all.size(); i++)
 		occluders[i] = all[i];
 }
