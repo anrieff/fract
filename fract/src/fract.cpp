@@ -301,7 +301,7 @@ void kbd_do(int *ShouldExit)
 		take_snapshot();
 	}
 	if (WantToQuit) *ShouldExit = 1;
-	if (CVars::shutdown && CVars::photomode && frame_finished) {
+	if (CVars::shut_down && CVars::photomode && frame_finished) {
 		take_snapshot();
 		*ShouldExit = RUN_CANCELLED;
 	}

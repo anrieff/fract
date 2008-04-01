@@ -26,7 +26,7 @@ int apply_blur = 0, blur_method = BLUR_DISCRETE;
 
 #ifdef BLUR
 // *************** External variables *****************************
-extern Uint32 framebuffer[RES_MAXX*RES_MAXY];
+extern SSE_ALIGN(Uint32 framebuffer[RES_MAXX*RES_MAXY]);
 
 // **************** GLOBAL VARIABLES ******************************
 Uint32 *blurbuffers[8];

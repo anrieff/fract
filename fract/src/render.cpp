@@ -1498,7 +1498,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			int bkt;
 			int pmul = prepass_photorealistic ? 2 : 1;
 			while ((bkt = bucket++) < allbucks*pmul && !my_exit) {
-				bool small = prepass_photorealistic && bkt < allbucks;
+				bool is_small = prepass_photorealistic && bkt < allbucks;
 				bkt %= allbucks;
 				bkt = perm[bkt];
 				/* See what bucket we have */
@@ -1512,7 +1512,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 					int y = y0 + j;
 					for (int i = 0; i < w; i++) {
 						bool sixteen = i % 16 == 0 && j % 16 == 0;
-						if (prepass_photorealistic && ((sixteen && !small) || (!sixteen && small))) continue;
+						if (prepass_photorealistic && ((sixteen && !is_small) || (!sixteen && is_small))) continue;
 						int x = x0 + i;
 						framebuffer[xr * y + x] =
 							solve_single(x, y, fi);

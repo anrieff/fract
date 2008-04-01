@@ -29,7 +29,7 @@ extern int *sqrtsqrt;
 
 // the framebuffer:
 
-extern Uint32 framebuffer[RES_MAXX*RES_MAXY];
+extern SSE_ALIGN(Uint32 framebuffer[RES_MAXX*RES_MAXY]);
 extern int apply_blur;
 
 // texture collection:
@@ -39,7 +39,7 @@ extern int end_tex;
 
 // sphere collection
 
-extern Sphere sp[MAX_SPHERES];
+extern SSE_ALIGN(Sphere sp[MAX_SPHERES]);
 extern int num_sides[MAX_SPHERES];
 extern int spherecount;
 

@@ -62,7 +62,7 @@
 /*double ambient = 0.2;
 double diffuse = 0.55;
 double specular = 0.15;*/
-extern Sphere sp[];
+extern SSE_ALIGN(Sphere sp[MAX_SPHERES]);
 extern int spherecount;
 extern int vframe;
 extern int ysqrd_floor, ysqrd_ceil;

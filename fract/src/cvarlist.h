@@ -51,6 +51,6 @@ DECLARE_VARIABLE(int,    dof_samples , 20   , "DOF samples per pixel");
 DECLARE_VARIABLE(bool,   qmc         , true , "Quasi-monte carlo sampling");
 DECLARE_VARIABLE(bool,   g_speedup   , true , "SDTree usage toggle");
 DECLARE_VARIABLE(bool,   fisheye     , false, "Fisheye lens emulation in photomode");
-DECLARE_VARIABLE(bool,   shutdown    , false, "Screenshot & exit afther next frame");
+DECLARE_VARIABLE(bool,   shut_down   , false, "Screenshot & exit afther next frame");
 DECLARE_VARIABLE(int ,   bucket_size , 0    , "Setup static bucket size");
 DECLARE_VARIABLE(int ,   dof_blades  , 0    , "# of diaphragm blades; 0 to disable");
