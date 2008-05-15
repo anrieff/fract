@@ -826,7 +826,7 @@ void gfx_update_screen(SDL_Surface *p, SDL_Overlay *ov, Uint32 *src, int x0, int
 		Uint32 *dest = ((Uint32*) ov->pixels[0]) + (x0 + y0*p->w) / 2;
 		src += x0 + y0 * p->w;
 		for (int j = 0; j < h; j++)
-			ConvertRGB2YUV(&dest[(j*p->w)/2], &src[j * p->w], w);
+			ConvertRGB2YUV(&dest[(j*p->w)/2], &src[j * p->w], w/overlay_size_divisor);
 
 		SDL_UnlockYUVOverlay(ov);
 		

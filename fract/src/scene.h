@@ -46,6 +46,7 @@ extern RawImg T[12]; // this allows texture sizes up to 4096 ;)
 extern int end_tex;
 extern Uint32 SDL_f;
 extern int system_pp_state;
+extern int overlay_size_divisor; // a quick hack, until I make ConvertRGB2YV12 planar routines.
 
 /*
  the common type of procedure that can render floor, heightfield or anything

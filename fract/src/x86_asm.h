@@ -3364,7 +3364,7 @@ void ConvertRGB2YUV_X86_ASM(Uint32 *dest, Uint32 *src, size_t count)
 	"pop		%%edx\n"
 	:"=m"(*dest)
 	:"m"(*src), "m"(*s)
-	:"memory", "eax", "ecx", "esi");
+	:"memory", "eax", "ecx", "esi", "edx");
 	dest++;
 	src+=2;
  	}

@@ -54,9 +54,10 @@ static int def_resx = 640, def_resy = 480;
 double beta_limit_low, beta_limit_high;
 background_rendering_method render_background;
 
-int scene_count = 1;
+int scene_count = 2;
 char scenes[5][256] ={
-	"data/af_final.fsv",
+	"data/benchmark.fsv",
+	"data/oldbench.fsv",
 };
 char dev_scene[256] = "data/benchmark.fsv";
 char default_font[64] = "data/font1.bmp";
@@ -68,8 +69,10 @@ const char *introtex = "data/intro.bmp";
 #ifdef ACTUALLYDISPLAY
 SDL_Surface *screen;
 SDL_Overlay *ovr=NULL;
+int overlay_mode;
 Uint32 SDL_f;
 #endif
+int overlay_size_divisor;
 
 
 // precalculated storage for 1/sqrt(sqrt(x)) lookups :)
@@ -309,14 +312,14 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 			kbd_tiny_do(&she);
 		}
 #endif
-		/*if (file_control) {
+		if (file_control) {
 			camera_moved = 1;
 			if (!load_frame(vframe%(cd_frames?cd_frames:1), bTime(), SceneType, loop_mode, loops_remaining)) {
 				she = RUN_OK;
 				if (loop_mode && SceneType == TIME_BASED)
 					she = RUN_LOOPS_FINISHED;
 			}
-		}*/
+		}
 #ifdef RECORD
 		record_do(bTime());
 #endif
@@ -333,7 +336,7 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 			mark_cpu_rdtsc();
 			marked_cpu_speed = true;
 		}
-		if (true) {
+		if (!developer && SceneType == FRAME_BASED && vframe % cd_frames == 0) {
 			if (!loop_mode) {
 				she = RUN_OK;
 			} else {
@@ -404,37 +407,52 @@ void Scene::hwaccel_init(void)
 	vi = (SDL_VideoInfo *) SDL_GetVideoInfo();
 	SDL_VideoDriverName(vdname, 256);
 #ifdef SHOW_VIDEO_INFO
- printf("Video Info: ");
- printf("-- video driver: [%s]\n", vdname);
- printf("->flags: 0x%X\n", screen->flags);
- printf("->hw_available: %d\n->blit_hw: %d\n->blit_hw_CC: %d\n->blit_hw_A: %d\n->blit_sw: %d\n->blit_sw_CC: %d\n->blit_sw_A: %d\n",
-	vi->hw_available, vi->blit_hw, vi->blit_hw_CC, vi->blit_hw_A, vi->blit_sw, vi->blit_sw_CC, vi->blit_sw_A);
+	printf("Video Info: ");
+	printf("-- video driver: [%s]\n", vdname);
+	printf("->flags: 0x%X\n", screen->flags);
+	printf("->hw_available: %d\n->blit_hw: %d\n->blit_hw_CC: %d\n->blit_hw_A: %d\n->blit_sw: %d\n->blit_sw_CC: %d\n->blit_sw_A: %d\n",
+		vi->hw_available, vi->blit_hw, vi->blit_hw_CC, vi->blit_hw_A, vi->blit_sw, vi->blit_sw_CC, vi->blit_sw_A);
 #endif
- if (!vi->hw_available)
- 	printf("No hardware acceleration for surface-to-screen blits.\n");
- if (option_exists("--no-overlay")) return;
- if (!vi->hw_available || option_exists("--force-overlay")) {
-	 printf("Will try to use YUV overlay%s...",(vi->hw_available?"":" to speed things up"));
-	 ovr = SDL_CreateYUVOverlay(xres(), yres(), SDL_YUY2_OVERLAY, screen);
-	 if (ovr == NULL) {printf("FAILED\nCan't create YUY2 overlay!"); if (option_exists("--force-overlay")) printf(" Won't use it no matter how much you --force it."); printf("\n"); }
-	 else {
-		 printf("OK\n");
-		 if (ovr->hw_overlay || option_exists("--force-overlay")) {
-			 if (ovr->hw_overlay)
-				 printf("Overlay is hardware accelerated :-)\n");
-			 if (!option_exists("--force-overlay"))
-				 printf("To disable overlay usage, add --no-overlay to the command line.\n");
-			 init_yuv_convert(0);
-		 }
-		 else {
-			 printf("Overlay is not hardware accelerated... falling back to software surface flipping (possibly too slow!)\nHint: Check your X server configuration, try using full hardware acceleration!\n");
-			 printf("If you want to force using overlay and you know what you're doing, you can accomplish it by passing\nthe --force-overlay option to the program.\n");
-			 SDL_FreeYUVOverlay(ovr);
-			 ovr = NULL;
-		 }
-	 }
- }
- printf("\n");
+	if (!vi->hw_available)
+		printf("No hardware acceleration for surface-to-screen blits.\n");
+	if (option_exists("--no-overlay")) return;
+	if (!vi->hw_available || option_exists("--force-overlay")) {
+		
+		int overlay_modes[2] = { SDL_YUY2_OVERLAY, SDL_YV12_OVERLAY };
+		const char *overlay_mode_names[] = { "YUY2", "YV12" };
+		for (int idx = 0; idx < 2; idx++) {
+			overlay_size_divisor = idx + 1;
+			const char *name = overlay_mode_names[idx];
+			printf("Will try to use %s overlay%s...", name, (vi->hw_available?"":" to speed things up"));
+			overlay_mode = overlay_modes[idx];
+			ovr = SDL_CreateYUVOverlay(xres(), yres(), overlay_mode, screen);
+			if (ovr == NULL) {
+				printf("FAILED\nCan't create %s overlay!", name);
+				if (idx == 0 && option_exists("--force-overlay"))
+					printf(" Won't use it no matter how much you --force it.");
+				printf("\n");
+			} else {
+				printf("OK\n");
+				if (ovr->hw_overlay || option_exists("--force-overlay")) {
+					if (ovr->hw_overlay)
+						printf("Overlay is hardware accelerated :-)\n");
+					if (!option_exists("--force-overlay"))
+						printf("To disable overlay usage, add --no-overlay to the command line.\n");
+					init_yuv_convert(0);
+					break;
+				}
+				else {
+					printf("Overlay is not hardware accelerated... falling back to software surface flipping (possibly too slow!)\n");
+					printf("Hint: Check your X server configuration, try using full hardware acceleration!\n");
+					printf("If you want to force using overlay and you know what you're doing, you can accomplish it by passing\n");
+					printf("the --force-overlay option to the program.\n");
+					SDL_FreeYUVOverlay(ovr);
+					ovr = NULL;
+				}
+			}
+		}
+	}
+	printf("\n");
 }
 #endif
 
@@ -536,12 +554,12 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	//font0.printxy(screen, framebuffer, 264,52, 0x22ff33, 0.99, "%.2lf FPS.", 1000.0 * (double) vframe / (double) clk);
 	int y = 72;
 	for (int i = 0; i < watch.size(); i++, y += 20) {
-		font0.printxy(screen, framebuffer, 45, y, 0xeef9ff, 0.75, "Scene %d: %.2lf seconds.", i + 1, 
-			watch[i]);
+		font0.printxy(screen, framebuffer, 45, y, 0xeef9ff, 0.75, "Scene %d: %.2lf FPS.", i + 1, 
+			watch.get_data(i)/watch[i]);
 	}	
 	y += 10;
 	font0.printxy(screen, framebuffer, 54, y, 0xffffff, 0.8, "Total: ");
-	font0.printxy(screen, framebuffer, 131, y, 0x22ff33, 0.99, "%.2lf seconds.", watch.total());
+	font0.printxy(screen, framebuffer, 131, y, 0x22ff33, 0.99, "%.2lf FPS.", watch.total_data()/watch.total());
 	y += 30;
 	//font0.printxy(screen, framebuffer, 45, 72, 0xeef9ff, 0.75, "Rendering time: %.2lf seconds.", clk / 1000.0);
 #ifdef SHOW_CPU_SPEED
