@@ -71,8 +71,26 @@
 
 
 typedef void (*__convert_fn_t) (Uint32 *, Uint32 *, size_t);
+extern int yuv_type;
 
 void ConvertRGB2YUV(Uint32 *dest, Uint32 *src, size_t count);
+/**
+ * @brief RGB2YUV_UpdateOverlay - converts a subrectangle of a RGB framebuffer to a YUY2 or YV12 overlay
+ * @param plane0 - the first plane of the overlay. In the packed YUY2 mode, this is the only plane. In YV12, this holds Y data.
+ * @param plane1 - second plane. YV12 only. Contains U data.
+ * @param plane2 - third plane. YV12 only. Contains V data.
+ * @param rgb    - the source RGB framebuffer. 32bits per pixel.
+ * @param x0, @param y0 - specify the top-left corner of the rectangle to be converted.
+ * @param w, @param h - width and height of the rectangle to be converted.
+ * @param pitch - the width of the RGB framebuffer, in pixels.
+ *
+ * NOTE: this function is actually a wrapper around ConvertRGB2YUV() and ConvertRGB2YV12() function. Which
+ *       YUV mode to use is selected by the `yuv_type' variable. If 0, RGB->YUY2 is used.
+ *       If 1, YV12 is used. In the former, only the first plane of the YUV overlay is used, and the written
+ *       data is 16 bits per one input pixel. In the latter, all three planes are used, with the first plane
+ *       getting 8bpp Y data, and the other two get 8 bits per four pixels of U anv V data.
+ */
+void RGB2YUV_UpdateOverlay(Uint32 *plane0, Uint32 *plane1, Uint32 *plane2, Uint32 *rgb, int x0, int y0, int w, int h, int pitch);
 void init_yuv_convert(int benchmark);
 void yuv_benchmark(int benchmark);
 void switch_rgbmethod(void);

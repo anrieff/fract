@@ -422,6 +422,7 @@ void Scene::hwaccel_init(void)
 		const char *overlay_mode_names[] = { "YUY2", "YV12" };
 		for (int idx = 0; idx < 2; idx++) {
 			overlay_size_divisor = idx + 1;
+			yuv_type = idx;
 			const char *name = overlay_mode_names[idx];
 			printf("Will try to use %s overlay%s...", name, (vi->hw_available?"":" to speed things up"));
 			overlay_mode = overlay_modes[idx];

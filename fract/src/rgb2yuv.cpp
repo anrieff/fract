@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "MyTypes.h"
 #include "asmconfig.h"
 #include "bitmap.h"
@@ -27,6 +28,7 @@
 
 
 int bestmethod=0;
+int yuv_type = 0;
 
 Uint32 checksums[2][2][4] = {
 	{ /*AMD*/
@@ -71,6 +73,46 @@ void ConvertRGB2YUV_X86(Uint32 *dest, Uint32 *src, size_t count)
 	}
 }
 
+/*
+ *
+ */
+void ConvertRGB2YV12_X86(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int y0, int w, int h, int pitch)
+{
+	assert(x0 % 2 == 0);
+	assert(y0 % 2 == 0);
+	assert(w % 2 == 0);
+	assert(h % 2 == 0);
+	assert(pitch % 2 == 0);
+	src += x0 + y0 * pitch;
+	Y += x0 + y0 * pitch;
+	U += (x0/2) + (y0/2) * pitch/2;
+	V += (x0/2) + (y0/2) * pitch/2;
+	for (int j = 0; j < h; j += 2) {
+		for (int i = 0; i < w; i += 2, src+=2, Y += 2, U++, V++) {
+			Uint32 r, g, b;
+			r =  src[0]        & 0xff;
+			g = (src[0] >>  8) & 0xff;
+			b = (src[0] >> 16) & 0xff;
+			Y[0] = (((0x00100000 + r * IM11 + g * IM12 + b * IM13)>>16)&0x000000ff);
+			U[0] = (((0x00800000 + r * IM31 + g * IM32 + b * IM33)>>16)&0x000000ff);
+			V[0] = (((0x00800000 + r * IM21 + g * IM22 + b * IM23)>>16)&0x000000ff);
+			r =  src[1]        & 0xff;
+			g = (src[1] >>  8) & 0xff;
+			b = (src[1] >> 16) & 0xff;
+			Y[1] = (((0x00100000 + r * IM11 + g * IM12 + b * IM13)>>16)&0x000000ff);
+			r =  src[pitch]        & 0xff;
+			g = (src[pitch] >>  8) & 0xff;
+			b = (src[pitch] >> 16) & 0xff;
+			Y[pitch] = (((0x00100000 + r * IM11 + g * IM12 + b * IM13)>>16)&0x000000ff);
+			r =  src[pitch+1]        & 0xff;
+			g = (src[pitch+1] >>  8) & 0xff;
+			b = (src[pitch+1] >> 16) & 0xff;
+			Y[pitch+1] = (((0x00100000 + r * IM11 + g * IM12 + b * IM13)>>16)&0x000000ff);
+		}
+		src = src-w+2*pitch, Y = Y - w + 2*pitch, U = U - w/2 + pitch/2, V = V - w/2 + pitch/2;
+	}
+}
+
 // include assembly rgb2yuv routines:
 #define rgb2yuv_asm
 #include "x86_asm.h"
@@ -93,6 +135,11 @@ void ConvertRGB2YUV(Uint32 *dest, Uint32 *src, size_t count)
 		case USE_MMX2: ConvertRGB2YUV_MMX2(dest, src, count); break;
 		case USE_SSE: ConvertRGB2YUV_SSE(dest, src, count); break;
 	}
+}
+
+void ConvertRGB2YV12(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *rgb, int x0, int y0, int w, int h, int pitch)
+{
+	ConvertRGB2YV12_X86(Y, U, V, rgb, x0, y0, w, h, pitch);
 }
 
 // Benchmarks a RGB-to-YUY2 conversion function.
@@ -218,5 +265,20 @@ void yuv_benchmark(int benchmark)
 	if (cpu.mmx2 && cpu.sse) {
 		benchmark_function((__convert_fn_t) ConvertRGB2YUV_SSE, USE_SSE, "_SSE", &maxfps, timetorun);
 		task++;
+	}
+}
+
+void RGB2YUV_UpdateOverlay(Uint32 *plane0, Uint32 *plane1, Uint32 *plane2, Uint32 *rgb, int x0, int y0, int w, int h, int pitch)
+{
+	if (yuv_type == 0) {
+		// YUY2:
+		Uint16 *p = (Uint16*) plane0;
+		if (x0 == 0 && y0 == 0 && w == pitch)
+			ConvertRGB2YUV(plane0, rgb, w*h);
+		else for (int j = y0; j < h + y0; j++)
+			ConvertRGB2YUV_X86((Uint32*)(p + x0 + j * pitch),
+			                   rgb + x0 + j * pitch, w);
+	} else {
+		ConvertRGB2YV12((Uint8*)plane0, (Uint8*)plane1, (Uint8*)plane2, rgb, x0, y0, w, h, pitch);
 	}
 }

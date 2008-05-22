@@ -392,7 +392,11 @@ void postframe_do(void)
 		SDL_LockYUVOverlay(ov);
 		
 		prof_enter(PROF_CONVERTRGB2YUV);
-		ConvertRGB2YUV((Uint32 *) ov->pixels[0], thebuffer, p->h*p->w/overlay_size_divisor);
+//		ConvertRGB2YUV((Uint32 *) ov->pixels[0], thebuffer, p->h*p->w/overlay_size_divisor);
+		RGB2YUV_UpdateOverlay((Uint32*) ov->pixels[0],
+		                      (Uint32*) ov->pixels[1],
+		                      (Uint32*) ov->pixels[2],
+		                      thebuffer, 0, 0, p->w, p->h, p->w)
 		prof_leave(PROF_CONVERTRGB2YUV);
 
 		SDL_UnlockYUVOverlay(ov);
