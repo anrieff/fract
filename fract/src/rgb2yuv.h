@@ -18,10 +18,13 @@
 
 // define the benchmark buffer size as to represent 320x240 framebuffer
 #define BENCHSIZE 76800
+#define BENCHSIZE_X 320
+#define BENCHSIZE_Y 240
 // benchmark each function 250 milliseconds
 #define BENCHTICKS 250
 // in benchmark mode, run all functions for a minute unconditionally
-#define BENCH_LARGE_TICKS 60000
+// FIXME: restore to 60000.
+#define BENCH_LARGE_TICKS 1000
 
 /* I'm using the following formula for RGB to YUV colorspace convertion:
 
@@ -71,6 +74,7 @@
 
 
 typedef void (*__convert_fn_t) (Uint32 *, Uint32 *, size_t);
+typedef void (*__convert_fn_t_yv12) (Uint8 *, Uint8 *, Uint8 *, Uint32 *, int, int, int, int, int);
 extern int yuv_type;
 
 void ConvertRGB2YUV(Uint32 *dest, Uint32 *src, size_t count);
