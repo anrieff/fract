@@ -112,74 +112,6 @@ void ConvertRGB2YV12_X86(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int 
 	}
 }
 
-void ssConvertRGB2YUV_MMX2(Uint32 *dest, Uint32 *src, size_t count)
-{
- SSE_ALIGN(Sint16 pmm3[4])={SIM13, SIM33, SIM13, SIM23};
- SSE_ALIGN(Sint16 pmm4[4])={SIM12, SIM32, SIM12, SIM22};
- SSE_ALIGN(Sint16 pmm5[4])={SIM11, SIM31, SIM11, SIM21};
- SSE_ALIGN(Uint16 pmm6[4])={4096, 32768, 4096, 32768};
- SSE_ALIGN(Uint16 pmm7[4])={0xffff, 0x00ff, 0xffff, 0x00ff};
- //Sint16 pmm7[4]={0, 0, 0, 0};
-
- count /= 2;
-
- // load some constants:
- __asm __volatile (
- "	pxor	%%mm7,	%%mm7\n"
- "	movq	%0,	%%mm6\n"
- ::"m"(*pmm7):"memory"
- );
-
- while (count--) {
- 	__asm __volatile (
-	"	movq	%1,	%%mm0\n"
-	"	pand	%%mm6,	%%mm0\n"
-	"	pshufw	$0x0e,	%%mm0,	%%mm1\n"
-// mm0 contains pixel 1 and pixel 2
-// low dword of mm1 contains pixel 2
-
-	"	punpcklbw	%%mm7,	%%mm0\n"
-	"	punpcklbw	%%mm7,	%%mm1\n"
-
-// mm0 = (b0 g0 r0 00) (words)
-// mm1 = (b1 g1 r1 00) (words)
-
-// SOME REAALY WEIRD SHUFFLES::: :)
-	"	pshufw	$0x30,	%%mm0,	%%mm2\n" // 00110000
-	"	pshufw	$0xcf,	%%mm1,	%%mm3\n" // 11001111
-	"	pshufw	$0x75,	%%mm0,	%%mm4\n" // 01110101
-	"	pshufw	$0xdf,	%%mm1,	%%mm5\n" // 11011111
-	"	pshufw	$0xba,	%%mm0,	%%mm0\n" // 10111010
-	"	pshufw	$0xef,	%%mm1,	%%mm1\n" // 11101111
-// ends up like this:
-	"	por	%%mm3,	%%mm2\n" // mm2 - b0 b0 b1 b0
-	"	por	%%mm5,	%%mm4\n" // mm4 - g0 g0 g1 g0
-	"	por	%%mm1,	%%mm0\n" // mm0 - r0 r0 r1 r0
-
-	"	pmullw	%2,	%%mm2\n" // mm2 *= M13 M33 M13 M23
-	"	pmullw	%3,	%%mm4\n" // mm4 *= M12 M32 M12 M22
-	"	pmullw	%4,	%%mm0\n" // mm0 *= M11 M31 M11 M21
-
-	"	paddw	%5,	%%mm2\n" // mm2 += 16  128  16 128
-	"	paddw	%%mm4,	%%mm0\n"
-	"	paddw	%%mm2,	%%mm0\n"
-	"	psrlw	$8,	%%mm0\n" // mm0 = Y0 U0 Y1 V0
-
-	"	packuswb	%%mm7,	%%mm0\n"
-	"	movd	%%mm0,	%0\n"
-
-
-	:"=m"(*dest)
-	:"m"(*src), "m"(*pmm3), "m"(*pmm4), "m"(*pmm5), "m"(*pmm6)
-	:"memory"
-	);
- 	src+=2;
-	dest++;
- }
-
- __asm __volatile("emms");
-}
-
 void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int y0, int w, int h, int pitch)
 {
 	assert(x0 % 2 == 0);
@@ -188,11 +120,17 @@ void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int
 	assert(h % 4 == 0);
 	assert(pitch % 4 == 0);
 	//
-	SSE_ALIGN(Sint16 pmm3[4])={SIM13, SIM13, SIM33, SIM23};
-	SSE_ALIGN(Sint16 pmm4[4])={SIM12, SIM12, SIM32, SIM22};
-	SSE_ALIGN(Sint16 pmm5[4])={SIM11, SIM11, SIM31, SIM21};
-	SSE_ALIGN(Uint16 pmm6[4])={4096,   4096, 32768, 32768};
-	SSE_ALIGN(Uint16 pmm7[4])={0xffff, 0x00ff, 0xffff, 0x00ff};
+	SSE_ALIGN(Sint16 data[36]) = {
+		SIM13, SIM13, SIM13, SIM13,
+		SIM12, SIM12, SIM12, SIM12,
+		SIM11, SIM11, SIM11, SIM11,
+		SIM23, SIM33,     0,     0,
+		SIM22, SIM32,     0,     0,
+		SIM21, SIM31,     0,     0,
+		 4096,  4096,  4096,  4096,
+		32768, 32768, 32786, 32786,
+	        0xffff, 0x00ff, 0xffff, 0x00ff
+	};
 	//
 	src += x0 + y0 * pitch;
 	Y += x0 + y0 * pitch;
@@ -202,112 +140,99 @@ void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int
 	// -- init
 	"	mov	%3,		%%esi\n"
 	"	mov	%0,		%%edi\n"
+	"	movq	64%9,		%%mm6\n"
 	"	pxor	%%mm7,		%%mm7\n"
-	"	movq	%13,		%%mm6\n"
 	
 	".balign	16\n"
-	".y:\n"
+	".loopy2:\n"
 	"	mov	%6,		%%ecx\n"
 	
 	".balign	16\n"
-	".x:\n"
+	".loopx2:\n"
+	"	mov	%8,		%%eax\n"
+	"	pxor	%%mm7,		%%mm7\n"
 	"	movq	(%%esi),	%%mm0\n"
+	"	movq	(%%esi,%%eax,4),%%mm2\n"
 	"	pand	%%mm6,		%%mm0\n"
+	"	pand	%%mm6,		%%mm2\n"
 	"	pshufw	$0x0e,	%%mm0,	%%mm1\n"
+	"	pshufw	$0x0e,	%%mm2,	%%mm3\n"
 
 	"	punpcklbw	%%mm7,	%%mm0\n"
 	"	punpcklbw	%%mm7,	%%mm1\n"
-// mm0 = (b0 g0 r0 00) (words)
-// mm1 = (b1 g1 r1 00) (words)
-// As in the packed version, 6 beautiful weird shuffles
-	"	pshufw	$0x0c,	%%mm0,	%%mm2\n" // 00001100
-	"	pshufw	$0xf3,	%%mm1,	%%mm3\n" // 11110011
-	"	pshufw	$0x5d,	%%mm0,	%%mm4\n" // 01011101
-	"	pshufw	$0xf7,	%%mm1,	%%mm5\n" // 11110111
-	"	pshufw	$0xae,	%%mm0,	%%mm0\n" // 10101110
-	"	pshufw	$0xfb,	%%mm1,	%%mm1\n" // 11111011
-// ends up like this:
-	"	por	%%mm3,		%%mm2\n" // mm2 - b0 b1 b0 b0
-	"	por	%%mm5,		%%mm4\n" // mm4 - g0 g1 g0 g0
-	"	por	%%mm1,		%%mm0\n" // mm0 - r0 r1 r0 r0
-
-	"	pmullw	%9,		%%mm2\n" // mm2 *= M13 M13 M33 M23
-	"	pmullw	%10,		%%mm4\n" // mm4 *= M12 M12 M32 M22
-	"	pmullw	%11,		%%mm0\n" // mm0 *= M11 M11 M31 M21
-
-	"	paddw	%12,		%%mm2\n" // mm2 += 16   16 128 128
-	"	paddw	%%mm4,		%%mm0\n"
-	"	paddw	%%mm2,		%%mm0\n"
-	"	psrlw	$8,		%%mm0\n" // mm0 = Y0 Y1 U0 V0
-
-	"	packuswb	%%mm7,	%%mm0\n"
-	"	movd	%%mm0,		%%eax\n"
+	"	punpcklbw	%%mm7,	%%mm2\n"
+	"	punpcklbw	%%mm7,	%%mm3\n"
 	
-	//store Y0, Y1, U0, V0
-	"	movw	%%ax,		(%%edi)\n"
-	"	shr	$16,		%%eax\n"
-	"	push	%%esi\n"
+	"	pshufw	$0xfc,	%%mm0,	%%mm4\n"
+	"	pshufw	$0xf3,	%%mm1,	%%mm5\n"
+	"	pshufw	$0xcf,	%%mm2,	%%mm7\n"
+	"	por	%%mm5,		%%mm4\n"
+	"	pshufw	$0x3f,	%%mm3,	%%mm5\n"
+	"	por	%%mm7,		%%mm4\n"
+	"	por	%%mm5,		%%mm4\n" // mm4 = b0 b1 b2 b3
+	
+	"	pshufw	$0xfd,	%%mm0,	%%mm5\n"
+	"	pshufw	$0xf7,	%%mm1,	%%mm7\n"
+	"	por	%%mm7,		%%mm5\n"
+	"	pshufw	$0xdf,	%%mm2,	%%mm7\n"
+	"	por	%%mm7,		%%mm5\n"
+	"	pshufw	$0x7f,	%%mm3,	%%mm7\n"
+	"	por	%%mm7,		%%mm5\n" // mm5 = g0 g1 g2 g3
+	
+	"	pshufw	$0xfe,	%%mm0,	%%mm0\n"
+	"	pshufw	$0xfb,	%%mm1,	%%mm1\n"
+	"	pshufw	$0xef,	%%mm2,	%%mm2\n"
+	"	pshufw	$0xbf,	%%mm3,	%%mm3\n"
+	"	por	%%mm0,		%%mm1\n"
+	"	por	%%mm2,		%%mm3\n"
+	"	por	%%mm1,		%%mm3\n" // mm3 = r0 r1 r2 r3
+	
+	"	pshufw	$0,	%%mm4,	%%mm0\n" // mm0 = b0 b0 b0 b0
+	"	pshufw	$0,	%%mm5,	%%mm1\n" // mm1 = g0 g0 g0 g0
+	"	pshufw	$0,	%%mm3,	%%mm2\n" // mm2 = r0 r0 r0 r0
+	"	pxor	%%mm7,		%%mm7\n"
+
+	"	pmullw	%9,		%%mm4\n" // mm4 *= M13 M13 M13 M13
+	"	pmullw	8%9,		%%mm5\n" // mm5 *= M12 M12 M12 M12
+	"	pmullw	16%9,		%%mm3\n" // mm3 *= M11 M11 M11 M11
+
+	"	pmullw	24%9,		%%mm0\n" // mm0 *= M23 M33   0   0
+	"	pmullw	32%9,		%%mm1\n" // mm1 *= M22 M32   0   0
+	"	pmullw	40%9,		%%mm2\n" // mm2 *= M21 M31   0   0
+	
+	"	paddw	48%9,		%%mm4\n" // mm4 +=  16  16  16  16
+	"	paddw	56%9,		%%mm0\n" // mm0 += 128 128 128 128
+	"	paddw	%%mm3,		%%mm5\n"
+	"	paddw	%%mm1,		%%mm2\n"
+	"	paddw	%%mm5,		%%mm4\n"
+	"	paddw	%%mm2,		%%mm0\n"
+	"	psrlw	$8,		%%mm4\n" // mm4 = Y0 Y1 Y2 Y3
+	"	psrlw	$8,		%%mm0\n" // mm0 = U0 V0  0  0
+	
+	"	packuswb	%%mm7,	%%mm4\n"
+	"	packuswb	%%mm7,	%%mm0\n"
+	"	movd	%%mm4,		%%edx\n"
+	
+	//store Y0, Y1, Y2, Y3, U0, V0
+	"	movw	%%dx,		(%%edi)\n"
+	"	shr	$16,		%%edx\n"
+	"	movw	%%dx,		(%%edi,%%eax)\n"
+	
 	"	push	%%edi\n"
-	"	push	%%edi\n"
+	"	movd	%%mm0,		%%eax\n"
 	"	mov	%1,		%%edi\n"
-	"	movb	%%ah,		(%%edi)\n"
+	"	movb	%%al,		(%%edi)\n"
 	"	incl	%1\n"
 	"	mov	%2,		%%edi\n"
-	"	movb	%%al,		(%%edi)\n"
+	"	movb	%%ah,		(%%edi)\n"
 	"	incl	%2\n"
 	"	pop	%%edi\n"
 	
-	// -- go to the line below:
 	
-	"	mov	%8,		%%eax\n"
-	
-	"	lea	(%%esi, %%eax, 4),	%%esi\n"
-	"	lea	(%%edi, %%eax),	%%edi\n"
-	
-	// fetch another two pixels:
-	
-	"	movq	(%%esi),	%%mm0\n"
-	"	pand	%%mm6,		%%mm0\n"
-	"	pshufw	$0x0e,	%%mm0,	%%mm1\n"
-
-	"	punpcklbw	%%mm7,	%%mm0\n"
-	"	punpcklbw	%%mm7,	%%mm1\n"
-// mm0 = (b0 g0 r0 00) (words)
-// mm1 = (b1 g1 r1 00) (words)
-// As in the packed version, 6 beautiful weird shuffles
-	"	pshufw	$0x0c,	%%mm0,	%%mm2\n" // 00001100
-	"	pshufw	$0xf3,	%%mm1,	%%mm3\n" // 11110011
-	"	pshufw	$0x5d,	%%mm0,	%%mm4\n" // 01011101
-	"	pshufw	$0xf7,	%%mm1,	%%mm5\n" // 11110111
-	"	pshufw	$0xae,	%%mm0,	%%mm0\n" // 10101110
-	"	pshufw	$0xfb,	%%mm1,	%%mm1\n" // 11111011
-// ends up like this:
-	"	por	%%mm3,		%%mm2\n" // mm2 - b0 b1 b0 b0
-	"	por	%%mm5,		%%mm4\n" // mm4 - g0 g1 g0 g0
-	"	por	%%mm1,		%%mm0\n" // mm0 - r0 r1 r0 r0
-
-	"	pmullw	%9,		%%mm2\n" // mm2 *= M13 M13 M33 M23
-	"	pmullw	%10,		%%mm4\n" // mm4 *= M12 M12 M32 M22
-	"	pmullw	%11,		%%mm0\n" // mm0 *= M11 M11 M31 M21
-
-	"	paddw	%12,		%%mm2\n" // mm2 += 16   16 128 128
-	"	paddw	%%mm4,		%%mm0\n"
-	"	paddw	%%mm2,		%%mm0\n"
-	"	psrlw	$8,		%%mm0\n" // mm0 = Y0 Y1 U0 V0
-
-	"	packuswb	%%mm7,	%%mm0\n"
-	"	movd	%%mm0,		%%eax\n"
-	
-	//store Y2, Y3
-	"	movw	%%ax,		(%%edi)\n"
-	
-	"	pop	%%edi\n"
-	"	pop	%%esi\n"
-	
-	"	lea	2(%%edi),	%%edi\n"
-	"	lea	8(%%esi),	%%esi\n"
 	"	sub	$2,		%%ecx\n"
-	"	jnz	.x\n"
+	"	lea	8(%%esi),	%%esi\n"
+	"	lea	2(%%edi),	%%edi\n"
+	"	jnz	.loopx2\n"
 	
 	"	mov	%8,	%%eax\n"
 	"	shl	$1,	%%eax\n"
@@ -326,13 +251,13 @@ void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int
 	
 	"	decl	%7\n"
 	"	decl	%7\n"
-	"	jnz	.y\n"
+	"	jnz	.loopy2\n"
 	
 	"	emms\n"
 	:
-	//   0       1       2        3        4        5        6       7       8           9            10          11          12          13
-	:"m"(Y), "m"(U), "m"(V), "m"(src), "m"(x0), "m"(y0), "m"(w), "m"(h), "m"(pitch), "m"(*pmm3), "m"(*pmm4), "m"(*pmm5), "m"(*pmm6), "m"(*pmm7)
-	:"memory", "eax", "edi", "esi", "ecx"
+	//   0       1       2        3        4        5        6       7       8            9
+	:"m"(Y), "m"(U), "m"(V), "m"(src), "m"(x0), "m"(y0), "m"(w), "m"(h), "m"(pitch), "m"(*data)
+	:"memory", "eax", "ecx", "edx", "esi", "edi"
 	);
 }
 
@@ -488,7 +413,7 @@ void yuv_benchmark(int benchmark)
 	int maxfps_yv12 = 0;
 	int timetorun;
 	timetorun = (benchmark?BENCH_LARGE_TICKS:BENCHTICKS);
-	printf("Benchmarking RGB-to-YUY2 conversion functions:\n");
+	printf("Benchmarking RGB-to-YV12 conversion functions:\n");
 	benchmark_function((void*)ConvertRGB2YV12_X86, USE_X86, "YV12_X86", maxfps_yv12, bestmethod_yv12, timetorun);
 	benchmark_function((void*)ConvertRGB2YV12_MMX2, USE_MMX2, "YV12_MMX2", maxfps_yv12, bestmethod_yv12, timetorun);
 	printf("Benchmarking RGB-to-YUY2 conversion functions:\n");

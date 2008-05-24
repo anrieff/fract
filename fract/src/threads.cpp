@@ -92,7 +92,9 @@ int system_get_processor_count(void)
 #include "threads.h"
 #include "asmconfig.h"
 #include <pthread.h>
+#ifdef _ARCH_PPC
 #include <bits/atomicity.h>
+#endif
 
 /**
  @class Mutex
