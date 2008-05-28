@@ -265,7 +265,8 @@ void yuv_benchmark(int benchmark)
 	timetorun = (benchmark?BENCH_LARGE_TICKS:BENCHTICKS);
 	printf("Benchmarking RGB-to-YV12 conversion functions:\n");
 	benchmark_function((void*)ConvertRGB2YV12_X86, USE_X86, "YV12_X86", maxfps_yv12, bestmethod_yv12, timetorun);
-	benchmark_function((void*)ConvertRGB2YV12_MMX2, USE_MMX2, "YV12_MMX2", maxfps_yv12, bestmethod_yv12, timetorun);
+	if (cpu.mmx2)
+		benchmark_function((void*)ConvertRGB2YV12_MMX2, USE_MMX2, "YV12_MMX2", maxfps_yv12, bestmethod_yv12, timetorun);
 	printf("Benchmarking RGB-to-YUY2 conversion functions:\n");
 	benchmark_function((void*)ConvertRGB2YUV_X86, USE_X86, "YUV_X86", maxfps, bestmethod_yuv, timetorun); task++;
 #ifdef USE_ASSEMBLY
