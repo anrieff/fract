@@ -380,7 +380,7 @@ void postframe_do(void)
 		surface_lock(p);
 		
 		prof_enter(PROF_MEMCPY);
-		memcpy(p->pixels, thebuffer, p->h*p->w*4);
+		surface_memcpy(p, thebuffer);
 		prof_leave(PROF_MEMCPY);
 		
 		surface_unlock(p);

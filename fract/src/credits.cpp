@@ -159,7 +159,7 @@ static void rescale(Uint8* dos, Uint32 *fb, int xr, int yr)
 static void display_it(SDL_Surface *s, Uint32 *fb)
 {
 	surface_lock(s);
-	memcpy(s->pixels, fb, s->h*s->w*4);
+	surface_memcpy(s, fb);
 	surface_unlock(s);
 	SDL_Flip(s);
 }

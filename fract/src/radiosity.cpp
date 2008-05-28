@@ -831,7 +831,7 @@ public:
 			if (y < yr && x < xr)
 				fbuffer[y * xr + x] = 0xaaaaaa;
 		}
-		memcpy(surface->pixels, fbuffer, xr*yr*4);
+		surface_memcpy(surface, fbuffer);
 		SDL_Flip(surface);
 #endif
 	}

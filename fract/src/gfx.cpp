@@ -80,6 +80,19 @@ void surface_unlock(SDL_Surface *screen)
     SDL_UnlockSurface(screen);
   }
 }
+
+void surface_memcpy(SDL_Surface *screen, Uint32 *framebuffer)
+{
+	if (screen->pitch == screen->w * 4) {
+		memcpy(screen->pixels, framebuffer, screen->w * screen->h * 4);
+	} else {
+		for (int i = 0; i < screen->h; i++)
+			memcpy(((Uint8*)screen->pixels) + i * screen->pitch,
+			       framebuffer + i * screen->w,
+			       screen->w * 4);
+	}
+}
+
 #endif
 
 int xres(void){
@@ -343,7 +356,7 @@ void intro_progress_init(SDL_Surface *p, const char * message)
 	       PROG_TEXT_COLOR, 1.0f, message);
 	intro.last = 0;
 	surface_lock(p);
-	memcpy(p->pixels, intro.buff, p->w * p->h * sizeof(Uint32));
+	surface_memcpy(p, intro.buff);
 	surface_unlock(p);
 	SDL_Flip(p);
 }
@@ -383,7 +396,7 @@ void intro_progress(SDL_Surface *p, double prog)
 		}
 	}
 	surface_lock(p);
-	memcpy(p->pixels, intro.buff, p->w * p->h * sizeof(Uint32));
+	surface_memcpy(p, intro.buff);
 	surface_unlock(p);
 	SDL_Flip(p);
 	intro.last = ex;

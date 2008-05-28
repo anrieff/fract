@@ -46,6 +46,7 @@ extern double PreSC[MAX_SPHERE_SIDES+1][MAX_SPHERE_SIDES+1][2];
 typedef Uint32 (*_blend_fn) (Uint32, Uint32, float);
 
 #ifdef ACTUALLYDISPLAY
+ void surface_memcpy(SDL_Surface *screen, Uint32 *framebuffer);
  void surface_lock(SDL_Surface *screen);
  void surface_unlock(SDL_Surface *screen);
  void paste_raw(SDL_Surface *p, const RawImg& a, int x, int y);

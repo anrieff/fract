@@ -604,7 +604,7 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	strcat(VersionString, Mod_Instruction_Set);
 	font0.printxy(screen, framebuffer, xres()-(4+font0.get_text_xlength(VersionString)), yres()-font0.h(), 0xffddcc, 0.750, VersionString);
 	surface_lock(screen);
-	memcpy(screen->pixels, framebuffer, screen->h*screen->w*4);
+	surface_memcpy(screen, framebuffer);
 	surface_unlock(screen);
 	SDL_Flip(screen);
 	while (!she) {
