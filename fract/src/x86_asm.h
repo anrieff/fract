@@ -3786,6 +3786,155 @@ void ConvertRGB2YUV_SSE(Uint32 *dest, Uint32 *src, size_t count)
 	__asm __volatile ("emms");
 }
 
+void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int y0, int w, int h, int pitch)
+{
+	assert(x0 % 2 == 0);
+	assert(y0 % 2 == 0);
+	assert(w % 4 == 0);
+	assert(h % 4 == 0);
+	assert(pitch % 4 == 0);
+	//
+	SSE_ALIGN(Sint16 data[36]) = {
+		SIM13, SIM13, SIM13, SIM13,
+		SIM12, SIM12, SIM12, SIM12,
+		SIM11, SIM11, SIM11, SIM11,
+		SIM23, SIM33,     0,     0,
+		SIM22, SIM32,     0,     0,
+		SIM21, SIM31,     0,     0,
+		 4096,  4096,  4096,  4096,
+		32768, 32768, 32786, 32786,
+	        0xffff, 0x00ff, 0xffff, 0x00ff
+	};
+	//
+	src += x0 + y0 * pitch;
+	Y += x0 + y0 * pitch;
+	U += (x0/2) + (y0/2) * pitch/2;
+	V += (x0/2) + (y0/2) * pitch/2;
+	__asm __volatile(
+	// -- init
+	"	mov	%3,		%%esi\n"
+	"	mov	%0,		%%edi\n"
+	"	movq	64%9,		%%mm6\n"
+	"	pxor	%%mm7,		%%mm7\n"
+	
+	".balign	16\n"
+	".loopy2:\n"
+	"	mov	%6,		%%ecx\n"
+	
+	".balign	16\n"
+	".loopx2:\n"
+	"	mov	%8,		%%eax\n"
+	"	pxor	%%mm7,		%%mm7\n"
+	"	movq	(%%esi),	%%mm0\n"
+	"	movq	(%%esi,%%eax,4),%%mm2\n"
+	"	pand	%%mm6,		%%mm0\n"
+	"	pand	%%mm6,		%%mm2\n"
+	"	pshufw	$0x0e,	%%mm0,	%%mm1\n"
+	"	pshufw	$0x0e,	%%mm2,	%%mm3\n"
+
+	"	punpcklbw	%%mm7,	%%mm0\n"
+	"	punpcklbw	%%mm7,	%%mm1\n"
+	"	punpcklbw	%%mm7,	%%mm2\n"
+	"	punpcklbw	%%mm7,	%%mm3\n"
+	
+	"	pshufw	$0xfc,	%%mm0,	%%mm4\n"
+	"	pshufw	$0xf3,	%%mm1,	%%mm5\n"
+	"	pshufw	$0xcf,	%%mm2,	%%mm7\n"
+	"	por	%%mm5,		%%mm4\n"
+	"	pshufw	$0x3f,	%%mm3,	%%mm5\n"
+	"	por	%%mm7,		%%mm4\n"
+	"	por	%%mm5,		%%mm4\n" // mm4 = b0 b1 b2 b3
+	
+	"	pshufw	$0xfd,	%%mm0,	%%mm5\n"
+	"	pshufw	$0xf7,	%%mm1,	%%mm7\n"
+	"	por	%%mm7,		%%mm5\n"
+	"	pshufw	$0xdf,	%%mm2,	%%mm7\n"
+	"	por	%%mm7,		%%mm5\n"
+	"	pshufw	$0x7f,	%%mm3,	%%mm7\n"
+	"	por	%%mm7,		%%mm5\n" // mm5 = g0 g1 g2 g3
+	
+	"	pshufw	$0xfe,	%%mm0,	%%mm0\n"
+	"	pshufw	$0xfb,	%%mm1,	%%mm1\n"
+	"	pshufw	$0xef,	%%mm2,	%%mm2\n"
+	"	pshufw	$0xbf,	%%mm3,	%%mm3\n"
+	"	por	%%mm0,		%%mm1\n"
+	"	por	%%mm2,		%%mm3\n"
+	"	por	%%mm1,		%%mm3\n" // mm3 = r0 r1 r2 r3
+	
+	"	pshufw	$0,	%%mm4,	%%mm0\n" // mm0 = b0 b0 b0 b0
+	"	pshufw	$0,	%%mm5,	%%mm1\n" // mm1 = g0 g0 g0 g0
+	"	pshufw	$0,	%%mm3,	%%mm2\n" // mm2 = r0 r0 r0 r0
+	"	pxor	%%mm7,		%%mm7\n"
+
+	"	pmullw	%9,		%%mm4\n" // mm4 *= M13 M13 M13 M13
+	"	pmullw	8%9,		%%mm5\n" // mm5 *= M12 M12 M12 M12
+	"	pmullw	16%9,		%%mm3\n" // mm3 *= M11 M11 M11 M11
+
+	"	pmullw	24%9,		%%mm0\n" // mm0 *= M23 M33   0   0
+	"	pmullw	32%9,		%%mm1\n" // mm1 *= M22 M32   0   0
+	"	pmullw	40%9,		%%mm2\n" // mm2 *= M21 M31   0   0
+	
+	"	paddw	48%9,		%%mm4\n" // mm4 +=  16  16  16  16
+	"	paddw	56%9,		%%mm0\n" // mm0 += 128 128 128 128
+	"	paddw	%%mm3,		%%mm5\n"
+	"	paddw	%%mm1,		%%mm2\n"
+	"	paddw	%%mm5,		%%mm4\n"
+	"	paddw	%%mm2,		%%mm0\n"
+	"	psrlw	$8,		%%mm4\n" // mm4 = Y0 Y1 Y2 Y3
+	"	psrlw	$8,		%%mm0\n" // mm0 = U0 V0  0  0
+	
+	"	packuswb	%%mm7,	%%mm4\n"
+	"	packuswb	%%mm7,	%%mm0\n"
+	"	movd	%%mm4,		%%edx\n"
+	
+	//store Y0, Y1, Y2, Y3, U0, V0
+	"	movw	%%dx,		(%%edi)\n"
+	"	shr	$16,		%%edx\n"
+	"	movw	%%dx,		(%%edi,%%eax)\n"
+	
+	"	push	%%edi\n"
+	"	movd	%%mm0,		%%eax\n"
+	"	mov	%1,		%%edi\n"
+	"	movb	%%al,		(%%edi)\n"
+	"	incl	%1\n"
+	"	mov	%2,		%%edi\n"
+	"	movb	%%ah,		(%%edi)\n"
+	"	incl	%2\n"
+	"	pop	%%edi\n"
+	
+	
+	"	sub	$2,		%%ecx\n"
+	"	lea	8(%%esi),	%%esi\n"
+	"	lea	2(%%edi),	%%edi\n"
+	"	jnz	.loopx2\n"
+	
+	"	mov	%8,	%%eax\n"
+	"	shl	$1,	%%eax\n"
+	"	sub	%6,	%%eax\n"
+	"	lea	(%%edi,	%%eax),		%%edi\n"
+	"	lea	(%%esi,	%%eax, 4),	%%esi\n"
+	
+	"	sub	%8,	%%eax\n"
+	"	shr	$1,	%%eax\n"
+	"	mov	%1,	%%ecx\n"
+	"	sub	%%eax,	%%ecx\n"
+	"	mov	%%ecx,	%1\n"
+	"	mov	%2,	%%ecx\n"
+	"	sub	%%eax,	%%ecx\n"
+	"	mov	%%ecx,	%2\n"
+	
+	"	decl	%7\n"
+	"	decl	%7\n"
+	"	jnz	.loopy2\n"
+	
+	"	emms\n"
+	:
+	//   0       1       2        3        4        5        6       7       8            9
+	:"m"(Y), "m"(U), "m"(V), "m"(src), "m"(x0), "m"(y0), "m"(w), "m"(h), "m"(pitch), "m"(*data)
+	:"memory", "eax", "ecx", "edx", "esi", "edi"
+	);
+}
+
 #endif
 
 #ifdef rgbhacks1
@@ -7799,6 +7948,153 @@ rgbsseloop:
 	}
 	__asm {
 		emms
+	}
+}
+
+void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int y0, int w, int h, int pitch)
+{
+	assert(x0 % 2 == 0);
+	assert(y0 % 2 == 0);
+	assert(w % 4 == 0);
+	assert(h % 4 == 0);
+	assert(pitch % 4 == 0);
+	//
+	SSE_ALIGN(Sint16 data[36]) = {
+		SIM13, SIM13, SIM13, SIM13,
+		SIM12, SIM12, SIM12, SIM12,
+		SIM11, SIM11, SIM11, SIM11,
+		SIM23, SIM33,     0,     0,
+		SIM22, SIM32,     0,     0,
+		SIM21, SIM31,     0,     0,
+		 4096,  4096,  4096,  4096,
+		0x8000, 0x8000, 0x8000, 0x8000,
+	    0xffff, 0x00ff, 0xffff, 0x00ff
+	};
+	//
+	src += x0 + y0 * pitch;
+	Y += x0 + y0 * pitch;
+	U += (x0/2) + (y0/2) * pitch/2;
+	V += (x0/2) + (y0/2) * pitch/2;
+	__asm {
+
+	// -- init
+		mov		esi,		src
+		mov		edi,		Y
+		movq		mm6,		[data + 64]
+		pxor		mm7,		mm7
+	
+	ALIGN	16
+	loopy2:
+		mov		ecx,		w
+	
+	ALIGN	16
+	loopx2:
+		mov		eax,		pitch
+		pxor		mm7,		mm7
+		movq		mm0,		[esi]
+		movq		mm2,		[esi + eax*4]
+		pand		mm0,		mm6
+		pand		mm2,		mm6
+		pshufw		mm1,		mm0,		0x0e
+		pshufw		mm3,		mm2,		0x0e
+
+		punpcklbw		mm0,		mm7
+		punpcklbw		mm1,		mm7
+		punpcklbw		mm2,		mm7
+		punpcklbw		mm3,		mm7
+	
+		pshufw		mm4,		mm0,		0xfc
+		pshufw		mm5,		mm1,		0xf3
+		pshufw		mm7,		mm2,		0xcf
+		por		mm4,		mm5
+		pshufw		mm5,		mm3,		0x3f
+		por		mm4,		mm7
+		por		mm4,		mm5 // mm4 = b0 b1 b2 b3
+	
+		pshufw		mm5,		mm0,		0xfd
+		pshufw		mm7,		mm1,		0xf7
+		por		mm5,		mm7
+		pshufw		mm7,		mm2,		0xdf
+		por		mm5,		mm7
+		pshufw		mm7,		mm3,		0x7f
+		por		mm5,		mm7 // mm5 = g0 g1 g2 g3
+	
+		pshufw		mm0,		mm0,		0xfe
+		pshufw		mm1,		mm1,		0xfb
+		pshufw		mm2,		mm2,		0xef
+		pshufw		mm3,		mm3,		0xbf
+		por		mm1,		mm0
+		por		mm3,		mm2
+		por		mm3,		mm1 // mm3 = r0 r1 r2 r3
+	
+		pshufw		mm0,		mm4,		0 // mm0 = b0 b0 b0 b0
+		pshufw		mm1,		mm5,		0 // mm1 = g0 g0 g0 g0
+		pshufw		mm2,		mm3,		0 // mm2 = r0 r0 r0 r0
+		pxor		mm7,		mm7
+
+		pmullw		mm4,		[data] // mm4 *= M13 M13 M13 M13
+		pmullw		mm5,		[data + 8] // mm5 *= M12 M12 M12 M12
+		pmullw		mm3,		[data + 16] // mm3 *= M11 M11 M11 M11
+
+		pmullw		mm0,		[data + 24] // mm0 *= M23 M33   0   0
+		pmullw		mm1,		[data + 32] // mm1 *= M22 M32   0   0
+		pmullw		mm2,		[data + 40] // mm2 *= M21 M31   0   0
+	
+		paddw		mm4,		[data + 48] // mm4 +=  16  16  16  16
+		paddw		mm0,		[data + 56] // mm0 += 128 128 128 128
+		paddw		mm5,		mm3
+		paddw		mm2,		mm1
+		paddw		mm4,		mm5
+		paddw		mm0,		mm2
+		psrlw		mm4,		8 // mm4 = Y0 Y1 Y2 Y3
+		psrlw		mm0,		8 // mm0 = U0 V0  0  0
+	
+		packuswb		mm4,		mm7
+		packuswb		mm0,		mm7
+		movd		edx,		mm4
+	
+	//store Y0, Y1, Y2, Y3, U0, V0
+		mov		[edi],		dx
+		shr		edx,		16
+		mov		[edi + eax],		dx
+	
+		push		edi
+		movd		eax,		mm0
+		mov		edi,		U
+		mov		[edi],		al
+		inc		U
+		mov		edi,		V
+		mov		[edi],		ah
+		inc		V
+		pop		edi
+	
+	
+		sub		ecx,		2
+		lea		esi,		[esi + 8]
+		lea		edi,		[edi + 2]
+		jnz		loopx2
+	
+		mov		eax,		pitch
+		shl		eax,		1
+		sub		eax,		w
+		lea		edi,		[edi + eax]
+		lea		esi,		[esi + eax*4]
+	
+		sub		eax,		pitch
+		shr		eax,		1
+		mov		ecx,		U
+		sub		ecx,		eax
+		mov		U,		ecx
+		mov		ecx,		V
+		sub		ecx,		eax
+		mov		V,		ecx
+	
+		dec		h
+		dec		h
+		jnz		loopy2
+	
+		emms
+	
 	}
 }
 #endif

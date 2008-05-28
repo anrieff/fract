@@ -23,8 +23,7 @@
 // benchmark each function 250 milliseconds
 #define BENCHTICKS 250
 // in benchmark mode, run all functions for a minute unconditionally
-// FIXME: restore to 60000.
-#define BENCH_LARGE_TICKS 1000
+#define BENCH_LARGE_TICKS 60000
 
 /* I'm using the following formula for RGB to YUV colorspace convertion:
 
