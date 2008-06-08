@@ -3786,6 +3786,7 @@ void ConvertRGB2YUV_SSE(Uint32 *dest, Uint32 *src, size_t count)
 	__asm __volatile ("emms");
 }
 
+void ConvertRGB2YV12_MMX2(Uint8*, Uint8*, Uint8*, Uint32*, int, int, int, int, int) __attribute__((noinline));
 void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int y0, int w, int h, int pitch)
 {
 	assert(x0 % 2 == 0);
@@ -3934,8 +3935,7 @@ void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int
 	:"memory", "eax", "ecx", "edx", "esi", "edi"
 	);
 }
-
-#endif
+#endif //rgb2yuv_asm
 
 #ifdef rgbhacks1
 /***************************************************************
