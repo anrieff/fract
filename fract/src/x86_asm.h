@@ -3818,11 +3818,11 @@ void ConvertRGB2YV12_MMX2(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *src, int x0, int
 	"	movq	64%9,		%%mm6\n"
 	"	pxor	%%mm7,		%%mm7\n"
 	
-	".balign	16\n"
+	XALIGN
 	".loopy2:\n"
 	"	mov	%6,		%%ecx\n"
 	
-	".balign	16\n"
+	XALIGN
 	".loopx2:\n"
 	"	mov	%8,		%%eax\n"
 	"	pxor	%%mm7,		%%mm7\n"
