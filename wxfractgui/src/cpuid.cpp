@@ -183,7 +183,7 @@ struct SimulatorInfo {
  * <cache_size_in_KB>
  * <cpu_brand_string>
 */
-bool simulator_readinfo(const char *fn)
+static bool simulator_readinfo(const char *fn)
 {
 	FILE *f = fopen(fn, "rt");
 	if (!f) return false;
@@ -225,7 +225,7 @@ const char *cpu_brand_string(void)
 	return &reso[i];
 }
 
-void fill_cache_info(bool *results)
+static void fill_cache_info(bool *results)
 {
 	for (int i = 0; i < 256; i++) results[i] = false;
 	int r[4];
@@ -344,18 +344,44 @@ static code_t get_cpu_code_phase1(int vendor)
 	}
 }
 
+static bool fms_matches(int check_family, int check_model, int check_stepping)
+{
+		int res[4];
+		CPUID(1, res);
+		int r = res[0];
+		int stepping    = r & 0xf; r >>= 4;
+		int model       = r & 0xf; r >>= 4;
+		int family      = r & 0xf; r >>= 8;
+		if (check_family != family) return false;
+		if (check_model != -1 && check_model != model) return false;
+		if (check_stepping != -1 && check_stepping != stepping) return false;
+		return true;
+}
+
+static bool is_xeon_mp(void)
+{
+	// Explicit check for processor; used for the corner case 0x49:
+	// on Xeon MP (family 0xf, model 0x6) -- cache-id 0x49 means: 4MB L3
+	// on other CPUs (conroe et al) -- cache-id 0x49 means: 4MB L2
+	return fms_matches(0xf, 0x6, -1);
+}
+
 int get_cache_size(void)
 {
 	int vendor = cpu_vendor();
 	if (vendor == VENDOR_INTEL) {
 		bool info[256];
 		fill_cache_info(info);
-		if (info[0x41] || info[0x79])								return 128;
-		if (info[0x3c] || info[0x42] || info[0x7a] || info[0x7e] || info[0x82])			return 256;
-		if (info[0x3e] || info[0x43] || info[0x7b] || info[0x7f] || info[0x83] || info[0x86])	return 512;
-		if (info[0x44] || info[0x78] || info[0x7c] || info[0x84] || info[0x87])			return 1024;
-		if (info[0x45] || info[0x85] || info[0x88])						return 2048;
-		if (info[0x40])										return 0;
+		if (info[0x39] || info[0x3b] || info[0x41] || info[0x79]) return 128;
+		if (info[0x3a]) return 192;
+		if (info[0x3c] || info[0x42] || info[0x7a] || info[0x7e] || info[0x82]) return 256;
+		if (info[0x3d]) return 384;
+		if (info[0x3e] || info[0x43] || info[0x7b] || info[0x7f] || info[0x83] || info[0x86]) return 512;
+		if (info[0x44] || info[0x78] || info[0x7c] || info[0x84] || info[0x87]) return 1024;
+		if (info[0x45] || info[0x7d] || info[0x85] || info[0x88]) return 2048;
+		if (info[0x49] && !is_xeon_mp()) return 4096;
+		if (info[0x4e]) return 6144;
+		if (info[0x40])	return 0;
 	}
 	if (vendor == VENDOR_AMD) {
 		int r[4];
@@ -368,13 +394,14 @@ int get_cache_size(void)
 	return -1;
 }
 
-bool has_L3_cache(void)
+static bool has_L3_cache(void)
 {
 	bool info[256];
 	fill_cache_info(info);
-	int all[] = { 0x22, 0x23, 0x25, 0x29, 0x46, 0x47, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x88, 0x89, 0x8a, 0x8d };
+	int all[] = { 0x22, 0x23, 0x25, 0x29, 0x46, 0x47, 0x4a, 0x4b, 0x4c, 0x4d, 0x88, 0x89, 0x8a, 0x8d };
 	for (unsigned i = 0; i < sizeof(all)/sizeof(all[0]); i++)
 		if (info[all[i]]) return true;
+	if (all[0x49] && is_xeon_mp()) return true;
 	return false;
 }
 
