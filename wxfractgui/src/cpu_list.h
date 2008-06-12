@@ -81,6 +81,8 @@ const char *cpu_list[] = {
 		"A64 Sempron (128K)",
 		"Turion 64 (512K)",
 		"Turion 64 (1024K)",
+		"Turion 64 X2 (512K)",
+		"Turion 64 X2 (1024K)",
 		"Athlon 64 X2 (512K)",
 		"Athlon 64 X2 (1024K)",
 		"Athlon 64 FX",

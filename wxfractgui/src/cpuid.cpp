@@ -323,7 +323,12 @@ static code_t get_cpu_code_phase1(int vendor)
 				if (strstr(brand, "Dual Core")) return AX2_0;
 				return A64_0;
 			}
-			if (strstr(brand, "Turion(tm)")) return T64_0;
+			if (strstr(brand, "Turion(tm)")) {
+				if (strstr(brand, "X2"))
+					return T64X2_0;
+				else
+					return T64_0;
+			}
 			if (strstr(brand, "Sempron(tm)")) return S64_0;
 			
 			if (strstr(brand, "mobile") || strstr(brand, "Mobile")) {
@@ -471,6 +476,7 @@ static code_t get_cpu_code_phase2(int vendor, code_t code)
 	if (code == A64_0 && cache_size > 512) code = A64_1; // recognize A64s with > 512K cache
 	if (code == S64_0 && cache_size > 128) code = S64_1; // recognize A64 semprons with > 128K cache
 	if (code == T64_0 && cache_size > 512) code = T64_1; // recognize Turions with > 512K cache
+	if (code == T64X2_0 && cache_size > 512) code = T64X2_1; // recognize Turion X2s with > 512K cache
 	if (code == AX2_0 && cache_size > 512) code = AX2_1; // recognize A64 X2s with > 512K cache
 	
 	return code;

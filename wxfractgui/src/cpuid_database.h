@@ -104,6 +104,8 @@ enum code_t {
    A64FX, /*                                   Athlon 64 FX                   */
    T64_0, /*                                   Turion 64 (512K)               */
    T64_1, /*                                   Turion 64 (1024K)              */
+   T64X2_0, /*                                 Turion 64 X2 (512K)            */
+   T64X2_1, /*                                 Turion 64 X2 (1024K)           */
    S64_0, /*                                   Sempron 64 (128K)              */
    S64_1, /*                                   Sempron 64 (256K)              */
 };
@@ -326,6 +328,8 @@ const MatchEntry cpudb_amd[] = {
 	{ 15, -1, -1,  0,  0, A64FX, "Athlon 64 FX" },
 	{ 15, -1, -1,  0,  0, T64_0, "Turion 64 (512K)" },
 	{ 15, -1, -1,  0,  0, T64_1, "Turion 64 (1024K)" },
+	{ 15, -1, -1,  0,  0, T64X2_0, "Turion 64 X2 (512K)" },
+	{ 15, -1, -1,  0,  0, T64X2_1, "Turion 64 X2 (1024K)" },
 	{ 15, -1, -1,  0,  0, S64_0, "A64 Sempron (128K)" },
 	{ 15, -1, -1,  0,  0, S64_1, "A64 Sempron (256K)" },
 	
