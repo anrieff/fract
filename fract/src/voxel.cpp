@@ -37,6 +37,7 @@
 #include "light.h"
 #include "shaders.h"
 #include "physics.h"
+#include "saveload.h"
 
 //#define BENCH
 
@@ -1354,7 +1355,7 @@ public:
 
 	bool is_visible(const Vector & camera, Vector w[3])
 	{
-		thistime = bTime();
+		thistime = animation_time();
 		if (bpsize <= 0) return false;
 		
 		for (int i = 0; i < bpsize; i++) {

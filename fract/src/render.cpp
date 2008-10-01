@@ -46,6 +46,7 @@
 #include "scene.h"
 #include "shaders.h"
 #include "shadows.h"
+#include "saveload.h"
 #include "sor.h"
 #include "sphere.h"
 #include "threads.h"
@@ -475,7 +476,7 @@ void preframe_do(Uint32 *ptr, const Vector& lw, bool do_projection)
 	// preframe things -----------------------------------
 	prof_enter(PROF_SPHERE_THINGS);
 	if (CVars::animation) {
-		btm = bTime();
+		btm = animation_time();
 		if (stereo_mode <= STEREO_MODE_LEFT) {
 			if (cd_frames && vframe % cd_frames == 0) { // first frame
 				for (i=0;i<spherecount;i++) {
@@ -505,14 +506,14 @@ void preframe_do(Uint32 *ptr, const Vector& lw, bool do_projection)
 	prof_enter(PROF_PHYSICS);
 	if (CVars::animation) {
 		physics_preprocess_hooks(btm);
-		if (CVars::physics && (SceneType == TIME_BASED || developer) && stereo_mode <= STEREO_MODE_LEFT) { // should we process physics?
+		if (CVars::physics && stereo_mode <= STEREO_MODE_LEFT) { // should we process physics?
 			camera_moved = 1;
 			for (i=0;i<spherecount;i++)
 				apply_gravity(sp+i, btm); // first of all, Gravity
 			for (i=0;i<spherecount;i++)
 				apply_air(sp+i, btm, APPLY_ALL, 1);    // air resistance
 			if (CVars::collisions)	{		 // do we process collisions?
-			/* The algorythm is simple:
+			/* The algorithm is simple:
 				We iterate thru all collideable spheres and check for collision.
 				If a collision occurs, we update vectors (and other data), and set the collided balls'
 				time to the moment of the collision. The balls are ready to collide again within the same

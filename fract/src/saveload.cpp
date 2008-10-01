@@ -853,6 +853,14 @@ bool load_frame(int frame_no, double time, int mySceneType, int loopmode, int& l
 	return false;
 }
 
+double animation_time(void)
+{
+	if (SceneType == FRAME_BASED)
+		return play_time;
+	else
+		return bTime();
+}
+
 void saveload_close(void)
 {
 #ifdef RECORD

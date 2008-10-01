@@ -62,7 +62,7 @@ void generate_coords(void);
 void record_do(double time);
 bool load_frame(int frame_no, double time, int mySceneType, int loopmode, int& loops_remaining);
 void saveload_close(void);
-
+double animation_time(void);
 
 
 /*EOF*/
