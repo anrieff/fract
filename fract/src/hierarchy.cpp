@@ -128,7 +128,7 @@ float Hierarchy::ray_intersect(const Vector & orig, const Vector & proj, Vector 
 	
 	if (xz_length < 1e-9) {
 		crossing = orig;
-		double down = field[((((int) orig[2]) * size) + (int) orig[0])*s];
+		double down = field[((((int) orig[2]) * size) + (int) orig[0])];
 		crossing[1] = down;
 		return fabs(orig[1] - down);
 	}
