@@ -389,7 +389,7 @@ void intro_progress(SDL_Surface *p, double prog)
 	for (int i = intro.last + 1; i <= ex; i++) {
 		Uint32 color = (i/16)%2 ? PROG_INNER_COLOR1 : PROG_INNER_COLOR2;
 		int _0 = (i == 1 || i == intro.width - 2);
-		for (int j = intro.y + 1 + _0; j < intro.y + intro.height - _0; j++) {
+		for (int j = intro.y + 1 + _0; j < intro.y + intro.height - 1 - _0; j++) {
 			Uint32 old = get_pixeld(pix, intro.x + i, j);
 			float rel_intensity = intensity(old) / (float)intensity(PROG_TEXT_COLOR);
 			draw_pixeld(pix, intro.x + i, j, multiplycolorf(color, 1 - rel_intensity));
