@@ -588,7 +588,7 @@ public:
 				}
 			}
 			all = (n-1) * (n-1) * 2;
-			char *names[] = { "face_indices", "normal_indices", "uv_indices" };
+			const char *names[] = { "face_indices", "normal_indices", "uv_indices" };
 			for (int type = 0; type < 3; type++) {
 				fprintf(f, "}\n%s {\n%d\n", names[type], all);
 				for (int i = 0; i < n - 1; i++) {

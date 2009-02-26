@@ -54,3 +54,4 @@ DECLARE_VARIABLE(bool,   fisheye     , false, "Fisheye lens emulation in photomo
 DECLARE_VARIABLE(bool,   shut_down   , false, "Screenshot & exit afther next frame");
 DECLARE_VARIABLE(int ,   bucket_size , 0    , "Setup static bucket size");
 DECLARE_VARIABLE(int ,   dof_blades  , 0    , "# of diaphragm blades; 0 to disable");
+DECLARE_VARIABLE(int ,   bucket_path , 0    , "Bucket rendering order (0 - lin., 1 - circular)");

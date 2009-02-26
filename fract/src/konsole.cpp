@@ -49,6 +49,8 @@ CommandStruct allcommands[] = {
 	CMD(where),
 	CMD(screenshot),
 	CMD(alias),
+	CMD(rt),
+	CMD(ncpu),
 };
 
 int cmdcount(void)

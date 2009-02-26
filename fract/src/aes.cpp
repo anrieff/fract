@@ -1135,7 +1135,7 @@ void rijndaelDecrypt(const u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 ct[16], u8 p
 /****************************************************************************/
 
 
-int makeKey(keyInstance *key, BYTE direction, int keyLen, char *keyMaterial) {
+int makeKey(keyInstance *key, BYTE direction, int keyLen, const char *keyMaterial) {
 	int i;
 	char *keyMat;
 	u8 cipherKey[MAXKB];

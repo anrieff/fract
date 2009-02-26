@@ -31,7 +31,7 @@ private:
 
 extern CPU cpu;
 
-void set_cpus(int new_count);
+void set_cpus(int new_count, char* error_msg = NULL);
 void print_cpu_info(void);
 
 #endif // __CPUID_H__

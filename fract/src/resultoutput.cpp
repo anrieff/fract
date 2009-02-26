@@ -43,7 +43,7 @@ bool are_args_ok(void)
 	return args_ok;
 }
 
-static char *mdfilelist[] = {
+static const char *mdfilelist[] = {
 	"data/3pyramid.obj",
 	"data/benchmark.fsv",
 	"data/oldbench.fsv",

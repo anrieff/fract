@@ -147,7 +147,7 @@ void ConvertRGB2YV12(Uint8 *Y, Uint8 *U, Uint8 *V, Uint32 *rgb, int x0, int y0, 
 // Benchmarks a RGB-to-YUY2 conversion function.
 // Exact results may depend on the test data (fakeRGBBuffer) and the BENCHSIZE
 // random data is a killer for ConvertRGB2YUV_MEM, as it performs about 6-10 times worse, but works fine on real data.
-void benchmark_function(void *fu, int code, char *method, int &maxfps, int &bestmethod, Uint32 timetorun)
+void benchmark_function(void *fu, int code, const char *method, int &maxfps, int &bestmethod, Uint32 timetorun)
 {
 	int cfps, frames=0;
 	Uint32 ticks;

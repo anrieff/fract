@@ -23,7 +23,7 @@
 cmdinfo *cmdroot = NULL;
 char cmdnullterm[2] = "0";
 
-void option_add(char *argv)
+void option_add(const char *argv)
 {
 	unsigned int i, found;
 	static cmdinfo *p=NULL, *q;
@@ -68,7 +68,7 @@ void initcmdline(int argc, char * argv[])
 // int option_exists
 //    return 1 if the given string is found within the command line parameters
 //    returns 0 otherwise
-int option_exists(char *opt)
+int option_exists(const char *opt)
 {cmdinfo *p;
  p = cmdroot;
  while (p) {
@@ -81,7 +81,7 @@ int option_exists(char *opt)
 
 // searches for commandline parameters in the  --option=VALUE style. 
 //If everything is in order it returns a pointer to that VALUE
-char *option_value_string(char *opt)
+char *option_value_string(const char *opt)
 {cmdinfo *p;
  p = cmdroot;
  while (p) {
@@ -96,7 +96,7 @@ char *option_value_string(char *opt)
 }
 
 // same as above, except that the value is transformed to int
-int option_value_int(char *opt)
+int option_value_int(const char *opt)
 {int z;
  if (!sscanf(option_value_string(opt),"%d",&z))
  	z = 0;
@@ -104,7 +104,7 @@ int option_value_int(char *opt)
 }
 
 //... and the float version
-float option_value_float(char *opt)
+float option_value_float(const char *opt)
 {float f;
  if (!sscanf(option_value_string(opt), "%f", &f))
  	f = 0.0;

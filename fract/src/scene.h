@@ -61,6 +61,14 @@ int scene_init(void);
 void scene_close(void);
 void set_default_resolution(int, int);
 
+// Log the current frame rendering time to some small static array
+void log_frame_time(double frameTime);
+
+// get the recorded frame times from lgo_frame_time.
+// Write results in times[], which is arr_size entries long.
+// returns the number of records written.
+int get_frame_log_times(double times[], int arr_size);
+
 #ifdef ACTUALLYDISPLAY
 void scene_render_single_frame(SDL_Surface *p, SDL_Overlay *ov);
 SDL_Surface *get_screen(void);

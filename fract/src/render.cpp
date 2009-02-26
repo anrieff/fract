@@ -1572,29 +1572,41 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			int allbucks =  bxr * byr;
 			//
 			perm = new int[allbucks];
-			int *F = new int[bxr * byr];
-			memset(F, 0, sizeof(int) * bxr * byr);
-			int x = -1, y = 0;
-			int dirs[4][2] = {{+1,0},{0,+1},{-1,0},{0,-1}};
-			int dir = 0;
-			int done = 0;
-			while (done < allbucks) {
-				int nx, ny;
-				dir--;
-				do {
-					dir++;
-					dir %= 4;
-					nx = x + dirs[dir][0];
-					ny = y + dirs[dir][1];
-				} while (nx < 0 || ny < 0 || nx >= bxr || ny >= byr || F[nx + ny * bxr]);
-				F[nx + ny * bxr] = 1;
-				x = nx;
-				y = ny;
-				perm[done] = x + ny * bxr;
-				done++;
+			switch (CVars::bucket_path) {
+				default:
+				case 0:
+				{
+					for (int i = 0; i < allbucks; i++) perm[i] = i;
+					break;
+				}
+				case 1:
+				{
+					int *F = new int[bxr * byr];
+					memset(F, 0, sizeof(int) * bxr * byr);
+					int x = -1, y = 0;
+					int dirs[4][2] = {{+1,0},{0,+1},{-1,0},{0,-1}};
+					int dir = 0;
+					int done = 0;
+					while (done < allbucks) {
+						int nx, ny;
+						dir--;
+						do {
+							dir++;
+							dir %= 4;
+							nx = x + dirs[dir][0];
+							ny = y + dirs[dir][1];
+						} while (nx < 0 || ny < 0 || nx >= bxr || ny >= byr || F[nx + ny * bxr]);
+						F[nx + ny * bxr] = 1;
+						x = nx;
+						y = ny;
+						perm[done] = x + ny * bxr;
+						done++;
+					}
+					//
+					delete [] F;
+					break;
+					}
 			}
-			//
-			delete [] F;
 		}
 	} mt;
 
@@ -1612,7 +1624,12 @@ static void render_single_frame_photorealistic(void *p, void *v)
 	/* setup focal distance */
 	mt.setup_focal_dist(cur, mt.tt + mt.ti*(mt.xr/2.0) + mt.tti*(mt.yr/2.0) - cur);
 	
+	double clk0 = bTime();
 	thread_pool.run(&mt, cpu.count);
+	if (!mt.my_exit) {
+		clk0 = bTime() - clk0;
+		log_frame_time(clk0);
+	}
 }
 
 /****************************************************************

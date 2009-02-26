@@ -146,6 +146,27 @@ void scene_render_single_frame(void)
 }
 #endif
 
+static Array<double> logged;
+
+void log_frame_time(double frame_time)
+{
+	if (logged.size() == 5) {
+		for (int i = 0; i < 4; i++)
+			logged[i] = logged[i+1];
+		logged[4] = frame_time;
+	} else {
+		logged.add(frame_time);
+	}
+}
+
+int get_frame_log_times(double times[], int arr_size)
+{
+	int n = min(logged.size(), arr_size);
+	for (int i = 0; i < n; i++) times[i] = logged[i];
+	return n;
+}
+
+
 /** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * @class Scene                                                               *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -659,3 +680,5 @@ Uint32 * OutroCapturer::get_image(void)
 	if (!image) return NULL;
 	return (Uint32*)image->get_data();
 }
+
+

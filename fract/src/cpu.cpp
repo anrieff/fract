@@ -130,16 +130,23 @@ run_rgbhacks1(int & hassse, int & hasmmx, int & hasmmx2, int & hassse2)
 #include "x86_asm.h"
 #undef rgbhacks2
 
-void set_cpus(int new_count)
+void set_cpus(int new_count, char* error_msg)
 {
+	char errmsg[100];
 	if (new_count < 1) {
-		printf("Invalid processor count: %d\n", new_count);
+		sprintf(errmsg, "Invalid processor count: %d\n", new_count);
 		new_count = 1;
 	} else if (new_count > MAX_CPU_COUNT) {
-		printf("Sorry. Maximum allowable CPU count is %d\n", MAX_CPU_COUNT);
+		sprintf(errmsg, "Sorry. Maximum allowable CPU count is %d\n", MAX_CPU_COUNT);
 		new_count = MAX_CPU_COUNT;
+	} else {
+		cpu.count = new_count;
+		strcpy(errmsg, "");
 	}
-	cpu.count = new_count;
+	if (error_msg)
+		strcpy(error_msg, errmsg);
+	else
+		printf("%s", errmsg);
 }
 
 void print_cpu_info(void)

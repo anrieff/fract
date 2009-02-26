@@ -19,6 +19,7 @@
 #include "konsole.h"
 #include "cpu.h"
 #include "threads.h"
+#include "scene.h"
 #include "string_array.h"
 #ifdef _WIN32
 #include <malloc.h>
@@ -43,6 +44,7 @@ const char *cmd_quickhelp[] = {
 	"where|prints the current camera location",
 	"screenshot|takes a screenshot",
 	"alias|create a new konsole command",
+	"rendertimes|show render times of frames",
 	""
 };
 
@@ -409,5 +411,29 @@ int cmd_alias(int argc, char **argv)
 		strcat(a.statement, argv[i]);
 	}
 	konsole.add_alias(a);
+	return 0;
+}
+
+int cmd_rt(int argc, char **argv)
+{
+	double x[10];
+	int n = get_frame_log_times(x, 10);
+	for (int i = 0; i < n; i++) konsole.write("%.3lfs.\n", x[i]);
+	return 0;
+}
+
+int cmd_ncpu(int argc, char **argv)
+{
+	int x;
+	if (argc != 2 || 1 != sscanf(argv[1], "%d", &x)) {
+		konsole.write("Usage: ncpu <number-of-cpus>\n");
+		return -1;
+	}
+	char errmsg[100];
+	set_cpus(x, errmsg);
+	if (errmsg[0]) {
+		konsole.write("%s", errmsg);
+		return -1;
+	}
 	return 0;
 }
