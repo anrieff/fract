@@ -44,8 +44,14 @@ const char *cmd_quickhelp[] = {
 	"where|prints the current camera location",
 	"screenshot|takes a screenshot",
 	"alias|create a new konsole command",
-	"rendertimes|show render times of frames",
-	""
+	"rt|show render times of frames",
+	"ncpu|change the number of cpus",
+	"exec|execute a batchfile",
+	"dumpconsole|save console contents to `konsole.txt'",
+	"nextframe|set a callback",
+	"setcamera|set the camera position",
+	
+	"",
 };
 
 const char *cmd_detailedhelp[] = {
@@ -98,6 +104,22 @@ const char *cmd_detailedhelp[] = {
 			"alias zoom_in  'fov 0.3; bind z zoom_out'\n"
 			"alias zoom_out 'fov 1.0; bind z zoom_in'\n"
 			"bind z zoom_in\n",
+	"ncpu|"
+			"Usage: ncpu <number-of-cpus>\n"
+			"Changes the number of CPUs to use for rendering\n",
+	"exec|"
+			"Usage: exec <batchfile>\n"
+			"Executes commands from a batch file\n"
+			"The given batch file is a text file, containing one command/cvar per line\n"
+			"Lines are executed consecutively, as if typed to the console\n",
+	"nextframe|"
+			"Usage: nextframe <frames-to-wait> <command>\n"
+			"Places a callback: when <frames-to-wait> frames after the current\n"
+			"have been rendered, execute <command>\n",
+			"Works for photomode frames only!\n",
+	"setcamera|"
+			"Usage: setcamera X Y Z\n",
+	
 	"",
 };
 
@@ -435,5 +457,68 @@ int cmd_ncpu(int argc, char **argv)
 		konsole.write("%s", errmsg);
 		return -1;
 	}
+	return 0;
+}
+
+int cmd_exec(int argc, char **argv)
+{
+	if (argc != 2) {
+		konsole.write("Usage: exec <batchfile>\n");
+		return -1;
+	}
+	FILE *f = fopen(argv[1], "rt");
+	if (!f) {
+		konsole.write("Not a valid batchfile\n");
+		return -1;
+	}
+	char buff[200];
+	while (fgets(buff, sizeof(buff), f)) {
+		konsole.execute(buff);
+	}
+	fclose(f);
+	return 0;
+}
+
+int cmd_dumpconsole(int argc, char **argv)
+{
+	konsole.dump("konsole.txt");
+	return 0;
+}
+
+int cmd_nextframe(int argc, char **argv)
+{
+	if (argc < 3) {
+		konsole.write("Usage: nextframe <frames-to-wait> <command>\n");
+		return -1;
+	}
+	int frames;
+	if (1 != sscanf(argv[1], "%d", &frames) || frames <= 0) {
+		konsole.write("The first arg must be a positive integer!\n");
+		return -1;
+	}
+	int needed_size = 5;
+	for (int i = 2; i < argc; i++)
+		needed_size += 1 + strlen(argv[i]);
+	char *cmd = new char[needed_size];
+	cmd[0] = 0;
+	for (int i = 2; i < argc; i++) {
+		if (i > 2) strcat(cmd, " ");
+		strcat(cmd, argv[i]);
+	}
+	konsole.set_photoframe_callback(frames, cmd);
+	return 0;
+}
+
+int cmd_setcamera(int argc, char** argv)
+{
+	double x, y, z;
+	if (argc != 4 ||
+	    1 != sscanf(argv[1], "%lf", &x) ||
+	    1 != sscanf(argv[2], "%lf", &y) ||
+	    1 != sscanf(argv[3], "%lf", &z)) {
+		printf("Usage: setcamera X Y Z\n");
+		return -1;
+	}
+	cur = Vector(x, y, z);
 	return 0;
 }

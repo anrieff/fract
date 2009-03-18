@@ -48,6 +48,7 @@ DECLARE_VARIABLE(bool,   crosshair   , true , "show crosshair toggle");
 DECLARE_VARIABLE(bool,   photomode   , false, "photorealistic rendering toggle");
 DECLARE_VARIABLE(double, aperture    , 11.0  , "DOF aperture");
 DECLARE_VARIABLE(int,    dof_samples , 20   , "DOF samples per pixel");
+DECLARE_VARIABLE(int,    adaptive    , true , "DOF sampling adaptive switch");
 DECLARE_VARIABLE(bool,   qmc         , true , "Quasi-monte carlo sampling");
 DECLARE_VARIABLE(bool,   g_speedup   , true , "SDTree usage toggle");
 DECLARE_VARIABLE(bool,   fisheye     , false, "Fisheye lens emulation in photomode");

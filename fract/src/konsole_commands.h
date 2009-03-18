@@ -39,5 +39,9 @@ int cmd_screenshot(int argc, char **argv);
 int cmd_alias(int argc, char **argv);
 int cmd_rt(int argc, char **argv);
 int cmd_ncpu(int argc, char **argv);
+int cmd_exec(int argc, char **argv);
+int cmd_dumpconsole(int argc, char **argv);
+int cmd_nextframe(int argc, char **argv);
+int cmd_setcamera(int argc, char **argv);
 
 #endif // __CONSOLE_COMMANDS_H__

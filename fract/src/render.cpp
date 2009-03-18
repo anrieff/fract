@@ -1302,28 +1302,32 @@ static void render_single_frame_photorealistic(void *p, void *v)
 			
 			for (int i = 0; ; i++) {
 				/* Check for exit conditions */
-				if (i == 10 * n) break;
-				if (i == expected) {
-					if (i < n) {
-						prev_r = r;
-						prev_g = g;
-						prev_b = b;
-						prev_w = total_weight;
-						expected = n;
-					} else {
-						float w1 = 1.0f / prev_w;
-						float w2 = 1.0f / total_weight;
-						if (fabs(prev_r * w1 - r * w2) <= error &&
-						    fabs(prev_g * w1 - g * w2) <= error &&
-						    fabs(prev_b * w1 - b * w2) <= error) break;
-						prev_r = r;
-						prev_g = g;
-						prev_b = b;
-						prev_w = total_weight;
-						expected += n/2;
+				if (CVars::adaptive) {
+					if (i == 10 * n) break;
+					if (i == expected) {
+						if (i < n) {
+							prev_r = r;
+							prev_g = g;
+							prev_b = b;
+							prev_w = total_weight;
+							expected = n;
+						} else {
+							float w1 = 1.0f / prev_w;
+							float w2 = 1.0f / total_weight;
+							if (fabs(prev_r * w1 - r * w2) <= error &&
+							fabs(prev_g * w1 - g * w2) <= error &&
+							fabs(prev_b * w1 - b * w2) <= error) break;
+							prev_r = r;
+							prev_g = g;
+							prev_b = b;
+							prev_w = total_weight;
+							expected += n/2;
+						}
 					}
+				} else {
+					// non-adaptive:
+					if (i >= n) break;
 				}
-				
 				/* Create ray */
 				int ii = i % kernel->count;
 				Vector ray;
@@ -1629,6 +1633,7 @@ static void render_single_frame_photorealistic(void *p, void *v)
 	if (!mt.my_exit) {
 		clk0 = bTime() - clk0;
 		log_frame_time(clk0);
+		konsole.photo_frame_done();
 	}
 }
 

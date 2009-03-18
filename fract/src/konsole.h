@@ -72,6 +72,8 @@ class Konsole {
 	KeyBinding *keys;
 	Array<Alias> aliases;
 	int keys_size;
+	char *photoframe_callback;
+	int photoframe_callback_nframes;
 	
 	void advance(void);
 	void putchar(char c);
@@ -105,6 +107,9 @@ public:
 	int get_keys_count(void) const;
 	void keys_unbind_all(void);
 	bool key_bound(int code, bool shift);
+	void dump(const char* fname);
+	void set_photoframe_callback(int num_frames, char *callback);
+	void photo_frame_done(void);
 };
 
 extern Konsole konsole;

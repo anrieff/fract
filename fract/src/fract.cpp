@@ -293,6 +293,8 @@ void move_sphere(char c)
 void kbd_do(int *ShouldExit)
 {
 #ifdef ACTUALLYDISPLAY
+	if (konsole.wants_exit())
+		*ShouldExit = RUN_CANCELLED;
 	SDL_Event e;
 	Uint8 *keystate;
 	int deltax, deltay;

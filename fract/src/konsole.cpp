@@ -51,6 +51,10 @@ CommandStruct allcommands[] = {
 	CMD(alias),
 	CMD(rt),
 	CMD(ncpu),
+	CMD(exec),
+	CMD(dumpconsole),
+	CMD(nextframe),
+	CMD(setcamera),
 };
 
 int cmdcount(void)
@@ -214,6 +218,8 @@ Konsole::Konsole()
 	_exit = false;
 	fancy_level = 0;
 	keys = new KeyBinding[max_keys];
+	photoframe_callback = NULL;
+	photoframe_callback_nframes = 0;
 }
 
 Konsole::~Konsole()
@@ -227,6 +233,10 @@ Konsole::~Konsole()
 	konsole_background = NULL;
 	buffer = NULL;
 	keys = NULL;
+	if (!photoframe_callback) {
+		delete [] photoframe_callback;
+		photoframe_callback = NULL;
+	}
 }
 
 void Konsole::init(int xres, int yres, Font *font_in)
@@ -953,6 +963,41 @@ Alias *Konsole::find_alias_by_name(const char * name)
 	}
 	return NULL;
 }
+
+void Konsole::dump(const char* fname)
+{
+	FILE *f = fopen(fname, "wt");
+	for (int i = 0; i < this->lines; i++) {
+		for (int j = 0; j < this->cols; j++) {
+			if (data[i * cols + j].ch < 20) break;
+			fprintf(f, "%c", data[i * cols + j].ch);
+		}
+		fprintf(f, "\n");
+	}
+	fclose(f);
+}
+
+void Konsole::set_photoframe_callback(int num_frames, char *callback)
+{
+	if (photoframe_callback) {
+		delete [] photoframe_callback;
+	}
+	photoframe_callback = callback;
+	photoframe_callback_nframes = num_frames;
+}
+
+void Konsole::photo_frame_done(void)
+{
+	if (photoframe_callback_nframes > 0) {
+		--photoframe_callback_nframes;
+		if (0 == photoframe_callback_nframes) {
+			if (photoframe_callback)
+				execute(photoframe_callback);
+		}
+	}
+}
+
+
 
 //////// data...
 
