@@ -436,9 +436,9 @@ Uint32 Sphere::shade(Vector& v, const Vector& c, const Vector& l, double rlsrcp,
 	spc->determinant = fsqrt(spc->determinant); // <- this assumes we've called FastIntersect before Solve3D
 	lambda = (-(spc->gB) - (spc->determinant)) * rlsrcp;
 	if (!iteration) {	// check if we're close to the edge:
-		if (spc->determinant * doi > 0.25f) opacity = 1.0f;
+		if (spc->determinant * doi > CVars::sph_det_t) opacity = 1.0f;
 			else    {
-				opacity = sqr(spc->determinant*doi*4.0f);
+				opacity = sqr(spc->determinant*doi/CVars::sph_det_t);
 			}
 	}
 	

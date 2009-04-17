@@ -113,6 +113,8 @@
 // object will have normal map, making the object look smooth
 // (MESHES ONLY)
 #define NORMAL_MAP	0x00002000
+// object has a bump map (MESH ONLY)
+#define BUMPMAPPED	0x00004000
 // (MESHES ONLY) perlin noise will be added to the light intensity channel, making the material look rough
 #define STOCHASTIC	0x00008000
 

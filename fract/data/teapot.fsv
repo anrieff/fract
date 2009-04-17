@@ -17,11 +17,11 @@ Light.z=256.00000
 LightQuality=0
 
 # User position information:
-User.x=40.00000
-User.y=160.00000
-User.z=40.00000
-alpha=0.770600
-beta=-0.068540
+User.x=53.388
+User.y=53.347
+User.z=324.419
+alpha=2.4469
+beta=-0.2364
 
 # Physics (1=on)
 Physics=0
@@ -44,21 +44,22 @@ default_font="data/font1.bmp"
 
 spherecount=1
 Sphere[0].x=160.00000
-Sphere[0].y=23.00000
+Sphere[0].y=17.00000
 Sphere[0].z=275.00000
 Sphere[0].xi=0.00000
 Sphere[0].yi=0.00000
 Sphere[0].zi=0.00000
-Sphere[0].d=24.00000
+Sphere[0].d=18.00000
 Sphere[0].mass=0.00000
-Sphere[0].refl=0.7500
+Sphere[0].refl=0.75
+Sphere[0].opacity=0.77
 Sphere[0].r=255
 Sphere[0].g=76
 Sphere[0].b=48
 Sphere[0].AniIndex=0
 Sphere[0].flags.raytraced=1
 Sphere[0].flags.recursive=1
-Sphere[0].flags.transparent=0
+Sphere[0].flags.transparent=1
 Sphere[0].flags.recurse_self=0
 Sphere[0].flags.static=1
 Sphere[0].flags.collideable=0
@@ -69,17 +70,18 @@ Sphere[0].flags.mapped=0
 Sphere[0].flags.stochastic=0
 Sphere[0].flags.casts_shadow=1
 
-meshcount=1
+meshcount=2
 Mesh[0].file_name=teapot.obj
 Mesh[0].scale=100.0000
 Mesh[0].translate.x=120.00000
 Mesh[0].translate.y=0.00000
 Mesh[0].translate.z=200.00000
-Mesh[0].refl=0.15000
+Mesh[0].refl=0.45000
+Mesh[0].glossiness=0.16
 Mesh[0].opacity=0.00000
-Mesh[0].paint=0xbf73bb
-Mesh[0].flags.raytraced=0
-Mesh[0].flags.recursive=0
+Mesh[0].paint=0x8ec969
+Mesh[0].flags.raytraced=1
+Mesh[0].flags.recursive=1
 Mesh[0].flags.transparent=0
 Mesh[0].flags.recurse_self=0
 Mesh[0].flags.static=0
@@ -91,6 +93,27 @@ Mesh[0].flags.mapped=0
 Mesh[0].flags.stochastic=0
 Mesh[0].flags.normal_map=1
 Mesh[0].flags.casts_shadow=1
+
+Mesh[1].file_name=truncated_cube.obj
+Mesh[1].scale=32.00000
+Mesh[1].translate.x=190.00000
+Mesh[1].translate.y=16.00000
+Mesh[1].translate.z=230.00000
+Mesh[1].refl=0.12000
+Mesh[1].opacity=0.0050000
+Mesh[1].flags.raytraced=1
+Mesh[1].flags.recursive=1
+Mesh[1].flags.transparent=0
+Mesh[1].flags.recurse_self=0
+Mesh[1].flags.static=0
+Mesh[1].flags.collideable=0
+Mesh[1].flags.animated=0
+Mesh[1].flags.gravity=0
+Mesh[1].flags.air=0
+Mesh[1].flags.stochastic=0
+Mesh[1].flags.normal_map=0
+Mesh[1].flags.casts_shadow=1
+
 
 
 # the coords

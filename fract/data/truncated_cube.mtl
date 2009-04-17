@@ -6,3 +6,5 @@ Ns 50.000000
 Tr 0.000000
 illum 2
 map_Kd /home/vesko/develop/fract/data/zar-texture.bmp
+Kb 0.01
+map_Kb /home/vesko/develop/fract/data/zar-bump.bmp

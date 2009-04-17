@@ -596,6 +596,9 @@ bool Mesh::parse_mtl_lib(const char *fn, const char *base_dir)
 	strcat(filename, fn);
 	FILE *f = fopen(filename, "rt");
 	if (!f) return false;
+	bool result = false;
+	int myflags = 0;
+	float bump_scale = 1.0f;
 	while (fgets(buff, 1000, f)) {
 		if (!strncmp("map_Kd", buff, 6)) {
 			char map_file[256];
@@ -609,13 +612,35 @@ bool Mesh::parse_mtl_lib(const char *fn, const char *base_dir)
 			//if (!isalpha(map_file[i])) map_file[i] = 0;
 			while (i--) if (map_file[i]<32) map_file[i] = 0;
 			image = new RawImg(map_file);
-			flags = MAPPED;
-			fclose(f);
-			return true;
+			myflags |= MAPPED;
+			result = true;
+		}
+		if (!strncmp("Kb", buff, 2)) {
+			float x;
+			if (1 == sscanf(buff, "Kb %f", &x))
+				bump_scale = x;
+		}
+		if (!strncmp("map_Kb", buff, 6)) {
+			char map_file[256];
+			strcpy(map_file, base_dir);
+			int i = 7;
+			while (buff[i]) i++;
+			while (i > 7 && buff[i] != '/') i--;
+			if (buff[i]=='/') i++;
+			strcat(map_file, buff + i);
+			i = strlen(map_file);
+			//if (!isalpha(map_file[i])) map_file[i] = 0;
+			while (i--) if (map_file[i]<32) map_file[i] = 0;
+			RawImg temp;
+			if (temp.load_bmp(map_file)) {
+				myflags |= BUMPMAPPED;
+				prepare_bumpmap(temp, bump_scale);
+			}
 		}
 	}
 	fclose(f);
-	return false;
+	if (myflags) flags = myflags;
+	return result;
 }
 
 void Mesh::recalc(void)
@@ -687,7 +712,51 @@ void Mesh::rebuild_normal_map(void)
 			continue;
 		}
 		normal_map[i].scale(1.0/normal_div[i]);
-		
+		if (normal_map[i].length() < 1e-8) {
+			normal_map[i] = Vector(0.0, 1.0, 0.0);
+		} else {
+			normal_map[i].norm();
+		}
+	}
+}
+
+float neigh_solve(Uint32* data, int i, int n, int x, int xmax)
+{
+	if (x > 0 && x < xmax - 1)
+		return ((float)data[i - n] - data[i + n]) * 0.5f;
+	else if (x < xmax - 1)
+		return (float) data[i] - data[i + n];
+	else
+		return (float) data[i - n] - data[i];
+}
+
+void Mesh::prepare_bumpmap(RawImg& bmp, float scaling)
+{
+	int w = bmp.get_x();
+	int h = bmp.get_y();
+	bump_w = w;
+	bump_h = h;
+	Uint32* data = (Uint32*) bmp.get_data();
+	for (int i = 0; i < w*h; i++)
+		data[i] &= 0xff;
+	bump_map = new float[w * h * 2];
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			int i = y * w + x;
+			float H = 0.0f, V = 0.0f;
+			if (x > 0 && x < w - 1 && y > 0 && y < h - 1) {
+				// we use sobel, if possible
+				H = (((float) data[i - w - 1]) + 2.0f * data[i - 1] + data[i + w - 1]
+				            - data[i - w + 1]  - 2.0f * data[i + 1] - data[i + w + 1]) * 0.125f;
+				V = (((float) data[i - w - 1]) + 2.0f * data[i - w] + data[i - w + 1]
+				            - data[i + w - 1]  - 2.0f * data[i + w] - data[i + w + 1]) * 0.125f;
+			} else {
+				H = neigh_solve(data, i, 1, x, w);
+				V = neigh_solve(data, i, w, y, h);
+			}
+			bump_map[(y * w + x) * 2 + 0] = H * scaling;
+			bump_map[(y * w + x) * 2 + 1] = V * scaling;
+		}
 	}
 }
 
@@ -922,10 +991,13 @@ void mesh_close(void)
 		mesh[i].iprimitive = NULL;
 		if (mesh[i].sdtree)
 			delete mesh[i].sdtree;
+		if (mesh[i].bump_map)
+			delete [] mesh[i].bump_map;
 		mesh[i].sdtree = NULL;
 		mesh[i].num_edges = 0;
 		mesh[i].image = NULL;
 		mesh[i].normal_map = NULL;
+		mesh[i].bump_map = NULL;
 		mesh[i].triangle_count = 0;
 		mesh[i].flags = 0;
 		mesh[i].map_size = 0;

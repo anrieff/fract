@@ -118,6 +118,8 @@ struct Mesh : public BBox, public ShadowCaster {
 	int map_size;
 	float glossiness;
 	Vector *normal_map;
+	float *bump_map;
+	int bump_w, bump_h;
 	RawImg *image;
 	Vector center;
 	Inscribed *iprimitive;
@@ -189,6 +191,7 @@ struct Mesh : public BBox, public ShadowCaster {
 
 private:
 	bool parse_mtl_lib(const char *fn, const char *base_dir);
+	void prepare_bumpmap(RawImg& bmp, float scaling);
 	void recalc(void);
 	int lastind[16];
 };

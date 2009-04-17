@@ -59,7 +59,7 @@ read an
 echo "CLEAN"
 rm -rf release 2> /dev/null
 mkdir release
-echo -n "Creating console build  "
+echo -n "Creating P5 console build  "
 if [ $SHORTVIEW -eq 0 ]; then
     echo ""
 else
@@ -76,7 +76,13 @@ fi
 rm MyGlobal.h
 cat MyGlobal1.h | grep -v "define ACTUALLYDISPLAY" > MyGlobal.h
 cd ..
-COMPFLAGS="-O3 -g0 -ffast-math"; LIBFLAGS="-lm -lpthread"; OUT_BINARY="fract_console"; compile
+COMPFLAGS="-O3 -g0 -ffast-math"; LIBFLAGS="-lm -lpthread"; OUT_BINARY="fract_console_p5"; compile
+if [ $SHORTVIEW -eq 1 ]; then
+    echo -n "Creating SSE2 console build     ["
+else
+    echo "Creating SSE2 console build"
+fi
+COMPFLAGS="-O3 -g0 -ffast-math -msse -msse2 -mfpmath=sse"; LIBFLAGS="-lm -lpthread"; OUT_BINARY="fract_console_sse2"; compile
 if [ $SHORTVIEW -eq 0 ]; then
 echo "RESTORE MyGlobal.h"
 fi

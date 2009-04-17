@@ -27,11 +27,14 @@ struct triangle_intersect_context {
 
 /* ========================== Classes =================================== */
 
+void retransformate(float ma[], float mb[], float ha, float hb, float& p, float &q);
+
 struct Triangle : public Object {
 	Vector vertex[3];
 	Vector normal, crossproduct, a, b, ah, hb;
 	Vector center;
 	float mapcoords[3][2], ma[2], mb[2];
+	Vector bdx, bdy;
 	int nm_index[3];
 	double ZDepth;
 	Uint32 color;
@@ -53,6 +56,14 @@ struct Triangle : public Object {
 		ma[1] = mapcoords[1][1] - mapcoords[0][1];
 		mb[0] = mapcoords[2][0] - mapcoords[0][0];
 		mb[1] = mapcoords[2][1] - mapcoords[0][1];
+		Vector ta = a, tb = b;
+		ta.norm();
+		tb.norm();
+		float p, q;
+		retransformate(ma, mb, 1.0f, 0.0f, p, q);
+		bdx = ta * p + tb * q;
+		retransformate(ma, mb, 0.0f, 1.0f, p, q);
+		bdy = ta * p + tb * q;
 	}
 	void recalc_zdepth(const Vector & camera)
 	{

@@ -250,6 +250,27 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 	} else {
 		Normal= normal;
 	}
+	if (flags & BUMPMAPPED) {
+		int meshidx = get_mesh_index();
+		Mesh* m = mesh + meshidx;
+		float *bump = m->bump_map;
+		unsigned xx = m->bump_w;
+		unsigned yy = m->bump_h;
+		float x, y;
+		x = mapcoords[0][0] + ma[0] * tic->u + mb[0] * tic->v;
+		y = mapcoords[0][1] + ma[1] * tic->u + mb[1] * tic->v;
+		Uint32 offset = ((int)(x * xx)) + ((int) (y * yy)) * xx;
+		if (offset >= xx * yy) offset -= xx*yy;
+		Vector mod = bdx * bump[offset * 2 + 0] + bdy * bump[offset * 2 + 1];
+		Normal += mod;
+		Normal.norm();
+		/*
+		Uint32 res = 0;
+		res = ((Uint32)((Normal.x*0.5+0.5)*255.0) << 16) +
+		      ((Uint32)((Normal.y*0.5+0.5)*255.0) <<  8) +
+		      ((Uint32)((Normal.z*0.5+0.5)*255.0)      );
+		return res;*/
+	}
 
 	Vector lightray;
 	lightray.make_vector(vertex[0], L);
@@ -539,3 +560,16 @@ void triangle_close(void)
 		trio[i].refl = 0;
 	}
 }
+
+void retransformate(float ma[], float mb[], float h0, float h1, float& p, float &q)
+{
+	float Dcr = ma[0] * mb[1] - ma[1] * mb[0];
+	if (fabs(Dcr) < 1e-5) {
+		p = q = 0.0f;
+		return;
+	}
+	float rDcr = 1.0f / Dcr;
+	p = (h0 * mb[1] - h1 * mb[0]) * rDcr;
+	q = (ma[0] * h1 - ma[1] * h0) * rDcr;
+}
+
