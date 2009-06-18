@@ -6,7 +6,7 @@
 ## Date: 2006-06-15
 ##
 
-OSNAME := $(shell uname -s)
+OS := $(shell uname -s)
 
 ifeq ($(OS), Linux)
   CXX = g++
@@ -16,7 +16,7 @@ ifeq ($(OS), Linux)
   ISSUE_LINK = ar cru libcxxptl.$(LIBEXT)
   OPTFLAGS = -Wall -O2 -g
   BINARY = ptltest
-  LINKFLAGS =
+  LINKFLAGS = -lpthread
   COMPILEONLY = -c
 else
   CXX = cl
@@ -49,25 +49,20 @@ HEADERS = cxxptl.h
 all: $(BINARY)
 
 clean:
-	@echo CLEAN
-	-@rm $(BINARY) *.$(OBJEXT) $(LIBRARY)
+	-rm $(BINARY) *.$(OBJEXT) $(LIBRARY)
 
 ## Non-phony targets
 %.$(OBJEXT): %.cpp $(HEADERS)
-	@echo C++     $<
-	@$(CXX) $(OPTFLAGS) $(COMPILEONLY) $<
+	$(CXX) $(OPTFLAGS) $(COMPILEONLY) $<
 
 $(LIBRARY): $(lib_OBJECTS)
-	@echo LINK    $(LIBRARY)
-	@$(ISSUE_LINK) $(lib_OBJECTS)
+	$(ISSUE_LINK) $(lib_OBJECTS)
 ifeq ($(OS), Linux)
-	@echo RANLIB  $(LIBRARY)
-	@$(RANLIB) $(LIBRARY)
+	ranlib $(LIBRARY)
 endif
 
 $(BINARY): $(LIBRARY) tester.cpp cxxptl.h
-	@echo C++    $(BINARY)
-	@$(CXX) $(OUTOPT)$(BINARY) $(OPTFLAGS) tester.cpp $(LIBRARY) $(LINKFLAGS)
+	$(CXX) $(OUTOPT)$(BINARY) $(OPTFLAGS) tester.cpp $(LIBRARY) $(LINKFLAGS)
 	
 
 .PHONY: all clean
