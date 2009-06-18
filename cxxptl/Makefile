@@ -8,21 +8,37 @@
 
 OSNAME := $(shell uname -s)
 
-
-CXX = g++
-CXXLD = $(CXX)
-RANLIB = ranlib
-AR = ar
-OPTFLAGS = -Wall -O2 -g
-ifeq "$(OSNAME)" "Linux"
-LINKFLAGS = -lpthread -lm
+ifeq ($(OS), Linux)
+  CXX = g++
+  OBJEXT = o
+  OUTOPT = -o 
+  LIBEXT = a
+  ISSUE_LINK = ar cru libcxxptl.$(LIBEXT)
+  OPTFLAGS = -Wall -O2 -g
+  BINARY = ptltest
+  LINKFLAGS =
+  COMPILEONLY = -c
 else
-LINKFLAGS = -lmingw32 -lm
+  CXX = cl
+  OBJEXT = obj
+  OUTOPT = /Fe
+  LIBEXT = lib
+  ISSUE_LINK = lib /nologo /out:libcxxptl.$(LIBEXT)
+  OPTFLAGS = /nologo /O2 /MT
+  BINARY = ptltest.exe
+  LINKFLAGS =
+  COMPILEONLY = /c
 endif
-BINARY = cxxptl
-LIBRARY = libcxxptl.a
-lib_OBJECTS = cxxptl.o sysspec_linux.o sysspec_win32.o sysspec_apple.o\
-	sysspec_posix.o
+
+
+LIBRARY = libcxxptl.$(LIBEXT)
+lib_OBJECTS = \
+	cxxptl.$(OBJEXT) \
+	sysspec_linux.$(OBJEXT) \
+	sysspec_win32.$(OBJEXT) \
+	sysspec_apple.$(OBJEXT) \
+	sysspec_posix.$(OBJEXT)
+
 SOURCES = cxxptl.cpp sysspec_linux.cpp sysspec_win32.cpp sysspec_apple.cpp\
 	sysspec_posix.cpp tester.cpp
 HEADERS = cxxptl.h
@@ -34,22 +50,24 @@ all: $(BINARY)
 
 clean:
 	@echo CLEAN
-	-@rm $(BINARY) *.o $(LIBRARY)
+	-@rm $(BINARY) *.$(OBJEXT) $(LIBRARY)
 
 ## Non-phony targets
-$(lib_OBJECTS): %.o: %.cpp $(HEADERS)
-	@echo "C++     $<"
-	@$(CXX) -c $< $(OPTFLAGS)
+%.$(OBJEXT): %.cpp $(HEADERS)
+	@echo C++     $<
+	@$(CXX) $(OPTFLAGS) $(COMPILEONLY) $<
 
 $(LIBRARY): $(lib_OBJECTS)
-	@echo "AR      $(LIBRARY)"
-	@$(AR) cru $(LIBRARY) $(lib_OBJECTS)
-	@echo "RANLIB  $(LIBRARY)"
+	@echo LINK    $(LIBRARY)
+	@$(ISSUE_LINK) $(lib_OBJECTS)
+ifeq ($(OS), Linux)
+	@echo RANLIB  $(LIBRARY)
 	@$(RANLIB) $(LIBRARY)
+endif
 
 $(BINARY): $(LIBRARY) tester.cpp cxxptl.h
-	@echo "LINK    $(BINARY)"
-	@$(CXXLD) -o $(BINARY) $(OPTFLAGS) tester.cpp $(LIBRARY) $(LINKFLAGS)
+	@echo C++    $(BINARY)
+	@$(CXX) $(OUTOPT)$(BINARY) $(OPTFLAGS) tester.cpp $(LIBRARY) $(LINKFLAGS)
 	
 
 .PHONY: all clean
