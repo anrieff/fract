@@ -6,9 +6,19 @@
 ## Date: 2006-06-15
 ##
 
-OS := $(shell uname -s)
+OS_UNAME := $(shell uname -s)
 
-ifeq ($(OS), Linux)
+ifeq ($(OS_UNAME), Linux)
+  OS := UNIX
+endif
+ifeq ($(OS_UNAME), Darwin)
+  OS := UNIX
+endif
+ifeq ($(OS_UNAME), Win32)
+  OS := Win32
+endif
+
+ifeq ($(OS), UNIX)
   CXX = g++
   OBJEXT = o
   OUTOPT = -o 
@@ -57,7 +67,7 @@ clean:
 
 $(LIBRARY): $(lib_OBJECTS)
 	$(ISSUE_LINK) $(lib_OBJECTS)
-ifeq ($(OS), Linux)
+ifeq ($(OS), UNIX)
 	ranlib $(LIBRARY)
 endif
 
