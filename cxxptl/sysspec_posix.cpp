@@ -80,6 +80,7 @@ void Event::wait(void)
 		return;
 	}
 	pthread_cond_wait(&c, &m);
+	state = 0;
 	pthread_mutex_unlock(&m);
 }
 
