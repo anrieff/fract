@@ -156,5 +156,17 @@ int set_affinity_mask(const bool *mask)
 			t |= (1u << (i % 32));
 	return (NULL != SetThreadAffinityMask(GetCurrentThread(), t)) ? 0 : -1;
 }
+
+void set_best_affinity(int thread_index, bool* mask)
+{
+	int n = _intern_cpucount();
+	thread_index %= n;
+	int n2 = n / 2;
+	if (n2) {
+		thread_index = 2 * (thread_index % n2) + (thread_index / n2);
+	}
+	memset(mask, 0, sizeof(bool) * MAX_CPU_COUNT);
+	mask[thread_index] = true;
+}
  
 #endif

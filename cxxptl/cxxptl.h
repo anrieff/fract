@@ -411,6 +411,32 @@ void my_thread_proc(ThreadInfoStruct *);
 int get_affinity_mask(bool mask[MAX_CPU_COUNT]);
 
 /**
+ * @brief set_best_affinity - selects the "best" logical processor.
+ *
+ * This function creates an affinity mask that confines the thread to a single
+ * logical processor. A subsequent call to set_affinity_mask with the modified
+ * mask is needed to actually activate the affinity. Which logical cpu is to be
+ * assigned depends on the "thread_index" parameter. The algorithm ensures the
+ * following points:
+ *
+ * 1) All logical CPUs will be used when there are N threads (with thread_index
+ *    values in 0..N-1).
+ * 2) In case of hyper-threading and N/2 or less threads, the assignment
+ *    routine will use different physical cores (no two threads will use the
+ *    same physical CPUs, thus degrading performance).
+ * 3) With more than N threads, the assignment is cyclical
+ *
+ * Note: The reason we actually need this function is that logical processor
+ * numberings are different on Win32 and Linux. This is especially important
+ * because of point 2).
+ *
+ * @param thread_index - the index of the calling thread as per the
+ *        Parallel::entry() nomenclature.
+ * @param mask - an array of MAX_CPU_COUNT bools. Output only.
+ */
+void set_best_affinity(int thread_index, bool mask[MAX_CPU_COUNT]);
+
+/**
  * @brief set_affinity_mask - sets the affinity mask of the calling thread
  * @param mask - an array of MAX_CPU_COUNT bools. A boolean True means
  *               that the thread will be allowed to run on that logical CPU.

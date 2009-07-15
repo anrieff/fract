@@ -197,9 +197,16 @@ int set_affinity_mask(const bool* mask)
 			CPU_SET(i, &s);
 	return pthread_setaffinity_np(th, sizeof(s), &s);
 }
+void set_best_affinity(int thread_index, bool* mask)
+{
+	int n = _intern_cpucount();
+	thread_index %= n;
+	mask[thread_index] = true;
+}
 #else
 int get_affinity_mask(bool*) { return -1; }
 int set_affinity_mask(const bool*) { return -1; }
+void set_best_affinity(int thread_index, bool* mask) {}
 #endif
  
 #endif
