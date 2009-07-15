@@ -125,5 +125,36 @@ void new_thread(HANDLE *handle, ThreadInfoStruct *info)
 	*handle = CreateThread(NULL, 0, win32_thread_proc, info, 0, &useless);
 	CloseHandle(*handle);
 }
+
+static int _intern_cpucount(void)
+{
+	static int cpucount = -1;
+	if (cpucount == -1)
+		cpucount = system_get_processor_count();
+	return cpucount;
+}
+
+int get_affinity_mask(bool *mask)
+{
+	int n = _intern_cpucount();
+	if (n > MAX_CPU_COUNT) n = MAX_CPU_COUNT;
+	PDWORD_PTR sysmask = 0, procmask = 0;
+	if (!GetProcessAffinityMask(GetCurrentProcess(), sysmask, procmask)) return -1;
+	for (int i = 0; i < n; i++) {
+		mask[i] = (0 != (procmask[i / 32] & (1 << (i % 32))));
+	}
+	return 0;
+}
+
+int set_affinity_mask(const bool *mask)
+{
+	int n = _intern_cpucount();
+	if (n > 32) n = 32;
+	DWORD_PTR t = 0;
+	for (int i = 0; i < n; i++)
+		if (mask[i])
+			t |= (1u << (i % 32));
+	return (NULL != SetThreadAffinityMask(GetCurrentThread(), t)) ? 0 : -1;
+}
  
 #endif

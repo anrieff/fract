@@ -398,5 +398,24 @@ void new_thread(ThreadID* handle, ThreadInfoStruct *);
 /// The thread proc, that ThreadPool uses for the threads, spawned by it
 void my_thread_proc(ThreadInfoStruct *);
 
+/**
+ * @brief get_affinity_mask - get the affinity mask of the calling thread
+ *
+ * @param mask - an array of MAX_CPU_COUNT bools. Upon completion of this
+ *               function, this will be the current thread affinity mask.
+ *               `true' means that the thread is allowed to execute on that
+ *               logical CPU.
+ *               If the function fails, the mask is zeroed.
+ * @retval 0 on success, negative on failure.
+ */
+int get_affinity_mask(bool mask[MAX_CPU_COUNT]);
+
+/**
+ * @brief set_affinity_mask - sets the affinity mask of the calling thread
+ * @param mask - an array of MAX_CPU_COUNT bools. A boolean True means
+ *               that the thread will be allowed to run on that logical CPU.
+ * @retval 0 on success, negative on failure.
+ */
+int set_affinity_mask(const bool mask[MAX_CPU_COUNT]);
 
 #endif
