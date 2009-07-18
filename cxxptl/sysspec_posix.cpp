@@ -166,7 +166,7 @@ void new_thread(pthread_t *handle, ThreadInfoStruct *info)
 	pthread_detach(*handle);
 }
 
-#ifdef HAVE_AFFINITY
+#ifndef DONT_HAVE_AFFINITY
 int system_get_processor_count(void);
 static int _intern_cpucount(void)
 {
