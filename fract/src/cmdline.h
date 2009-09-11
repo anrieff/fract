@@ -10,10 +10,10 @@
 
 #ifndef __CMDLINE_H__
 #define __CMDLINE_H__
-typedef struct cmdinfo{
-char *data;
-char *value;
-cmdinfo *next;
+struct cmdinfo{
+	char *data;
+	char *value;
+	cmdinfo *next;
 };
 
 void initcmdline(int argc, char * argv[]);

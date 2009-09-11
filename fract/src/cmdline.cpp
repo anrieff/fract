@@ -85,13 +85,14 @@ char *option_value_string(const char *opt)
 {cmdinfo *p;
  p = cmdroot;
  while (p) {
- 	if (strcmp(p->data, opt)==0)
+ 	if (strcmp(p->data, opt)==0) {
 		if (p->value)
 			return p->value;
-			else
+		else
 			return cmdnullterm;
+	}
 	p = p->next;
- 	}
+ }
  return cmdnullterm;
 }
 

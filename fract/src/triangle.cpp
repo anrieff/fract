@@ -352,7 +352,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 			ray_reflected.macc(ray, temp, -2.0);
 
 			finfo.IP = I;
-			reflected = Raytrace(I, ray_reflected, flags & RECURSIVE | RAYTRACE_BILINEAR_MASK, 
+			reflected = Raytrace(I, ray_reflected, flags & (RECURSIVE | RAYTRACE_BILINEAR_MASK),
 					     iteration +1, this, finfo, gloss);
 //			result = blend(
 //				, result, refl);
@@ -417,7 +417,7 @@ Uint32 Triangle::shade(Vector& ray, const Vector& camera, const Vector& L, doubl
 					xray.norm();
 				}
 			}
-			int newflags = flags & RECURSIVE | RAYTRACE_BILINEAR_MASK;
+			int newflags = flags & (RECURSIVE | RAYTRACE_BILINEAR_MASK);
 			if (!good) newflags &= ~RECURSE_SELF;
 			finfo.IP = myI;
 			finfo.lectionType = REFRACTION;

@@ -62,7 +62,7 @@ struct fsaa_set_entry {
 	{
 		Uint32 code = 0;
 		for (int i = 0; i < ED_KERNEL_SIZE; i++) {
-			code = ((code << 2) ^ ((code >> 1) * 37337) + 0x16253bac) ^ a[i];
+			code = (((code << 2) ^ ((code >> 1)) * 37337) + 0x16253bac) ^ a[i];
 		}
 		return code;
 	}

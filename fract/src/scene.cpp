@@ -621,7 +621,7 @@ void Scene::outro(int exit_code, Uint32 * framebuffer, FPSWatch& watch, OutroCap
 	}
 #endif
 	if (defaultconfig) {
-	if (	 option_exists("-w")|| option_exists("--window")||option_exists("--windowed") &&
+	if (	 (option_exists("-w")|| option_exists("--window")||option_exists("--windowed")) &&
 			!option_exists("-f")&&!option_exists("--fullscreen"))
 		font0.printxy(screen, framebuffer, 45, y, 0xeef9ff, 0.50, "(Test ran in windowed mode)");
 	}

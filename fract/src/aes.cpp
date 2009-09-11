@@ -1288,7 +1288,7 @@ int blockDecrypt(cipherInstance *cipher, keyInstance *key,
 
 	if (cipher == NULL ||
 		key == NULL ||
-		cipher->mode != MODE_CFB1 && key->direction == DIR_ENCRYPT) {
+		(cipher->mode != MODE_CFB1 && key->direction == DIR_ENCRYPT)) {
 		return BAD_CIPHER_STATE;
 	}
 	if (input == NULL || inputLen <= 0) {

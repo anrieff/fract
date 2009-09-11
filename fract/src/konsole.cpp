@@ -150,7 +150,7 @@ bool KeyBinding::key_exists(const char *s)
 	// check for F..
 	if ((s[0] == 'f' || s[0] == 'F') && 
 		    ((s[1] == '1' && (s[2] == '1' || s[2] == '2')) ||
-		    (s[2] == 0) && s[1] >= '0' && s[1] <= '9')) return true;
+		    (s[2] == 0 && s[1] >= '0' && s[1] <= '9'))) return true;
 	
 	if (!strcmp_without_case(s, "space")) return true;
 	
