@@ -517,6 +517,22 @@ void Scene::videoinit(void)
 		set_new_videomode(option_value_int("--xres"), option_value_int("--xres")/4*3);
 		defaultconfig = 0;
 	}
+	if (option_exists("--resolution")) {
+		int x, y;
+		if (2 != sscanf(option_value_string("--resolution"), "%dx%d", &x, &y)) {
+			printf("Resolution must be given in the format WWWxHHH, e.g. 1024x600!\n");
+		} else if (x <= 0 || y <= 0) {
+			printf("Invalid resolution %dx%d\n", x, y);
+		} else if (x % RESOLUTION_X_ALIGN || y % RESOLUTION_X_ALIGN) {
+			printf("Invalid resolution %dx%d (must be divisible by %d)\n", x, y, RESOLUTION_X_ALIGN);
+		} else if (x > RES_MAXX || y > RES_MAXY) {
+			printf("The requested resolution is too large. Max supported is %dx%d.\n",
+			       RES_MAXX, RES_MAXY);
+		} else {
+			set_new_videomode(x, y);
+			CVars::aspect_ratio = (double) x / (double) y;
+		}
+	}
 #ifdef ACTUALLYDISPLAY
 	if (xres()!=def_resx) {
 		screen = SDL_SetVideoMode(determine_xres(xres()), yres(), 32, SDL_f);

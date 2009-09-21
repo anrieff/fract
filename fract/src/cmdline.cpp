@@ -128,6 +128,7 @@ void display_usage(void)
 	printf("                     SSE, MMX, MMX2 respectively\n");
 	printf("  --force-mem   - use bigarr even if insufficient memory is reported by linux\n");
 	printf("  --xres=xxx    - use custom video mode: xxx by yyy pixels, yyy = xxx * 3/4\n");
+	printf("  --resolution=XXXxYYY - use a custom video mode, e.g. 1024x600\n");
 	printf("  --benchmark   - benchmark your machine by running the RGB2YUV \n");
 	printf("                  functions for 20 seconds\n");
 	printf("  --fullscreen  - run in fullscreen mode, if supported\n");

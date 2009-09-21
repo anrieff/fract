@@ -43,8 +43,8 @@
 
 
 // maximum framebuffer sizes
-#define RES_MAXX 1280
-#define RES_MAXY 960
+#define RES_MAXX 1920
+#define RES_MAXY 1200
 
 #define BLUR 1
 

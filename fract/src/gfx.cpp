@@ -110,7 +110,7 @@ void set_new_videomode(int x, int y)
 	x, y, RESOLUTION_X_ALIGN);
 	x&=~(RESOLUTION_X_ALIGN-1);
  }
- y = x/4*3;
+ if (y <= 0) y = x/4*3;
  Xres = x;
  Yres = y;
  Xres2 = xsize_render(x);
