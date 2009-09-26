@@ -8256,6 +8256,7 @@ void ConvertRGB2YUV_X86_FPU(Uint32 *dest, Uint32 *src, size_t count) {}
 void ConvertRGB2YUV_MMX(Uint32 *dest, Uint32 *src, size_t count) {}
 void ConvertRGB2YUV_MMX2(Uint32 *dest, Uint32 *src, size_t count) {}
 void ConvertRGB2YUV_SSE(Uint32 *dest, Uint32 *src, size_t count) {}
+void ConvertRGB2YV12_MMX2(Uint8*, Uint8*, Uint8*, Uint32*, int, int, int, int, int) {}
 #endif
 #ifdef rgbhacks1
 //void GetCPUCaps(CPUCaps *a) {a->hasmmx=a->hasmmx2=a->hassse=a->largemem=0;}
