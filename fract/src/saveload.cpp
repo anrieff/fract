@@ -385,7 +385,21 @@ static int get_index(char *si)
 		return -1;
 }
 
-static void get_sphere_info(char *si, Sphere *sph)
+static bool get_included_file(const char* basedir, const char* given_path, char* final_path)
+{
+	// if any directory delimiters are given, use the path provided
+	// else use the directory of the .fsv file
+	if (!strchr(given_path, '/')) {
+		char temp[256];
+		strcpy(final_path, basedir);
+		strcat(final_path, given_path);
+	} else {
+		strcpy(final_path, given_path);
+	}
+	return true;
+}
+
+static void get_sphere_info(const char* basedir, char *si, Sphere *sph)
 {
 	int i;
 	char *s;
@@ -409,6 +423,21 @@ static void get_sphere_info(char *si, Sphere *sph)
 		case 0xd212: sph->AniIndex =	get_int (s); break;
 		case 0xa8e8: get_sphere_flags(s+6, &sph->flags);break;
 		case 0xe749: sph->gloss = get_real(s); break;
+		case 0x9fcb: 
+		{
+			sph->tex = new RawImg;
+			char fn_in[200] = "", fn_final[200] = "";
+			get_str(s, fn_in);
+			if (!get_included_file(basedir, fn_in, fn_final)) {
+				printf("Cannot find sphere texture: `%s'\n", fn_final);
+			}
+			if (!sph->tex->load_bmp(fn_final)) {
+				printf("Cannot load sphere texture: `%s'\n", fn_final);
+				delete sph->tex;
+				sph->tex = NULL;
+			}
+			break;
+		}
 		default:
 			printf("LoadContext: The following line has no meaning to me:\n[%s]\n", s); fflush(stdout);
 			break;
@@ -427,7 +456,7 @@ static void get_thorus_info(char *si, Thorus *thor)
 		case 0xd1b1: thor->phi = get_real(s); break;
 		case 0x9fc8: thor->warpspeed = get_real(s); break;
 		default: {
-			get_sphere_info(si, static_cast<Sphere*>(thor));
+			get_sphere_info("", si, static_cast<Sphere*>(thor));
 			break;
 		}
 	}
@@ -447,7 +476,7 @@ static void get_tracer_info(char *si, Tracer *t)
 		case 0x5b29: t->thickness = get_real(s); break;
 		case 0xb621: t->phasespeed = get_real(s); break;
 		default: {
-			get_sphere_info(si, static_cast<Sphere*>(t));
+			get_sphere_info("", si, static_cast<Sphere*>(t));
 			break;
 		}
 	}
@@ -465,17 +494,10 @@ static void get_mesh_info(char *basedir, char *si)
 	switch (hashid(s)) {
 		case 0x3d5d:
 		{
-			char objfn[256];
+			char objfn_in[256], objfn[256];
 			strcpy(objfn, strstr(s, "=") + 1);
 			objfn[strlen(objfn)-1]=0;
-			// if any directory delimiters are given, use the path provided
-			// else use the directory of the .fsv file
-			if (!strchr(objfn, '/')) {
-				char temp[256];
-				strcpy(temp, basedir);
-				strcat(temp, objfn);
-				strcpy(objfn, temp);
-			}
+			get_included_file(basedir, objfn_in, objfn);
 			int l = strlen(objfn);
 			//l--;
 			while (l--) if (objfn[l] < 32) objfn[l] = 0;
@@ -715,7 +737,7 @@ int load_context(const char *fn)
 				case 0xdf4c: rad_indirect_coeff = get_real(line); break;
 			/* Spheres: */
 				case 0x414c: spherecount = get_int (line); break;
-				case 0x1665: get_sphere_info(line, sp + get_index(line)); break;
+				case 0x1665: get_sphere_info(basedir, line, sp + get_index(line)); break;
 			/* Ani structures: */
 				case 0x1e7f: anicnt = get_int (line); break;
 				case 0x5394: get_ani_info(line); break;
