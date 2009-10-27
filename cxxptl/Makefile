@@ -8,11 +8,14 @@
 
 OS_UNAME := $(shell uname -s)
 
+OPTFLAGS =
+
 ifeq ($(OS_UNAME), Linux)
   OS := UNIX
 endif
 ifeq ($(OS_UNAME), Darwin)
   OS := UNIX
+  OPTFLAGS += -DDONT_HAVE_AFFINITY
 endif
 ifeq ($(OS_UNAME), Win32)
   OS := Win32
@@ -24,7 +27,7 @@ ifeq ($(OS), UNIX)
   OUTOPT = -o 
   LIBEXT = a
   ISSUE_LINK = ar cru libcxxptl.$(LIBEXT)
-  OPTFLAGS = -Wall -O2 -g
+  OPTFLAGS += -Wall -O2 -g
   BINARY = ptltest
   LINKFLAGS = -lpthread
   COMPILEONLY = -c
@@ -34,7 +37,7 @@ else
   OUTOPT = /Fe
   LIBEXT = lib
   ISSUE_LINK = lib /nologo /out:libcxxptl.$(LIBEXT)
-  OPTFLAGS = /nologo /O2 /MT
+  OPTFLAGS += /nologo /O2 /MT
   BINARY = ptltest.exe
   LINKFLAGS =
   COMPILEONLY = /c
