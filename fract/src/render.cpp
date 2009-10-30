@@ -333,11 +333,11 @@ void postframe_do(void)
 		if (get_ticks()-fpsclk>FPS_UPDATE_INTERVAL || not_fps_written_yet) {
 			not_fps_written_yet = 0;
 			sprintf(buff, "fps: %.1lf", (double) fpsfrm / ((get_ticks()-fpsclk)/1000.0));
-			font0.printxy(p, framebuffer, 0, 0, FPS_COLOR, 0.8, buff);
+			if (CVars::showfps) font0.printxy(p, framebuffer, 0, 0, FPS_COLOR, 0.8, buff);
 			fpsfrm = 0;
 			fpsclk = get_ticks();
 		} else {
-			font0.printxy(p, framebuffer, 0, 0, FPS_COLOR, 0.8, buff);
+			if (CVars::showfps) font0.printxy(p, framebuffer, 0, 0, FPS_COLOR, 0.8, buff);
 		}
 	}
 	prof_leave(PROF_SHOWFPS);
@@ -1634,6 +1634,10 @@ static void render_single_frame_photorealistic(void *p, void *v)
 		clk0 = bTime() - clk0;
 		log_frame_time(clk0);
 		konsole.photo_frame_done();
+		if (CVars::save_after_render) {
+			char filename[64];
+			take_snapshot(filename);
+		}
 	}
 }
 

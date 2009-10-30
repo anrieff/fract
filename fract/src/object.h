@@ -226,6 +226,17 @@ public:
 		count = 0;
 		cam = camera;
 	}
+	void reverse(void)
+	{
+		int i = 0, j = count - 1;
+		while (i < j) {
+			CompareStruct temp = a[i];
+			a[i] = a[j];
+			a[j] = temp;
+			i++;
+			j--;
+		}
+	}
 	void operator += (Object *o)
 	{
 		a[count].obj = o;

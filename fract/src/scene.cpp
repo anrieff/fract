@@ -349,12 +349,12 @@ int Scene::run(FPSWatch * watch, OutroCapturer * oc)
 #else
 		scene_render_single_frame();
 #endif
-#ifdef RENDER_ANIMATION
-		RawImg image(xres(), yres(), get_frame_buffer());
-		char filename[200];
-		sprintf(filename, "%simage%05d.bmp", ANIMATION_PREFIX, vframe);
-		image.save_bmp(filename);
-#endif
+		if (CVars::screencap) {
+			RawImg image(xres(), yres(), get_frame_buffer());
+			char filename[200];
+			sprintf(filename, "%simage%05d.bmp", ANIMATION_PREFIX, vframe);
+			image.save_bmp(filename);
+		}
 		if (oc) {
 			oc->check(scene_no, vframe % (cd_frames != 0 ? cd_frames : 1), bTime());
 		}

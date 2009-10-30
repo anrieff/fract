@@ -237,11 +237,7 @@
 #define FPS_UPDATE_INTERVAL 500
 #endif
 
-// uncomment to enable animation rendering - each rendered frame will be saved
-// in a seperate .bmp file
-// #define RENDER_ANIMATION
-
-// if RENDER_ANIMATION is enabled, this string will be used as a file prefix, before
+// when the screen capture is on, this string will be used as a file prefix, before
 // imageXXXX.bmp (could be a path, too):
 #define ANIMATION_PREFIX "video/"
 
