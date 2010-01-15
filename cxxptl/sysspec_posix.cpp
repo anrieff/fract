@@ -152,7 +152,7 @@ void* posix_thread_proc(void *data)
 	// fix broken pthreads implementations, where this proc's frame
 	// is not 16 byte aligned...
 	//
-#if defined __GNUC__
+#if defined __GNUC__ && !defined __x86_64__
 	__asm __volatile("andl	$-16,	%%esp" ::: "%esp");
 #endif
 	//
