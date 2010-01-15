@@ -31,6 +31,7 @@ ifeq ($(OS), UNIX)
   BINARY = ptltest
   LINKFLAGS = -lpthread
   COMPILEONLY = -c
+  INSTALL = install
 else
   CXX = cl
   OBJEXT = obj
@@ -41,6 +42,7 @@ else
   BINARY = ptltest.exe
   LINKFLAGS =
   COMPILEONLY = /c
+  INSTALL =
 endif
 
 
@@ -55,6 +57,7 @@ lib_OBJECTS = \
 SOURCES = cxxptl.cpp sysspec_linux.cpp sysspec_win32.cpp sysspec_apple.cpp\
 	sysspec_posix.cpp tester.cpp
 HEADERS = cxxptl.h
+INSTALL_PREFIX = /usr/local
 
 
 ## Phony targets
@@ -63,6 +66,16 @@ all: $(BINARY)
 
 clean:
 	-rm $(BINARY) *.$(OBJEXT) $(LIBRARY)
+
+ifeq ($(OS), UNIX)
+install: $(LIBRARY)
+	$(INSTALL) -m 644 cxxptl.h $(INSTALL_PREFIX)/include/cxxptl.h
+	$(INSTALL) -m 644 libcxxptl.a $(INSTALL_PREFIX)/lib/$(LIBRARY)
+
+uninstall:
+	rm $(INSTALL_PREFIX)/include/cxxptl.h
+	rm $(INSTALL_PREFIX)/lib/$(LIBRARY)
+endif
 
 ## Non-phony targets
 %.$(OBJEXT): %.cpp $(HEADERS)
