@@ -29,12 +29,18 @@
 /**
  @class Mutex
  **/
+
+#ifdef __APPLE__
+#	define RECURSIVE_MUTEX PTHREAD_MUTEX_RECURSIVE
+#else
+#	define RECURSIVE_MUTEX PTHREAD_MUTEX_RECURSIVE_NP
+#endif
  
 Mutex::Mutex()
 {
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+	pthread_mutexattr_settype(&attr, RECURSIVE_MUTEX);
 	pthread_mutex_init(&m, &attr);
 	pthread_mutexattr_destroy(&attr);
 }
