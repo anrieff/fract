@@ -180,6 +180,12 @@ public:
 
 #ifdef _WIN32
 //	Win32
+// exclude some unnecessary stuff from windows.h:
+#define WIN32_LEAN_AND_MEAN
+// also, define the macros min and max. Otherwise, at least on MSVC 7.1, they get defined
+// to some actual working macros by windows.h's minions, but this puzzles up std::min and std::max
+#define min min
+#define max max
 #include <windows.h>
 class Mutex {
 	CRITICAL_SECTION cs;
