@@ -495,8 +495,8 @@ static void get_mesh_info(char *basedir, char *si)
 		case 0x3d5d:
 		{
 			char objfn_in[256], objfn[256];
-			strcpy(objfn, strstr(s, "=") + 1);
-			objfn[strlen(objfn)-1]=0;
+			strcpy(objfn_in, strstr(s, "=") + 1);
+			objfn_in[strlen(objfn_in)-1]=0;
 			get_included_file(basedir, objfn_in, objfn);
 			int l = strlen(objfn);
 			//l--;

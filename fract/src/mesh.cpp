@@ -337,6 +337,7 @@ bool Mesh::read_from_obj(const char *fn)
 	int tc = 0;
 	BBox::recalc();
 	center.zero();
+	printf("Loading [%s]\n", fn);
 	f = fopen(fn, "rt");
 	triangle_count = 0;
 	if (!f) {

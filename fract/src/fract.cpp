@@ -116,7 +116,7 @@ int use_shader = 0;
 Uint32 cksum=0;
 #endif
 #ifdef DUMPPREPASS
-bool wantdump;
+bool wantdump = true;
 #endif
 
 #ifdef SHOWFPS
@@ -525,6 +525,8 @@ int main(int argc, char *argv[])
 	int run_result = RUN_OK;
 	FPSWatch stopwatch;
 	initcmdline(argc, argv);
+	option_add("--developer");
+	option_add("--cpus=1");
 	commandline_parse();
 	init_program();
 	if (option_exists("--credits")) { Scene::videoinit(); show_credits(); close_program(); return 0; }
