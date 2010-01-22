@@ -758,9 +758,9 @@ void render_spheres(Uint32 *fb, unsigned short *fbuffer,
 			fbuffer += x_start;
 			fb += x_start;
 			for (i=x_start;i<=x_end;i++,fb++,fbuffer++,t+=ti) if (*fb) {
-				if (i == 280 && j == 200) {
-					printf("BOO!\n");
-				}
+				//if (i == 222 && j == 416) {
+				//	printf("BOO!\n");
+				//}
 				dropped = *fb;
 				fi.ml = mlbuff + (i/16);
 				if (dropped & 0x80000000) {
