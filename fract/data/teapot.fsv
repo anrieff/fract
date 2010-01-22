@@ -14,7 +14,7 @@ Light.x=256
 Light.y=125.00000
 Light.z=256.00000
 
-LightQuality=0
+ShadowQuality=0
 
 # User position information:
 User.x=53.388
