@@ -57,7 +57,7 @@ DECLARE_VARIABLE(int ,   bucket_size , 0    , "Setup static bucket size");
 DECLARE_VARIABLE(int ,   dof_blades  , 0    , "# of diaphragm blades; 0 to disable");
 DECLARE_VARIABLE(int ,   bucket_path , 0    , "Bucket rendering order (0 - lin., 1 - circular)");
 DECLARE_VARIABLE(double, sph_det_t   , 0.25 , "Sphere determinant opacity threshold");
+DECLARE_VARIABLE(int ,   show_layers , 0    , "Which layer of the image to show");
 DECLARE_VARIABLE(bool,   showfps     , true , "FPS indicator toggle");
 DECLARE_VARIABLE(bool,   screencap   , false, "Screen capture toggle");
 DECLARE_VARIABLE(bool,   save_after_render, false, "Automatic screenshot after render in photomode");
-

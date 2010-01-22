@@ -962,11 +962,32 @@ void merge_buffers(Uint32 *dest, Uint32 *src, unsigned short *fbuffer)
 {
 	int y, xr, yr;
 	xr = xsize_render(xres()); yr = ysize_render(yres());
-	for (y = 0; y < yr; y++, src+=xr, dest+=xr, fbuffer+=xr) if (RowInfo[y]) {
-		if (cpu.mmx2)
-			merge_rows(dest, src, fbuffer, xr);
-			else
-			merge_rows_p5(dest, src, fbuffer, xr);
+	switch (CVars::show_layers % 4) {
+		case 0:
+		{
+			for (y = 0; y < yr; y++, src+=xr, dest+=xr, fbuffer+=xr) if (RowInfo[y]) {
+				if (cpu.mmx2)
+					merge_rows(dest, src, fbuffer, xr);
+					else
+					merge_rows_p5(dest, src, fbuffer, xr);
+			}
+			break;
+		}
+		case 1:
+			break;
+		case 2:
+			memcpy(dest, src, xr * yr * sizeof(Uint32));
+			break;
+		case 3:
+		{
+			for (y = 0; y < yr; y++, src+=xr, dest+=xr, fbuffer+=xr) {
+				for (int x = 0; x < xr; x++) {
+					unsigned t = fbuffer[x] >> 8;
+					dest[x] = t | (t << 8) | (t << 16);
+				}
+			}
+			break;
+		}
 	}
 	//memcpy(sph, flr, xsize_render(xres()) * ysize_render(yres()) * 4);
 }
