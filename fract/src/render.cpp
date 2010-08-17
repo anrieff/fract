@@ -354,10 +354,13 @@ void postframe_do(void)
 	}
 #endif
 	if (developer && stereo_mode == STEREO_MODE_NONE && CVars::crosshair) {
-		for (int j = -6; j <= 6; j++)
+		float pxAspect = float(CVars::aspect_ratio * yres() / (float) xres());
+		int range_y = ceil(1.0f + 5.0f * pxAspect);
+		for (int j = -range_y; j <= range_y; j++)
 			for (int i = -6; i <= 6; i++) {
 				Uint32 &pixel = framebuffer[(yres()/2+j)*xres() + xres()/2 + i];
-				double dist = sqrt(i*i+j*j+0.0);
+				double y = j / pxAspect;
+				double dist = sqrt(i*i + y*y);
 				if (fabs(dist-5.0) <= 1.0) {
 					float intensity = 1.0f - fabs(dist-5.0);
 					pixel = blend(0xffffff, pixel, intensity);
