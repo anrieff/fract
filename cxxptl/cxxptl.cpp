@@ -263,4 +263,7 @@ void set_best_affinity(int thread_index, bool* mask)
 		}
 	}
 }
+#else
+// dummy:
+void set_best_affinity(int thread_index, bool* mask) {}
 #endif

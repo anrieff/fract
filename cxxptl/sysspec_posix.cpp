@@ -206,7 +206,6 @@ int set_affinity_mask(const bool* mask)
 #else
 int get_affinity_mask(bool*) { return -1; }
 int set_affinity_mask(const bool*) { return -1; }
-void set_best_affinity(int thread_index, bool* mask) {}
 #endif
  
 #endif
