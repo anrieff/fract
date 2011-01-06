@@ -207,4 +207,60 @@ void my_thread_proc(ThreadInfoStruct *info)
 	info->state = THREAD_DEAD;
 }
 
+#ifndef DONT_HAVE_AFFINITY
+int _intern_cpucount(void);
 
+enum ThreadAssignmentAlgorithm {
+	TSA_STAGGERED,
+	TSA_SEQUENTIAL,
+};
+
+/*
+ * The thread affinity indices (as per the thread_mask used in set_affinity_mask())
+ * are mapped differently to the actual physical units inside the processor.
+ * Consider a four-core CPU with hyperthreading, with logical cores named CPU0..CPU7.
+ * Under Windows and Mac OS X, the assignment is something like this:
+ *
+ *  +-------------++-------------++-------------++-------------+
+ *  | CPU0 & CPU1 || CPU2 & CPU3 || CPU4 & CPU5 || CPU6 & CPU7 | (TSA_STAGGERED assignment)
+ *  +-------------++-------------++-------------++-------------+
+ *
+ * Under Linux, however, the assignment typically is
+ *
+ *  +-------------++-------------++-------------++-------------+
+ *  | CPU0 & CPU4 || CPU1 & CPU5 || CPU2 & CPU6 || CPU3 & CPU7 | (TSA_SEQUENTIAL assignment)
+ *  +-------------++-------------++-------------++-------------+
+ *
+ * So we have to do different set_best_affinity() assignments depending on OS.
+ */
+
+void set_best_affinity(int thread_index, bool* mask)
+{
+#if defined(__APPLE__) || defined(_WIN32)
+	ThreadAssignmentAlgorithm algo = TSA_STAGGERED;
+#else
+	ThreadAssignmentAlgorithm algo = TSA_SEQUENTIAL; // Linux
+#endif
+	for (int i = 0; i < MAX_CPU_COUNT; i++) mask[i] = false;
+	switch (algo) {
+		case TSA_SEQUENTIAL:
+		{
+			int n = _intern_cpucount();
+			thread_index %= n;
+			mask[thread_index] = true;
+			break;
+		}
+		case TSA_STAGGERED:
+		{
+			int n = _intern_cpucount();
+			thread_index %= n;
+			int n2 = n / 2;
+			if (n2) {
+				thread_index = 2 * (thread_index % n2) + (thread_index / n2);
+			}
+			mask[thread_index] = true;
+			break;
+		}
+	}
+}
+#endif

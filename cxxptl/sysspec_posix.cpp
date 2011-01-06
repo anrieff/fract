@@ -174,7 +174,7 @@ void new_thread(pthread_t *handle, ThreadInfoStruct *info)
 
 #ifndef DONT_HAVE_AFFINITY
 int system_get_processor_count(void);
-static int _intern_cpucount(void)
+int _intern_cpucount(void)
 {
 	static int cpucount = -1;
 	if (cpucount == -1)
@@ -202,12 +202,6 @@ int set_affinity_mask(const bool* mask)
 		if (mask[i])
 			CPU_SET(i, &s);
 	return pthread_setaffinity_np(th, sizeof(s), &s);
-}
-void set_best_affinity(int thread_index, bool* mask)
-{
-	int n = _intern_cpucount();
-	thread_index %= n;
-	mask[thread_index] = true;
 }
 #else
 int get_affinity_mask(bool*) { return -1; }
