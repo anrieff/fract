@@ -126,7 +126,7 @@ void new_thread(HANDLE *handle, ThreadInfoStruct *info)
 	CloseHandle(*handle);
 }
 
-static int _intern_cpucount(void)
+int _intern_cpucount(void)
 {
 	static int cpucount = -1;
 	if (cpucount == -1)
