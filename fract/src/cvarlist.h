@@ -61,3 +61,4 @@ DECLARE_VARIABLE(int ,   show_layers , 0    , "Which layer of the image to show"
 DECLARE_VARIABLE(bool,   showfps     , true , "FPS indicator toggle");
 DECLARE_VARIABLE(bool,   screencap   , false, "Screen capture toggle");
 DECLARE_VARIABLE(bool,   save_after_render, false, "Automatic screenshot after render in photomode");
+DECLARE_VARIABLE(double, stereo_sep  , 6.0  , "The amount of stereo separation in 3D modes");

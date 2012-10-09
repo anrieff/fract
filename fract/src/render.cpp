@@ -79,7 +79,6 @@ int stereo_mode = STEREO_MODE_NONE;
 bool stereo_crossed = false;
 Uint32 anaglyph_left_mask = 0xff0000, anaglyph_right_mask = 0x0000ff;
 double stereo_depth = 1e6;
-double stereo_separation = 6;
 Uint32 *stereo_buffer = NULL;
 bool prepass_photorealistic = true;
 bool frame_finished = false;
@@ -649,12 +648,12 @@ void bash_preframe(Vector& lw, Vector& tt, Vector& ti, Vector& tti)
 {
 	lw = light.p;
 	if (stereo_mode == STEREO_MODE_LEFT) {
-		cur -= Vector(stereo_separation * 0.5 * sin(CVars::alpha+M_PI/2), 0, stereo_separation * 0.5 * cos(CVars::alpha+M_PI/2));
-		CVars::alpha -= M_PI/2-atan(stereo_depth / (stereo_separation * 0.5));
+		cur -= Vector(CVars::stereo_sep * 0.5 * sin(CVars::alpha+M_PI/2), 0, CVars::stereo_sep * 0.5 * cos(CVars::alpha+M_PI/2));
+		CVars::alpha -= M_PI/2-atan(stereo_depth / (CVars::stereo_sep * 0.5));
 	}
 	if (stereo_mode == STEREO_MODE_RIGHT) {
-		cur += Vector(stereo_separation * 0.5 * sin(CVars::alpha+M_PI/2), 0, stereo_separation * 0.5 * cos(CVars::alpha+M_PI/2));
-		CVars::alpha += M_PI/2-atan(stereo_depth / (stereo_separation * 0.5));
+		cur += Vector(CVars::stereo_sep * 0.5 * sin(CVars::alpha+M_PI/2), 0, CVars::stereo_sep * 0.5 * cos(CVars::alpha+M_PI/2));
+		CVars::alpha += M_PI/2-atan(stereo_depth / (CVars::stereo_sep * 0.5));
 	}
 	calc_grid_basics(cur, CVars::alpha, CVars::beta, w);
 	tt = w[0];

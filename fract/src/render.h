@@ -80,7 +80,6 @@ enum StereoType {
 
 extern ObjectArray allobjects;
 extern int stereo_type;
-extern double stereo_separation;
 extern double stereo_depth;
 extern bool stereo_crossed;
 extern bool frame_finished;

@@ -19,4 +19,4 @@ noinst_HEADERS = antialias.h asmconfig.h bitmap.h blur.h cmdline.h common.h \
 											x86_asm.h shadows.h array.h vector2f.h sdtree.h bbox.h cpu.h thorus.h credits.h \
 								konsole.h konsole_commands.h cvar.h cvars.h cvarlist.h string_array.h light.h \
 			radiosity.h physics.h matrix.h
-fract_LDADD = -lSDL
+fract_LDADD = -lpthread -lSDL

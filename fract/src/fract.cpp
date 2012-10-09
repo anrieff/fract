@@ -469,7 +469,7 @@ void commandline_parse(void)
 			option_add("-w");
 		}
 		if (option_exists("--stereo-separation"))
-			stereo_separation = option_value_float("--stereo-separation");
+			CVars::stereo_sep = option_value_float("--stereo-separation");
 		if (option_exists("--stereo-depth"))
 			stereo_depth = option_value_float("--stereo-depth");
 		stereo_crossed = false;
