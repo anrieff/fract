@@ -35,6 +35,12 @@
 #define FRAME_BASED		0
 #define TIME_BASED		1
 
+enum CrossHairStyle {
+	CV_CROSSHAIR_OFF,
+	CV_CROSSHAIR_CIRCLE,
+	CV_CROSSHAIR_CROSS,
+};
+
 extern int SceneType;
 extern int BackgroundMode;
 extern int scene_count;
