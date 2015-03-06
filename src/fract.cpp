@@ -293,6 +293,7 @@ void move_sphere(char c)
 void kbd_do(int *ShouldExit)
 {
 #ifdef ACTUALLYDISPLAY
+	static bool mouse_captured = false;
 	if (konsole.wants_exit())
 		*ShouldExit = RUN_CANCELLED;
 	SDL_Event e;
@@ -310,7 +311,14 @@ void kbd_do(int *ShouldExit)
 	while ( SDL_PollEvent(&e)) { // handle keyboard & mouse
 		if ( e.type == SDL_QUIT ) *ShouldExit = RUN_CANCELLED;
 		if ( e.type == SDL_KEYDOWN ) {
-			if (e.key.keysym.sym == SDLK_ESCAPE) *ShouldExit = RUN_CANCELLED;
+			if (e.key.keysym.sym == SDLK_ESCAPE) {
+				if (!(SDL_f & SDL_FULLSCREEN) && mouse_captured) {
+					mouse_captured = false;
+					SDL_WM_GrabInput(SDL_GRAB_OFF);
+				} else 
+					*ShouldExit = RUN_CANCELLED;
+
+			}
 			if (e.key.keysym.sym == SDLK_F12) { // F12 is screenshot shortcut
 				take_snapshot();
 			}
@@ -418,7 +426,13 @@ void kbd_do(int *ShouldExit)
 			}
 #endif
 		}
-		if (CVars::crosshair && e.type == SDL_MOUSEBUTTONDOWN ) {
+		bool mouse_just_captured = false;
+		if (e.type == SDL_MOUSEBUTTONDOWN && !(SDL_f & SDL_FULLSCREEN) && !mouse_captured) {
+			mouse_captured = true;
+			mouse_just_captured = true;
+			SDL_WM_GrabInput(SDL_GRAB_ON);
+		}
+		if (CVars::crosshair && e.type == SDL_MOUSEBUTTONDOWN && !mouse_just_captured) {
 			if (e.button.button == 1 || e.button.button == 3) {
 				process_shot(cur, e.button.button == 1 ? 1 : 5);
 			}
