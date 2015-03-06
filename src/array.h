@@ -57,6 +57,21 @@ public:
 	{
 		add(t);
 	}
+	inline void resize(int newSize)
+	{
+		if (newSize < 0) newSize = 0;
+		if (newSize <= _cap) {
+			_size = newSize;
+			return;
+		} else {
+			_cap = newSize > 0 ? newSize : 1;
+			T* newData = new T[_cap];
+			for (int i = 0; i < _size; i++) newData[i] = data[i];
+			delete[] data;
+			data = newData;
+			_size = newSize;
+		}
+	}
 	inline int size() const
 	{
 		return _size;
