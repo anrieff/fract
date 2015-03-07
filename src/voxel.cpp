@@ -940,7 +940,7 @@ struct PixelInfo {
 
 void pixel_get_info(const Vector & t, PixelInfo &pinfo)
 {
-	Vector temp;
+	Vector temp(0, 0, 0);
 	if (pinfo.vox_num == -1) {
 		Vector t1, t2;
 		pinfo.depth = vox[0].hierarchy.ray_intersect(cur, t, t1);
