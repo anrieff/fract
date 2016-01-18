@@ -203,7 +203,7 @@ Uint32 *get_frame_buffer(void)
 
 int determine_xres(int x)
 {
-	return ((stereo_type == STEREO_TYPE_PARALLEL) ? (2*x+8) : x);
+	return ((stereo_type == STEREO_TYPE_PARALLEL) ? (2*x) : x);
 }
 
 /*
@@ -223,7 +223,7 @@ void postframe_do(void)
 	ddestrect.y = 0;
 	ddestrect.w = xres();
 	if (stereo_type == STEREO_TYPE_PARALLEL) {
-		ddestrect.w = ddestrect.w * 2 + 8;
+		ddestrect.w = ddestrect.w * 2;
 	}
 	ddestrect.h = yres();
 #endif
@@ -430,10 +430,10 @@ void postframe_do(void)
 		if (stereo_type == STEREO_TYPE_PARALLEL) {
 			int xx = xres();
 			bool isleft = stereo_mode == STEREO_MODE_LEFT;
-			int xoffset = (stereo_crossed ^ isleft) ? 0 : xx + 8;
+			int xoffset = (stereo_crossed ^ isleft) ? 0 : xx;
 			
 			for (int j = 0; j < yres(); j++) 
-				memcpy(&stereo_buffer[xoffset + j * (xx * 2+8)], &framebuffer[j * xx], xx * 4);
+				memcpy(&stereo_buffer[xoffset + j * (xx * 2)], &framebuffer[j * xx], xx * 4);
 		} else {
 			int size = xres() * yres();
 			Uint32 overlapping = anaglyph_left_mask & anaglyph_right_mask;
