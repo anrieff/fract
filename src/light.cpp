@@ -127,6 +127,8 @@ float* PointLight::build_lightmap_side(const Vector &dv)
 
 int PointLight::in_shadow(const Vector & point)
 {
+	if (CVars::shadow_algo == 1)
+		return pure_raytrace_shadow(point);
 	Vector dir;
 	dir.make_vector(point, p);
 	float dist = dir.lengthSqr();
@@ -179,6 +181,20 @@ void PointLight::rebuild_lightmap(void)
 		if (maps[i]) free(maps[i]);
 		maps[i] = build_lightmap_side(dv);
 	}
+}
+
+int PointLight::pure_raytrace_shadow(const Vector& point)
+{
+	Vector dir;
+	dir.make_vector(this->p, point);
+	dir.norm();
+	for (int i = 0; i < spherecount; i++)
+		if (sp[i].sintersect(point, dir, 0))
+			return 1;
+	for (int i = 0; i < mesh_count; i++)
+		if (mesh[i].sintersect(point, dir, 0))
+			return 1;
+	return 0;
 }
 
 

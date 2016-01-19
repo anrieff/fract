@@ -73,6 +73,7 @@ enum ShadowMode {
  */ 
 class PointLight {
 	float* build_lightmap_side(const Vector & dv);
+	int pure_raytrace_shadow(const Vector& point);
 public:
 	Vector p; // the actual light point
 	float *maps[6]; // cube map of depths
