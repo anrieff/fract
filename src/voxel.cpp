@@ -1241,7 +1241,7 @@ Uint32 voxel_raytrace(const Vector & cur, const Vector & v)
 {
 	int bk = -1;
 	float mdist = 1e6;
-	Vector bv;
+	Vector bv(0, 0, 0);
 	for (int k = 0; k < NUM_VOXELS; k++) {
 		Vector vv;
 		float t = vox[k].hierarchy.ray_intersect(cur, v, vv);

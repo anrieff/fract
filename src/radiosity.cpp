@@ -908,7 +908,7 @@ public:
 			
 			/* See where it hits the heightfields */
 			int bk = -1;
-			Vector bv;
+			Vector bv(0, 0, 0);
 			float mdist = 1e6;
 			for (int k = 0; k < 2; k++) {
 				Vector vv;

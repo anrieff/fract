@@ -390,7 +390,6 @@ static bool get_included_file(const char* basedir, const char* given_path, char*
 	// if any directory delimiters are given, use the path provided
 	// else use the directory of the .fsv file
 	if (!strchr(given_path, '/')) {
-		char temp[256];
 		strcpy(final_path, basedir);
 		strcat(final_path, given_path);
 	} else {

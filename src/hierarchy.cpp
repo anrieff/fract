@@ -200,7 +200,7 @@ float Hierarchy::ray_intersect_exact(const Vector & orig, const Vector & proj, V
 	int X, Z, stepX, stepZ;
 	float tMaxX, tMaxZ, tDeltaX, tDeltaZ, last;
 	float cdist;
-	Vector Camera; // camera is where the first point above the heightfield is
+	Vector Camera(0, 0, 0); // camera is where the first point above the heightfield is
 	/* check whether we are "below" the terrain */
 	if (INRANGE(orig)) {
 		coords_inited = true;

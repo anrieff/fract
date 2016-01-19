@@ -26,6 +26,22 @@
 #	define XALIGN
 #endif
 
+/*
+ * most assembly functions need to be set to be never inlined; otherwise
+ * we get linker errors for duplicating symbols. To deal with that, issue
+ * a declaration of the function, followed by "DONT_INLINE". This marks
+ * the function as non-copyable, non-inlineable. The other way to do this
+ * is to use void DONT_INLINE func(...), i.e. placing the macro between
+ * the return type and the function name.
+ */
+#if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ > 4))
+	// the "noclone" attribute is added (and seems to be required)
+	// in gcc 4.5 and above:
+	#define DONT_INLINE __attribute__((noinline,noclone))
+#else
+	#define DONT_INLINE __attribute__((noinline))
+#endif
+
 // generic assembly snipplet, emits the EMMS instruction
 #ifdef emit_emms
 		__asm __volatile ("emms");
@@ -874,21 +890,21 @@ long long prof_rdtsc(void)
 /* here comes a quick list of all functions with the needed stuff to tell gcc not to inline them */
 
 void convolve_mmx_w_shifts_generic(Uint32 *src, Uint32 *dest, int resx, int resy,
-					ConvolveMatrix *M, int shift) __attribute__ ((noinline));
+					ConvolveMatrix *M, int shift) DONT_INLINE;
 void convolve_mmx_w_shifts_3(Uint32 *src, Uint32 *dest, int resx, int resy,
-					ConvolveMatrix *M, int shift) __attribute__ ((noinline));
+					ConvolveMatrix *M, int shift) DONT_INLINE;
 void convolve_mmx_w_shifts_5(Uint32 *src, Uint32 *dest, int resx, int resy,
-					ConvolveMatrix *M, int shift) __attribute__ ((noinline));
-void fft_1D_complex_sse(int dir, int m, float *x, float *y) __attribute__ ((noinline));
+					ConvolveMatrix *M, int shift) DONT_INLINE;
+void fft_1D_complex_sse(int dir, int m, float *x, float *y) DONT_INLINE;
 
-void shader_gamma_shl(Uint32 *src, Uint32 *dest, int resx, int resy, int shift) __attribute__ ((noinline));
-void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift) __attribute__ ((noinline));
-void float_copy_ij_i(float *a, float *b, complex c[], int fft_size) __attribute__ ((noinline));
-void float_copy_i_ij(float *a, float *b, complex c[], int fft_size) __attribute__ ((noinline));
-void float_copy_ij_j(float *a, float *b, complex c[], int fft_size) __attribute__ ((noinline));
-void float_copy_j_ij(float *a, float *b, complex c[], int fft_size) __attribute__ ((noinline));
-void shader_spill_mmx(Uint8*, Uint8*, int, int, float) __attribute__ ((noinline));
-void shader_fbmerge_mmx2(Uint32 *, Uint8 *, int, int, float, Uint32) __attribute__((noinline));
+void shader_gamma_shl(Uint32 *src, Uint32 *dest, int resx, int resy, int shift) DONT_INLINE;
+void shader_gamma_shr(Uint32 *src, Uint32 *dest, int resx, int resy, int shift) DONT_INLINE;
+void float_copy_ij_i(float *a, float *b, complex c[], int fft_size) DONT_INLINE;
+void float_copy_i_ij(float *a, float *b, complex c[], int fft_size) DONT_INLINE;
+void float_copy_ij_j(float *a, float *b, complex c[], int fft_size) DONT_INLINE;
+void float_copy_j_ij(float *a, float *b, complex c[], int fft_size) DONT_INLINE;
+void shader_spill_mmx(Uint8*, Uint8*, int, int, float) DONT_INLINE;
+void shader_fbmerge_mmx2(Uint32 *, Uint8 *, int, int, float, Uint32) DONT_INLINE;
 /*
 	convolve_mmx_w_shifts_generic
 
@@ -2325,8 +2341,7 @@ void shader_fbmerge_mmx2(Uint32 *dest, Uint8 * src, int resx, int resy, float in
 	);
 }
 
-void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[], int ti, int tc) __attribute__((noinline));
-void shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[], int ti, int tc)
+void DONT_INLINE shader_sobel_sse(Uint32 *src, Uint32 *dest, int resx, int resy, const int hk[], const int vk[], int ti, int tc)
 {
 	SSE_ALIGN(short int h_kernel[9][4]);
 	SSE_ALIGN(short int v_kernel[9][4]);
@@ -2516,7 +2531,7 @@ XALIGN
 #endif
 
 #ifdef apply_fft_filter_asm
-void apply_fft_filter_sse(complex *dest, float *filter, int fft_size)
+void DONT_INLINE apply_fft_filter_sse(complex *dest, float *filter, int fft_size)
 {
 	if (!filter) return;
 	fft_size = fft_size * fft_size / 4;
@@ -3108,7 +3123,7 @@ void merge_rows(Uint32 *flr, Uint32 *sph, unsigned short *multi, int count)
 	note: count must be divisable by 4!
  ***********************************************************************/
 
-void __attribute__((noinline)) shadows_merge_mmx2(Uint32 *dst, Uint16 *src, int count)
+void DONT_INLINE shadows_merge_mmx2(Uint32 *dst, Uint16 *src, int count)
 {
 	unsigned short bandmask[4] = {255, 255, 255, 255};
 	count /= 4;
