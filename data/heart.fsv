@@ -10,7 +10,7 @@
 #Global Entries:
 #
 
-SceneType=FrameBased
+SceneType=TimeBased
 
 # Light source coordinates:
 Light.x=256.00000
@@ -34,7 +34,7 @@ Physics=1
 CollDetect=1
 
 # Physics engine parameters
-sv_gravity=0.000000
+sv_gravity=160.000000
 sv_air=3.990000
 fov=1.000000
 
@@ -65,7 +65,7 @@ Sphere[0].flags.recursive=1
 Sphere[0].flags.transparent=0
 Sphere[0].flags.recurse_self=0
 Sphere[0].flags.static=1
-Sphere[0].flags.collideable=0
+Sphere[0].flags.collideable=1
 Sphere[0].flags.animated=0
 Sphere[0].flags.gravity=0
 Sphere[0].flags.air=0
@@ -90,7 +90,7 @@ Sphere[1].flags.recursive=1
 Sphere[1].flags.transparent=0
 Sphere[1].flags.recurse_self=0
 Sphere[1].flags.static=1
-Sphere[1].flags.collideable=0
+Sphere[1].flags.collideable=1
 Sphere[1].flags.animated=0
 Sphere[1].flags.gravity=0
 Sphere[1].flags.air=0
@@ -115,7 +115,7 @@ Sphere[2].flags.recursive=1
 Sphere[2].flags.transparent=0
 Sphere[2].flags.recurse_self=0
 Sphere[2].flags.static=1
-Sphere[2].flags.collideable=0
+Sphere[2].flags.collideable=1
 Sphere[2].flags.animated=0
 Sphere[2].flags.gravity=0
 Sphere[2].flags.air=0
@@ -140,7 +140,7 @@ Sphere[3].flags.recursive=1
 Sphere[3].flags.transparent=0
 Sphere[3].flags.recurse_self=0
 Sphere[3].flags.static=1
-Sphere[3].flags.collideable=0
+Sphere[3].flags.collideable=1
 Sphere[3].flags.animated=0
 Sphere[3].flags.gravity=0
 Sphere[3].flags.air=0
@@ -165,7 +165,7 @@ Sphere[4].flags.recursive=1
 Sphere[4].flags.transparent=0
 Sphere[4].flags.recurse_self=0
 Sphere[4].flags.static=1
-Sphere[4].flags.collideable=0
+Sphere[4].flags.collideable=1
 Sphere[4].flags.animated=0
 Sphere[4].flags.gravity=0
 Sphere[4].flags.air=0
@@ -190,7 +190,7 @@ Sphere[5].flags.recursive=1
 Sphere[5].flags.transparent=0
 Sphere[5].flags.recurse_self=0
 Sphere[5].flags.static=1
-Sphere[5].flags.collideable=0
+Sphere[5].flags.collideable=1
 Sphere[5].flags.animated=0
 Sphere[5].flags.gravity=0
 Sphere[5].flags.air=0
