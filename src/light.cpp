@@ -219,14 +219,14 @@ void Light::reposition(void)
 
 float Light::shadow_density(const Vector & point)
 {
-	int n = iterations[CVars::shadowquality];
+	int n = iterations[CVars::shadow_quality];
 	int sum = 0;
 	for (int i = 0; i < n; i++) {
 		int r = points[i].in_shadow(point);
 		if (r == -1) return 0.0f; // optimization hack
 		else sum += r;
 	}
-	return sum * divs[CVars::shadowquality];
+	return sum * divs[CVars::shadow_quality];
 }
 
 void Light::rebuild_lightmaps(void)

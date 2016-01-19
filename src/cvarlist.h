@@ -34,8 +34,8 @@ DECLARE_VARIABLE(int,    v_ores      , 16   , "voxel outer image sampling size")
 DECLARE_VARIABLE(double, v_ires      , 0.5  , "voxel inner image sampling multiplier");
 DECLARE_VARIABLE(bool,   v_showspeed , false, "show processing time for each sub-block");
 DECLARE_VARIABLE(int,    v_maxdiff   , 10   , "threshold for corners' colors difference");
-DECLARE_VARIABLE(int,    shadow_algo , 0    , "0 - raster shadow algo, 1 - raytracing");
-DECLARE_VARIABLE(int,    shadowquality,  1  , "shadow quality selector");
+DECLARE_VARIABLE(int,    shadow_algo , 0    , "0 - raster algo, 1 - raytracing; 2 - shadowmap");
+DECLARE_VARIABLE(int,    shadow_quality, 1  , "shadow quality selector in shadow map mode");
 DECLARE_VARIABLE(int,    lmsize,       0    , "light map size");
 DECLARE_VARIABLE(int,    gloss_samples, 1   , "glossiness samples per raytrace");
 DECLARE_VARIABLE(bool,   physics     , true , "toggles the physics engine");
