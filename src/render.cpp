@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <map>
 
 #define RENDER_CPP
 #include "MyGlobal.h"
@@ -311,11 +312,11 @@ void postframe_do(void)
 	}
 #endif
 #ifdef DUMPPREPASS
-	if (wantdump) {
+	/*if (wantdump) {
 		wantdump = false;
 		RawImg dump(xres(), yres(), framebuffer);
 		dump.save_bmp("final_dump.bmp");
-	}
+	}*/
 #endif
 	if (savevideo) {
 		static int video_frame = 0;
@@ -644,10 +645,10 @@ void preframe_do(Uint32 *ptr, const Vector& lw, bool do_projection)
 	good = worse = realbad = 0;
 #endif
 #ifdef DUMPPREPASS
-	if (wantdump) {
+	/*if (wantdump) {
 		RawImg dump(xsize_render(xres()), ysize_render(yres()), ptr);
 		dump.save_bmp("prepass_dump.bmp");
-	}
+	}*/
 #endif
 	if (option_exists("--radiosity")) {
 		radiosity_calculate(thread_pool);
@@ -1007,6 +1008,22 @@ void merge_buffers(Uint32 *dest, Uint32 *src, unsigned short *fbuffer)
 	//memcpy(sph, flr, xsize_render(xres()) * ysize_render(yres()) * 4);
 }
 
+void colorify_prepass(Uint32* ptr, int items)
+{
+	static std::map<Uint32, Uint32> h;
+	for (int i = 0; i < items; i++) {
+		Uint32& t = ptr[i];
+		std::map<Uint32, Uint32>::iterator it = h.find(t);
+		if (it != h.end()) {
+			t = it->second;
+		} else {
+			Uint32 old = t;
+			t = rand() % 0x1000000;
+			h.insert(std::make_pair(old, t));
+		}
+	}
+}
+
 /*
 	This is the SSE version of the renderer (well, this routine is merely a nasty caller)
 	The idea is:
@@ -1042,6 +1059,13 @@ void render_single_frame_do(void)
 
 	prof_enter(PROF_BASH_PREFRAME);		bash_preframe(lw, tt, ti, tti);			prof_leave(PROF_BASH_PREFRAME);
 	prof_enter(PROF_PREFRAME_DO);		preframe_do( spherebuffer, lw, true);		prof_leave(PROF_PREFRAME_DO);
+	
+	if (wantdump) {
+		colorify_prepass(spherebuffer, xr * yr);
+		memcpy(ptr, spherebuffer, xr * yr * 4);
+		postframe_do(p, ov);
+		return;
+	}
 
 	if (BackgroundMode == BACKGROUND_MODE_VOXEL)
 		voxel_frame_init(tt, ti, tti, ptr);

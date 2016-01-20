@@ -411,9 +411,7 @@ void kbd_do(int *ShouldExit)
 			if (e.key.keysym.sym == SDLK_c) switch_rgbmethod();
 			if (e.key.keysym.sym == SDLK_s) r_shadows = !r_shadows;
 			if (e.key.keysym.sym == SDLK_t) mesh_count = 1- mesh_count;
-#ifdef DUMPPREPASS
-			if (e.key.keysym.sym == SDLK_d) wantdump = true;
-#endif
+			if (e.key.keysym.sym == SDLK_d) wantdump = !wantdump;
 #ifdef BLUR
 			if (e.key.keysym.sym == SDLK_b) {
 				if (keystate[SDLK_LSHIFT] || keystate[SDLK_RSHIFT]) {
