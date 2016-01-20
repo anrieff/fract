@@ -449,7 +449,7 @@ void kbd_do(int *ShouldExit)
 	}
 	
 	SDL_GetRelativeMouseState(&deltax, &deltay);
-	rotate_camera(mouse_sensitivity*deltax, -mouse_sensitivity*deltay);
+	rotate_camera(CVars::mousespeed * mouse_sensitivity * deltax, CVars::mousespeed * -mouse_sensitivity * deltay);
 	check_params();
 #endif
 }

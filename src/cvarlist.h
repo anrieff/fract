@@ -62,3 +62,4 @@ DECLARE_VARIABLE(bool,   showfps     , true , "FPS indicator toggle");
 DECLARE_VARIABLE(bool,   screencap   , false, "Screen capture toggle");
 DECLARE_VARIABLE(bool,   save_after_render, false, "Automatic screenshot after render in photomode");
 DECLARE_VARIABLE(double, stereo_sep  , 6.0  , "The amount of stereo separation in 3D modes");
+DECLARE_VARIABLE(double, mousespeed,   1.0  , "Relative mouse sensitivity (1.0 = normal)");
