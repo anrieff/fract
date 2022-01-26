@@ -1075,7 +1075,7 @@ void render_single_frame_do(void)
 	t0 = tt;
 	
 	if (cpu.count==1) {
-		InterlockedInt i1 = 0, i2 = 0;
+		InterlockedInt i1(0), i2(0);
 		render_background(ptr, xr, yr, tt, ti, tti, 0, i1);
 
 		tt = t0;

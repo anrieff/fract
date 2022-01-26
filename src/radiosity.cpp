@@ -1006,8 +1006,8 @@ public:
 				}
 			}
 			apl++;
-			lpl.add(P[0].n);
-			epl.add(P[1].n);
+			lpl += P[0].n;
+			epl += P[1].n;
 		}
 		
 		res[k][j*n+i] = r * (rad_amplification/rad_spv);
@@ -1031,9 +1031,9 @@ public:
 	
 	void preview_pls(void)
 	{
-		double all = apl.get();
-		double s1 = lpl.get() / all;
-		double s2 = epl.get() / all;
+		double all = apl.load();
+		double s1 = lpl.load() / all;
+		double s2 = epl.load() / all;
 		printf("\rAvgLPL = %.2lf; AvgEPL = %.2lf", s1, s2);
 		fflush(stdout);
 	}

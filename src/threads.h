@@ -20,6 +20,8 @@
 
 #ifndef __CXXPTL_H__
 #define __CXXPTL_H__
+
+#include <atomic>
  
 /**
  * CXXPTL - C++ Portable Thread Library
@@ -81,33 +83,11 @@ int get_processor_count(void);
 */ 
 void multithreaded_memset(void *data, unsigned fill_pattern, long size, int thread_index, int threads_count);
 
-/**
- * atomic_add
- * Adds `val' to the integer, pointed by `addr', in an interlocked operation.
- * Returns the value of `addr' before the addition
-*/  
-int atomic_add(volatile int *addr, int val);
-
 //
 // OK, the classes next
 //
 
-/// Simple interlocked variable, with atomic increment and decrementing operators
-class InterlockedInt {
-	volatile int data;
-public:
-	InterlockedInt() {}
-	InterlockedInt(int val) { set(val); }
-	inline void set(int x) { data = x; }
-	inline int get(void) { return data; }
-	inline int operator ++ () { return 1 + atomic_add(&data, 1); }
-	inline int operator ++ (int) { return atomic_add(&data, 1); }
-	inline int operator -- () { return -1 + atomic_add(&data, -1); }
-	inline int operator -- (int) { return atomic_add(&data, -1); }
-	
-	/// adds the given value to the variable and returns the value before the addition
-	inline int add(int value) { return atomic_add(&data, value); }
-};
+using InterlockedInt = std::atomic<int>;
 
 /**
  * @class Mutex

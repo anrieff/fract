@@ -4017,18 +4017,6 @@ static void get_vendor_string(char *name) // for benchmarking only:
 }
 #endif
 
-#ifdef threads1 
-int atomic_add(volatile int *addr, int val) 
-{
-	__asm__ __volatile__(
-		"lock; xadd	%0,	%1\n"
-		:"=r"(val), "=m"(*addr)
-		:"0"(val), "m"(*addr)
-	);
-	return val;
-}
-#endif
-
 #ifdef VECTOR3_ASM
 #define sse_rcp(x) \
 ({\
@@ -8177,19 +8165,6 @@ static void get_vendor_string(char *name) // for benchmarking only:
 }
 #endif // rgbhacks2
 
-#ifdef threads1 
-int atomic_add(volatile int addr[], int val) 
-{
-	__asm {
-		mov		edx,	addr
-		mov		eax,	val
-		lock xadd	[edx],	eax
-		mov		val,		eax
-	}
-	return val;
-}
-#endif
-
 #ifdef VECTOR3_ASM
 static inline float sse_rcp(float x)  
 {
@@ -8278,14 +8253,6 @@ void ConvertRGB2YV12_MMX2(Uint8*, Uint8*, Uint8*, Uint32*, int, int, int, int, i
 #endif
 #ifdef rgbhacks2
 static void get_vendor_string(char *name);
-#endif
-#ifdef threads1 
-int atomic_add(volatile int *addr, int val) 
-{
-	int x = *addr;
-	addr[0]+=val;
-	return x;
-}
 #endif
 
 #endif // USE_ASSEMBLY

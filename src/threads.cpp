@@ -211,23 +211,6 @@ void Barrier::checkout(void)
 
 // FUNCTIONS
 
-int atomic_add(volatile int *addr, int val) 
-{
-#ifdef _ARCH_PPC
-	// if under PPC, use generic GNU functions (hopefully working on
-	// all targets, I didn't have the chance to test)
-	return (int) __exchange_and_add((volatile _Atomic_word*)addr,
-				        (_Atomic_word)val);
-#else
-	// else, assume X86
-	__asm__ __volatile__(
-			"lock; xadd	%0,	%1\n"
-	:"=r"(val), "=m"(*addr)
-	:"0"(val), "m"(*addr)
-			    );
-	return val;
-#endif
-}
 //
 void* posix_thread_proc(void *data)
 {
