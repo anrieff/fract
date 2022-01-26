@@ -874,12 +874,12 @@ Uint32 blend_sse0(Uint32 f, Uint32 b, float ff)
 #ifdef profile_asm
 long long prof_rdtsc(void)
 {
-	long long r;
+	union { long long r; int a[2]; };
 	__asm __volatile(
 		"	rdtsc				\n"
 		"	movl	%%eax,	%0		\n"
 		"	movl	%%edx,	4%0		\n"
-		:"=m"(r)
+		:"=m"(a)
 		::"memory", "eax", "edx"
 	);
 	return r;
