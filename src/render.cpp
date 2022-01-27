@@ -1063,7 +1063,9 @@ void render_single_frame_do(void)
 	if (wantdump) {
 		colorify_prepass(spherebuffer, xr * yr);
 		memcpy(ptr, spherebuffer, xr * yr * 4);
+#ifdef ACTUALLYDISPLAY
 		postframe_do(p, ov);
+#endif
 		return;
 	}
 
