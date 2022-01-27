@@ -13,7 +13,7 @@
 // Useful for compilation on non-x86 machines
 // Will shut itself off automagically on x86_64 and PowerPC
 
-#if !defined __x86_64__ && !defined _ARCH_PPC
+#if !defined __x86_64__ && !defined _ARCH_PPC && !defined __ARM_ARCH
 #define USE_ASSEMBLY
 #endif
 
